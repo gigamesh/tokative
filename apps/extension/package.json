@@ -1,0 +1,21 @@
+{
+  "name": "@tiktok-buddy/extension",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/dev.js",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "chokidar": "^3.6.0",
+    "esbuild": "^0.20.0",
+    "jsdom": "^24.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.3.0",
+    "ws": "^8.16.0"
+  }
+}

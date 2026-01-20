@@ -1,0 +1,219 @@
+import { SELECTORS, querySelector, querySelectorAll } from "../selectors";
+
+const ACTIVITY_BUTTON_HTML = `
+<button class="TUXButton TUXButton--default TUXButton--medium TUXButton--secondary" data-e2e="nav-activity" aria-label="Activity" role="listitem">
+  <div class="TUXButton-content">
+    <div class="TUXButton-label">Activity</div>
+  </div>
+</button>
+`;
+
+const NOTIFICATION_PANEL_HTML = `
+<div data-e2e="inbox-notifications" class="css-75qc1a">
+  <div class="css-2kl231">
+    <h2>Notifications</h2>
+    <div data-e2e="inbox-bar" role="tablist">
+      <button data-e2e="all" role="tab" aria-selected="true">All activity</button>
+      <button data-e2e="likes" role="tab" aria-selected="false">Likes</button>
+      <button data-e2e="comments" role="tab" aria-selected="false">Comments</button>
+      <button data-e2e="mentions" role="tab" aria-selected="false">Mentions and tags</button>
+      <button data-e2e="followers" role="tab" aria-selected="false">Followers</button>
+    </div>
+  </div>
+  <div data-e2e="inbox-list" id="header-inbox-list" tabindex="0" role="tabpanel">
+    <ul>
+      <li>
+        <div data-e2e="inbox-list-item">
+          <a href="/@vandan.mp3" data-e2e="inbox-title">"</a>
+          <p data-e2e="inbox-content">
+            <span class="css-1qwdeqs"> commented: How soon we talking cuz I need this expeditiously</span> 4m ago
+          </p>
+        </div>
+      </li>
+      <li>
+        <div data-e2e="inbox-list-item">
+          <a href="/@sirnebulas" data-e2e="inbox-title">sir nebulas</a>
+          <p data-e2e="inbox-content">
+            <span class="css-1qwdeqs"> commented: 1 million likes incoming</span> 1h ago
+          </p>
+        </div>
+      </li>
+      <li>
+        <div data-e2e="inbox-list-item">
+          <a href="/@user123" data-e2e="inbox-title">user123</a>
+          <p data-e2e="inbox-content">started following you. 24s ago</p>
+        </div>
+      </li>
+      <li>
+        <div data-e2e="inbox-list-item">
+          <a href="/@simplydadd" data-e2e="inbox-title">Dad</a>
+          <p data-e2e="inbox-content">
+            <span class="css-1qwdeqs"> commented: That's clever as shit</span> 1h ago
+          </p>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>
+`;
+
+const MESSAGE_INPUT_HTML = `
+<div data-e2e="message-input-area" class="css-qp35bq">
+  <div class="DraftEditor-root">
+    <div class="DraftEditor-editorContainer">
+      <div aria-label="Send a message..."
+           class="notranslate public-DraftEditor-content"
+           contenteditable="true"
+           role="textbox">
+        <div data-contents="true">
+          <div data-block="true"><span><br data-text="true"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+const MESSAGE_BUTTON_HTML = `
+<a class="link-a11y-focus" href="/messages?lang=en&u=123456">
+  <button class="TUXButton" data-e2e="message-button">
+    <div class="TUXButton-content">
+      <div class="TUXButton-label">Message</div>
+    </div>
+  </button>
+</a>
+`;
+
+describe("TikTok Selectors", () => {
+  describe("activityButton", () => {
+    let container: HTMLElement;
+
+    beforeEach(() => {
+      container = document.createElement("div");
+      container.innerHTML = ACTIVITY_BUTTON_HTML;
+      document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+      document.body.removeChild(container);
+    });
+
+    it("finds activity button by data-e2e attribute", () => {
+      const button = querySelector(SELECTORS.activityButton, container);
+      expect(button).not.toBeNull();
+      expect(button?.tagName).toBe("BUTTON");
+      expect(button?.getAttribute("data-e2e")).toBe("nav-activity");
+    });
+  });
+
+  describe("notificationPanel", () => {
+    let container: HTMLElement;
+
+    beforeEach(() => {
+      container = document.createElement("div");
+      container.innerHTML = NOTIFICATION_PANEL_HTML;
+      document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+      document.body.removeChild(container);
+    });
+
+    it("finds notification panel", () => {
+      const panel = querySelector(SELECTORS.notificationPanel, container);
+      expect(panel).not.toBeNull();
+      expect(panel?.getAttribute("data-e2e")).toBe("inbox-notifications");
+    });
+
+    it("finds comments tab", () => {
+      const tab = querySelector(SELECTORS.commentsTab, container);
+      expect(tab).not.toBeNull();
+      expect(tab?.getAttribute("data-e2e")).toBe("comments");
+      expect(tab?.textContent).toBe("Comments");
+    });
+
+    it("finds inbox list", () => {
+      const list = querySelector(SELECTORS.inboxList, container);
+      expect(list).not.toBeNull();
+      expect(list?.getAttribute("data-e2e")).toBe("inbox-list");
+    });
+
+    it("finds all inbox items", () => {
+      const items = querySelectorAll(SELECTORS.inboxItem, container);
+      expect(items.length).toBe(4);
+    });
+
+    it("finds inbox title within item", () => {
+      const items = querySelectorAll(SELECTORS.inboxItem, container);
+      const title = querySelector(SELECTORS.inboxTitle, items[1]);
+      expect(title).not.toBeNull();
+      expect(title?.textContent).toBe("sir nebulas");
+    });
+
+    it("finds inbox content within item", () => {
+      const items = querySelectorAll(SELECTORS.inboxItem, container);
+      const content = querySelector(SELECTORS.inboxContent, items[1]);
+      expect(content).not.toBeNull();
+      expect(content?.textContent).toContain("commented:");
+      expect(content?.textContent).toContain("1 million likes incoming");
+    });
+  });
+
+  describe("messageButton", () => {
+    let container: HTMLElement;
+
+    beforeEach(() => {
+      container = document.createElement("div");
+      container.innerHTML = MESSAGE_BUTTON_HTML;
+      document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+      document.body.removeChild(container);
+    });
+
+    it("finds message button by data-e2e attribute", () => {
+      const button = querySelector(SELECTORS.messageButton, container);
+      expect(button).not.toBeNull();
+      expect(button?.getAttribute("data-e2e")).toBe("message-button");
+    });
+
+    it("finds message link by href pattern", () => {
+      const link = container.querySelector('a[href*="/messages?"]');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute("href")).toContain("/messages?");
+    });
+  });
+
+  describe("messageInput", () => {
+    let container: HTMLElement;
+
+    beforeEach(() => {
+      container = document.createElement("div");
+      container.innerHTML = MESSAGE_INPUT_HTML;
+      document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+      document.body.removeChild(container);
+    });
+
+    it("finds message input area", () => {
+      const area = querySelector(SELECTORS.messageInputArea, container);
+      expect(area).not.toBeNull();
+      expect(area?.getAttribute("data-e2e")).toBe("message-input-area");
+    });
+
+    it("finds contenteditable input within message area", () => {
+      const input = querySelector(SELECTORS.messageInput, container);
+      expect(input).not.toBeNull();
+      expect(input?.getAttribute("contenteditable")).toBe("true");
+      expect(input?.classList.contains("public-DraftEditor-content")).toBe(true);
+    });
+
+    it("finds input with role textbox", () => {
+      const input = querySelector(SELECTORS.messageInput, container);
+      expect(input?.getAttribute("role")).toBe("textbox");
+    });
+  });
+});
