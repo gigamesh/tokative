@@ -8,6 +8,7 @@ const entryPoints = [
   { in: "src/background/index.ts", out: "background" },
   { in: "src/content/dashboard-bridge.ts", out: "content/dashboard-bridge" },
   { in: "src/content/tiktok/index.ts", out: "content/tiktok" },
+  { in: "src/content/tiktok/extract-react-props.ts", out: "content/extract-react-props" },
   { in: "src/popup/index.ts", out: "popup" },
 ];
 

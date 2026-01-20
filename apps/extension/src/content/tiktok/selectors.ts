@@ -47,6 +47,32 @@ export const SELECTORS = {
     '[data-e2e="message-input-area"] [contenteditable="true"]',
     '.DraftEditor-root [contenteditable="true"]',
   ],
+
+  commentItem: [
+    '[data-e2e="comment-level-1"]',
+  ],
+
+  commentUsername: [
+    '[data-e2e="comment-username-1"]',
+  ],
+
+  commentText: [
+    '[data-e2e="comment-level-1"] span[data-e2e="comment-text"]',
+    '[data-e2e="comment-level-1"] > div > span',
+  ],
+
+  commentReplyButton: [
+    '[data-e2e="comment-reply-1"]',
+  ],
+
+  commentInput: [
+    '[data-e2e="comment-input"]',
+    '[data-e2e="comment-input"] [contenteditable="true"]',
+  ],
+
+  commentPostButton: [
+    '[data-e2e="comment-post"]',
+  ],
 };
 
 export function querySelector<T extends Element>(

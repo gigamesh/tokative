@@ -2,8 +2,16 @@ import { MessageType, ExtensionMessage, ScrapedUser } from "../../types";
 import { guardExtensionContext } from "../../utils/dom";
 import { startScraping, stopScraping, ScrapeOptions } from "./notifications-scraper";
 import { sendMessageToUser } from "./profile-messenger";
+import { replyToComment } from "./comment-replier";
 
 let port: chrome.runtime.Port | null = null;
+
+function injectMainWorldScript(): void {
+  const script = document.createElement('script');
+  script.src = chrome.runtime.getURL('content/extract-react-props.js');
+  script.onload = () => script.remove();
+  (document.head || document.documentElement).appendChild(script);
+}
 
 function init(): void {
   if (!guardExtensionContext()) {
@@ -12,6 +20,9 @@ function init(): void {
   }
 
   console.log("[TikTok] Content script initialized");
+
+  // Inject main world script early so it's ready for React props extraction
+  injectMainWorldScript();
 
   chrome.runtime.onMessage.addListener(handleMessage);
 
@@ -70,6 +81,34 @@ function handleMessage(
         .catch((error) => {
           chrome.runtime.sendMessage({
             type: MessageType.SEND_MESSAGE_ERROR,
+            payload: {
+              userId: user.id,
+              error: error instanceof Error ? error.message : "Unknown error",
+            },
+          });
+          sendResponse({ success: false, error: error.message });
+        });
+
+      return true;
+    }
+
+    case MessageType.REPLY_COMMENT: {
+      const { user, message: replyMsg } = message.payload as {
+        user: ScrapedUser;
+        message: string;
+      };
+
+      replyToComment(user, replyMsg)
+        .then(() => {
+          chrome.runtime.sendMessage({
+            type: MessageType.REPLY_COMMENT_COMPLETE,
+            payload: { userId: user.id },
+          });
+          sendResponse({ success: true });
+        })
+        .catch((error) => {
+          chrome.runtime.sendMessage({
+            type: MessageType.REPLY_COMMENT_ERROR,
             payload: {
               userId: user.id,
               error: error instanceof Error ? error.message : "Unknown error",

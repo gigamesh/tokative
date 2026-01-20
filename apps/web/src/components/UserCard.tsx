@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { ScrapedUser } from "@/utils/constants";
 
 interface UserCardProps {
@@ -8,6 +9,7 @@ interface UserCardProps {
   onSelect: (selected: boolean) => void;
   onRemove: () => void;
   onSendMessage: () => void;
+  onReplyComment: () => void;
 }
 
 export function UserCard({
@@ -16,18 +18,42 @@ export function UserCard({
   onSelect,
   onRemove,
   onSendMessage,
+  onReplyComment,
 }: UserCardProps) {
-  const statusColor = user.messageSent
+  const [isCommentExpanded, setIsCommentExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const commentRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = commentRef.current;
+    if (el) {
+      setIsTruncated(el.scrollHeight > el.clientHeight);
+    }
+  }, [user.comment]);
+
+  const messageStatusColor = user.messageSent
     ? "text-green-400"
     : user.messageError
     ? "text-red-400"
     : "text-gray-400";
 
-  const statusText = user.messageSent
-    ? "Sent"
+  const messageStatusText = user.messageSent
+    ? "DM sent"
     : user.messageError
-    ? "Failed"
-    : "Not sent";
+    ? "DM failed"
+    : "";
+
+  const replyStatusColor = user.replySent
+    ? "text-green-400"
+    : user.replyError
+    ? "text-red-400"
+    : "text-gray-400";
+
+  const replyStatusText = user.replySent
+    ? "Replied"
+    : user.replyError
+    ? "Reply failed"
+    : "";
 
   return (
     <div
@@ -55,10 +81,28 @@ export function UserCard({
             >
               @{user.handle}
             </a>
-            <span className={`text-xs ${statusColor}`}>{statusText}</span>
+            {messageStatusText && (
+              <span className={`text-xs ${messageStatusColor}`}>{messageStatusText}</span>
+            )}
+            {replyStatusText && (
+              <span className={`text-xs ${replyStatusColor}`}>{replyStatusText}</span>
+            )}
           </div>
 
-          <p className="text-sm text-gray-400 truncate mb-2">{user.comment}</p>
+          <p
+            ref={commentRef}
+            className={`text-sm text-gray-400 ${isCommentExpanded ? "" : "line-clamp-2"}`}
+          >
+            {user.comment}
+          </p>
+          {(isTruncated || isCommentExpanded) && (
+            <button
+              onClick={() => setIsCommentExpanded(!isCommentExpanded)}
+              className="text-xs text-blue-400 hover:underline mb-2"
+            >
+              {isCommentExpanded ? "Show less" : "Show more"}
+            </button>
+          )}
 
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <span>
@@ -71,6 +115,14 @@ export function UserCard({
         </div>
 
         <div className="flex gap-2">
+          {!user.replySent && user.videoUrl && (
+            <button
+              onClick={onReplyComment}
+              className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"
+            >
+              Reply
+            </button>
+          )}
           {!user.messageSent && (
             <button
               onClick={onSendMessage}

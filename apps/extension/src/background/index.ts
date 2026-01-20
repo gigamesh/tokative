@@ -6,6 +6,8 @@ import {
   ScrapeProgress,
   SendProgress,
   BulkSendProgress,
+  ReplyProgress,
+  BulkReplyProgress,
 } from "../types";
 import {
   getUsers,
@@ -136,6 +138,22 @@ async function handleMessage(
       return { success: true };
     }
 
+    // Forward reply messages from content script to dashboard
+    case MessageType.REPLY_COMMENT_PROGRESS:
+    case MessageType.REPLY_COMMENT_COMPLETE:
+    case MessageType.REPLY_COMMENT_ERROR: {
+      broadcastToDashboard(message);
+      return { success: true };
+    }
+
+    // Forward send message messages from content script to dashboard
+    case MessageType.SEND_MESSAGE_PROGRESS:
+    case MessageType.SEND_MESSAGE_COMPLETE:
+    case MessageType.SEND_MESSAGE_ERROR: {
+      broadcastToDashboard(message);
+      return { success: true };
+    }
+
     default:
       console.log("[Background] Unknown message type:", message.type);
       return null;
@@ -220,6 +238,28 @@ async function handlePortMessage(
     }
 
     case MessageType.BULK_SEND_STOP: {
+      break;
+    }
+
+    case MessageType.REPLY_COMMENT: {
+      const { user, message: replyContent } = message.payload as {
+        user: ScrapedUser;
+        message: string;
+      };
+      await handleReplyComment(user, replyContent, port);
+      break;
+    }
+
+    case MessageType.BULK_REPLY_START: {
+      const { userIds, templateId } = message.payload as {
+        userIds: string[];
+        templateId: string;
+      };
+      await handleBulkReply(userIds, templateId, port);
+      break;
+    }
+
+    case MessageType.BULK_REPLY_STOP: {
       break;
     }
 
@@ -385,6 +425,109 @@ async function handleBulkSend(
   progress.status = "complete";
   port.postMessage({
     type: MessageType.BULK_SEND_COMPLETE,
+    payload: progress,
+  });
+}
+
+async function handleReplyComment(
+  user: ScrapedUser,
+  replyContent: string,
+  port: chrome.runtime.Port
+): Promise<void> {
+  try {
+    if (!user.videoUrl) {
+      throw new Error("No video URL available for this comment");
+    }
+
+    port.postMessage({
+      type: MessageType.REPLY_COMMENT_PROGRESS,
+      payload: { userId: user.id, status: "navigating", message: "Opening video..." },
+    });
+
+    const tab = await chrome.tabs.create({
+      url: user.videoUrl,
+      active: false,
+    });
+
+    if (!tab.id) throw new Error("Failed to create tab");
+
+    await waitForTabLoad(tab.id);
+
+    chrome.tabs.sendMessage(tab.id, {
+      type: MessageType.REPLY_COMMENT,
+      payload: { user, message: replyContent },
+    });
+
+  } catch (error) {
+    port.postMessage({
+      type: MessageType.REPLY_COMMENT_ERROR,
+      payload: {
+        userId: user.id,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+  }
+}
+
+async function handleBulkReply(
+  userIds: string[],
+  templateId: string,
+  port: chrome.runtime.Port
+): Promise<void> {
+  const users = await getUsers();
+  const templates = await getTemplates();
+  const template = templates.find((t) => t.id === templateId);
+  const settings = await getSettings();
+
+  if (!template) {
+    port.postMessage({
+      type: MessageType.BULK_REPLY_COMPLETE,
+      payload: { error: "Template not found" },
+    });
+    return;
+  }
+
+  const targetUsers = users.filter((u) => userIds.includes(u.id) && !u.replySent && u.videoUrl);
+
+  const progress: BulkReplyProgress = {
+    total: targetUsers.length,
+    completed: 0,
+    failed: 0,
+    status: "running",
+  };
+
+  for (const user of targetUsers) {
+    progress.current = user.handle;
+    port.postMessage({
+      type: MessageType.BULK_REPLY_PROGRESS,
+      payload: progress,
+    });
+
+    try {
+      const replyContent = template.content
+        .replace(/\{\{handle\}\}/g, user.handle)
+        .replace(/\{\{comment\}\}/g, user.comment);
+
+      await handleReplyComment(user, replyContent, port);
+      progress.completed++;
+
+      await updateUser(user.id, {
+        replySent: true,
+        repliedAt: new Date().toISOString(),
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, settings.messageDelay));
+    } catch {
+      progress.failed++;
+      await updateUser(user.id, {
+        replyError: "Failed to post reply",
+      });
+    }
+  }
+
+  progress.status = "complete";
+  port.postMessage({
+    type: MessageType.BULK_REPLY_COMPLETE,
     payload: progress,
   });
 }

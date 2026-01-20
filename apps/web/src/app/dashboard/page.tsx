@@ -6,13 +6,11 @@ import { UserTable } from "@/components/UserTable";
 import { MessageComposer } from "@/components/MessageComposer";
 import { useUserData } from "@/hooks/useUserData";
 import { useMessaging } from "@/hooks/useMessaging";
-import { useTemplates } from "@/hooks/useTemplates";
 import { ScrapedUser } from "@/utils/constants";
 
 export default function DashboardPage() {
   const {
     users,
-    templates: initialTemplates,
     accountHandle,
     commentLimit,
     loading,
@@ -29,30 +27,18 @@ export default function DashboardPage() {
 
   const {
     isSending,
+    isReplying,
     currentProgress,
-    bulkProgress,
+    replyProgress,
     error: messagingError,
     sendMessage,
-    startBulkSend,
-    stopBulkSend,
+    replyToComment,
   } = useMessaging();
-
-  const {
-    templates,
-    setTemplates,
-    saveTemplate,
-    deleteTemplate,
-  } = useTemplates(initialTemplates);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedUser, setSelectedUser] = useState<ScrapedUser | null>(null);
+  const [composerMode, setComposerMode] = useState<"message" | "reply">("message");
   const [commentLimitInput, setCommentLimitInput] = useState<string>("100");
-
-  useEffect(() => {
-    if (initialTemplates.length > 0) {
-      setTemplates(initialTemplates);
-    }
-  }, [initialTemplates, setTemplates]);
 
   useEffect(() => {
     setCommentLimitInput(String(commentLimit));
@@ -90,23 +76,35 @@ export default function DashboardPage() {
   const handleSendToUser = useCallback(
     (user: ScrapedUser) => {
       setSelectedUser(user);
+      setComposerMode("message");
     },
     []
   );
 
-  const handleSendMessage = useCallback(
+  const handleClearSelection = useCallback(() => {
+    setSelectedUser(null);
+  }, []);
+
+  const handleSendFromComposer = useCallback(
     (message: string) => {
       if (!selectedUser) return;
-      sendMessage(selectedUser, message);
+      if (composerMode === "reply") {
+        replyToComment(selectedUser, message);
+      } else {
+        sendMessage(selectedUser, message);
+      }
       setSelectedUser(null);
     },
-    [selectedUser, sendMessage]
+    [selectedUser, composerMode, sendMessage, replyToComment]
   );
 
-  const handleBulkSend = useCallback(() => {
-    if (selectedIds.size === 0 || templates.length === 0) return;
-    startBulkSend(Array.from(selectedIds), templates[0].id);
-  }, [selectedIds, templates, startBulkSend]);
+  const handleReplyToUser = useCallback(
+    (user: ScrapedUser) => {
+      setSelectedUser(user);
+      setComposerMode("reply");
+    },
+    []
+  );
 
   return (
     <div className="min-h-screen bg-tiktok-dark">
@@ -223,53 +221,15 @@ export default function DashboardPage() {
                 <h2 className="text-lg font-medium text-white">Users</h2>
                 <div className="flex gap-2">
                   {selectedIds.size > 0 && (
-                    <>
-                      <button
-                        onClick={handleBulkSend}
-                        disabled={isSending}
-                        className="px-4 py-2 bg-tiktok-red hover:bg-tiktok-red/80 disabled:bg-gray-700 text-white rounded-lg text-sm transition-colors"
-                      >
-                        Message Selected ({selectedIds.size})
-                      </button>
-                      <button
-                        onClick={handleRemoveSelected}
-                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
-                      >
-                        Remove Selected
-                      </button>
-                    </>
+                    <button
+                      onClick={handleRemoveSelected}
+                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
+                    >
+                      Remove Selected ({selectedIds.size})
+                    </button>
                   )}
                 </div>
               </div>
-
-              {bulkProgress && bulkProgress.status === "running" && (
-                <div className="mb-4 p-3 bg-tiktok-dark rounded-lg">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">
-                      Sending to @{bulkProgress.current}...
-                    </span>
-                    <span className="text-white">
-                      {bulkProgress.completed}/{bulkProgress.total}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-tiktok-red transition-all duration-300"
-                      style={{
-                        width: `${
-                          (bulkProgress.completed / bulkProgress.total) * 100
-                        }%`,
-                      }}
-                    />
-                  </div>
-                  <button
-                    onClick={stopBulkSend}
-                    className="mt-2 text-sm text-red-400 hover:text-red-300"
-                  >
-                    Stop sending
-                  </button>
-                </div>
-              )}
 
               {loading ? (
                 <div className="text-center py-12 text-gray-500">
@@ -283,6 +243,7 @@ export default function DashboardPage() {
                   onSelectAll={handleSelectAll}
                   onRemoveUser={removeUser}
                   onSendMessage={handleSendToUser}
+                  onReplyComment={handleReplyToUser}
                 />
               )}
             </div>
@@ -290,35 +251,12 @@ export default function DashboardPage() {
 
           <div className="space-y-6">
             <MessageComposer
-              templates={templates}
               selectedUser={selectedUser}
-              onSend={handleSendMessage}
-              onSaveTemplate={saveTemplate}
-              onDeleteTemplate={deleteTemplate}
-              disabled={isSending}
+              mode={composerMode}
+              onSend={handleSendFromComposer}
+              onClearSelection={handleClearSelection}
+              disabled={isSending || isReplying}
             />
-
-            {selectedUser && (
-              <div className="bg-tiktok-gray rounded-lg p-4">
-                <h3 className="font-medium text-white mb-2">Selected User</h3>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <span className="text-gray-400">Handle:</span>{" "}
-                    <span className="text-white">@{selectedUser.handle}</span>
-                  </p>
-                  <p>
-                    <span className="text-gray-400">Comment:</span>{" "}
-                    <span className="text-gray-300">{selectedUser.comment}</span>
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  className="mt-3 text-sm text-gray-400 hover:text-white"
-                >
-                  Clear selection
-                </button>
-              </div>
-            )}
 
             {currentProgress && (
               <div className="bg-tiktok-gray rounded-lg p-4">
@@ -331,6 +269,23 @@ export default function DashboardPage() {
                   {currentProgress.status === "error" && (
                     <span className="text-red-400">
                       Error: {currentProgress.message}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {replyProgress && (
+              <div className="bg-tiktok-gray rounded-lg p-4">
+                <h3 className="font-medium text-white mb-2">Reply Status</h3>
+                <p className="text-sm text-gray-400">
+                  {replyProgress.status === "navigating" && "Opening video..."}
+                  {replyProgress.status === "finding" && "Finding comment..."}
+                  {replyProgress.status === "replying" && "Posting reply..."}
+                  {replyProgress.status === "complete" && "Reply posted!"}
+                  {replyProgress.status === "error" && (
+                    <span className="text-red-400">
+                      Error: {replyProgress.message}
                     </span>
                   )}
                 </p>

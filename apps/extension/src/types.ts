@@ -45,6 +45,18 @@ export enum MessageType {
   SAVE_ACCOUNT_HANDLE = "SAVE_ACCOUNT_HANDLE",
   GET_COMMENT_LIMIT = "GET_COMMENT_LIMIT",
   SAVE_COMMENT_LIMIT = "SAVE_COMMENT_LIMIT",
+
+  // Reply to comment
+  REPLY_COMMENT = "REPLY_COMMENT",
+  REPLY_COMMENT_PROGRESS = "REPLY_COMMENT_PROGRESS",
+  REPLY_COMMENT_COMPLETE = "REPLY_COMMENT_COMPLETE",
+  REPLY_COMMENT_ERROR = "REPLY_COMMENT_ERROR",
+
+  // Bulk reply
+  BULK_REPLY_START = "BULK_REPLY_START",
+  BULK_REPLY_PROGRESS = "BULK_REPLY_PROGRESS",
+  BULK_REPLY_COMPLETE = "BULK_REPLY_COMPLETE",
+  BULK_REPLY_STOP = "BULK_REPLY_STOP",
 }
 
 export interface ScrapedUser {
@@ -53,10 +65,14 @@ export interface ScrapedUser {
   comment: string;
   scrapedAt: string;
   profileUrl: string;
+  videoUrl?: string;
   messageSent?: boolean;
   sentAt?: string;
   messageError?: string;
   customMessage?: string;
+  replySent?: boolean;
+  repliedAt?: string;
+  replyError?: string;
 }
 
 export interface MessageTemplate {
@@ -87,6 +103,20 @@ export interface SendProgress {
 }
 
 export interface BulkSendProgress {
+  total: number;
+  completed: number;
+  failed: number;
+  current?: string;
+  status: "running" | "complete" | "stopped" | "error";
+}
+
+export interface ReplyProgress {
+  userId: string;
+  status: "navigating" | "finding" | "replying" | "complete" | "error";
+  message?: string;
+}
+
+export interface BulkReplyProgress {
   total: number;
   completed: number;
   failed: number;

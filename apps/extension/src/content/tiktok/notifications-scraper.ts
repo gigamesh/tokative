@@ -74,8 +74,6 @@ async function runScraper(): Promise<void> {
     await humanDelay("short");
 
     const scrollContainer = findVisibleElement(SELECTORS.inboxList) || panel;
-    console.log("[TikTok] Scroll container:", scrollContainer?.tagName, scrollContainer?.className);
-    console.log("[TikTok] Scroll container dimensions:", scrollContainer?.scrollHeight, scrollContainer?.clientHeight);
 
     sendProgress({ current: 0, total: scrapeOptions.maxComments, newUsers: 0, status: "scrolling", message: "Scrolling through comments..." });
 
@@ -107,7 +105,6 @@ async function runScraper(): Promise<void> {
         }
       }
 
-      console.log(`[TikTok] DOM items: ${items.length} | Extracted: ${users.length} | Skipped: noContent=${extractionStats.noContent}, notComment=${extractionStats.notComment}, noTitle=${extractionStats.noTitle}, noHandle=${extractionStats.noHandle}, duplicate=${extractionStats.duplicate}`);
 
       if (users.length >= scrapeOptions.maxComments) break;
 
@@ -197,6 +194,9 @@ function extractUserFromItem(item: Element): ScrapedUser | null {
 
     const profileUrl = profileLinkEl?.href || titleEl.href || `https://www.tiktok.com/@${handle}`;
 
+    // Extract video URL with comment ID from React props
+    const videoUrl = extractVideoUrlFromReactProps(item);
+
     const id = generateStableId(handle, comment);
 
     extractionStats.success++;
@@ -205,11 +205,52 @@ function extractUserFromItem(item: Element): ScrapedUser | null {
       handle,
       comment,
       profileUrl,
+      videoUrl,
       scrapedAt: new Date().toISOString(),
     };
   } catch {
     return null;
   }
+}
+
+function extractVideoUrlFromReactProps(item: Element): string {
+  const liElement = item.closest('li');
+  if (!liElement) {
+    return extractVideoUrlFromHref(item);
+  }
+
+  // Check if we already extracted and cached the URL
+  const cachedUrl = liElement.getAttribute('data-video-url-cached');
+  if (cachedUrl !== null) {
+    return cachedUrl;
+  }
+
+  // Generate unique ID for this element
+  const extractId = `extract-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  liElement.setAttribute('data-extract-id', extractId);
+
+  // Request extraction from main world (script injected at content script init)
+  document.dispatchEvent(new CustomEvent('extract-react-props', {
+    detail: { selector: `[data-extract-id="${extractId}"]` }
+  }));
+
+  // Check for result (main world script sets data-video-url-cached synchronously)
+  const extractedUrl = liElement.getAttribute('data-video-url-cached');
+
+  // Clean up
+  liElement.removeAttribute('data-extract-id');
+
+  if (extractedUrl) {
+    return extractedUrl;
+  }
+
+  return extractVideoUrlFromHref(item);
+}
+
+function extractVideoUrlFromHref(item: Element): string {
+  const videoLinks = item.querySelectorAll('a[href*="/video/"]');
+  const videoLinkEl = videoLinks.length > 0 ? videoLinks[videoLinks.length - 1] as HTMLAnchorElement : null;
+  return videoLinkEl?.href || "";
 }
 
 function extractHandleFromHref(href: string | undefined): string | null {

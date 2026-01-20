@@ -13,6 +13,7 @@ interface UserTableProps {
   onSelectAll: (selected: boolean) => void;
   onRemoveUser: (userId: string) => void;
   onSendMessage: (user: ScrapedUser) => void;
+  onReplyComment: (user: ScrapedUser) => void;
 }
 
 export function UserTable({
@@ -22,6 +23,7 @@ export function UserTable({
   onSelectAll,
   onRemoveUser,
   onSendMessage,
+  onReplyComment,
 }: UserTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -120,6 +122,7 @@ export function UserTable({
               onSelect={(selected) => onSelectUser(user.id, selected)}
               onRemove={() => onRemoveUser(user.id)}
               onSendMessage={() => onSendMessage(user)}
+              onReplyComment={() => onReplyComment(user)}
             />
           ))}
         </div>

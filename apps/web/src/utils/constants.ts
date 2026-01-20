@@ -30,6 +30,14 @@ export const MessageType = {
   SAVE_ACCOUNT_HANDLE: "SAVE_ACCOUNT_HANDLE",
   GET_COMMENT_LIMIT: "GET_COMMENT_LIMIT",
   SAVE_COMMENT_LIMIT: "SAVE_COMMENT_LIMIT",
+  REPLY_COMMENT: "REPLY_COMMENT",
+  REPLY_COMMENT_PROGRESS: "REPLY_COMMENT_PROGRESS",
+  REPLY_COMMENT_COMPLETE: "REPLY_COMMENT_COMPLETE",
+  REPLY_COMMENT_ERROR: "REPLY_COMMENT_ERROR",
+  BULK_REPLY_START: "BULK_REPLY_START",
+  BULK_REPLY_PROGRESS: "BULK_REPLY_PROGRESS",
+  BULK_REPLY_COMPLETE: "BULK_REPLY_COMPLETE",
+  BULK_REPLY_STOP: "BULK_REPLY_STOP",
 } as const;
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
@@ -40,10 +48,14 @@ export interface ScrapedUser {
   comment: string;
   scrapedAt: string;
   profileUrl: string;
+  videoUrl?: string;
   messageSent?: boolean;
   sentAt?: string;
   messageError?: string;
   customMessage?: string;
+  replySent?: boolean;
+  repliedAt?: string;
+  replyError?: string;
 }
 
 export interface MessageTemplate {
@@ -62,6 +74,20 @@ export interface ScrapeProgress {
 }
 
 export interface BulkSendProgress {
+  total: number;
+  completed: number;
+  failed: number;
+  current?: string;
+  status: "running" | "complete" | "stopped" | "error";
+}
+
+export interface ReplyProgress {
+  userId: string;
+  status: "navigating" | "finding" | "replying" | "complete" | "error";
+  message?: string;
+}
+
+export interface BulkReplyProgress {
   total: number;
   completed: number;
   failed: number;
