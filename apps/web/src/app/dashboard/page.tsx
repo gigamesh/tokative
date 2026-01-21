@@ -218,7 +218,7 @@ export default function DashboardPage() {
 
             <div className="bg-tiktok-gray rounded-lg p-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-white">Users</h2>
+                <h2 className="text-lg font-medium text-white">Comments</h2>
                 <div className="flex gap-2">
                   {selectedIds.size > 0 && (
                     <button
@@ -249,7 +249,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 sticky top-24 self-start">
             <MessageComposer
               selectedUser={selectedUser}
               mode={composerMode}

@@ -20,6 +20,10 @@
 
     const props = (li as any)[reactPropsKey];
     const commentData = props?.children?.props?.item?.comment;
+
+    // Log full structure to see what's available
+    console.log('[MainWorld] Full commentData:', JSON.stringify(commentData, null, 2));
+
     const awemeId = commentData?.comment?.aweme_id;
     const cid = commentData?.comment?.cid;
     const authorHandle = commentData?.aweme?.author?.unique_id;

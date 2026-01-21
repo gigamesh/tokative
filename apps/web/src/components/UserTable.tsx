@@ -69,7 +69,7 @@ export function UserTable({
         <div className="flex gap-2 flex-wrap">
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search comments..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red"
@@ -109,11 +109,11 @@ export function UserTable({
       {filteredUsers.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           {users.length === 0
-            ? "No users scraped yet. Start scraping to see users here."
-            : "No users match your search/filter criteria."}
+            ? "No comments scraped yet. Start scraping to see comments here."
+            : "No comments match your search/filter criteria."}
         </div>
       ) : (
-        <div className="space-y-3 max-h-[600px] overflow-y-auto scrollbar-thin pr-2">
+        <div className="space-y-3">
           {filteredUsers.map((user) => (
             <UserCard
               key={user.id}
