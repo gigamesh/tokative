@@ -7,6 +7,7 @@ interface PostCardProps {
   selected: boolean;
   onSelect: (selected: boolean) => void;
   progress?: GetVideoCommentsProgress;
+  onViewComments?: () => void;
 }
 
 export function PostCard({
@@ -14,12 +15,19 @@ export function PostCard({
   selected,
   onSelect,
   progress,
+  onViewComments,
 }: PostCardProps) {
   const isLoading = progress && progress.status !== "complete" && progress.status !== "error";
 
+  const handleClick = () => {
+    if (onViewComments) {
+      onViewComments();
+    }
+  };
+
   return (
     <div
-      className={`relative rounded-lg overflow-hidden border transition-colors ${
+      className={`group relative rounded-lg overflow-hidden border transition-colors ${
         selected
           ? "border-tiktok-red ring-2 ring-tiktok-red/30"
           : "border-gray-700 hover:border-gray-600"
@@ -35,9 +43,22 @@ export function PostCard({
         />
       </div>
 
+      <a
+        href={video.videoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-2 right-2 z-10 p-1.5 bg-black/60 hover:bg-black/80 rounded-md transition-colors"
+        title="Open on TikTok"
+      >
+        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+
       {video.commentsScraped && (
-        <div className="absolute top-2 right-2 z-10 bg-green-500/90 text-white text-xs px-2 py-1 rounded-full font-medium">
-          {video.commentCount ?? 0} comments
+        <div className="absolute bottom-2 right-2 z-10 bg-green-500/90 text-white text-xs px-2 py-1 rounded-full font-medium">
+          {video.commentCount ?? 0}
         </div>
       )}
 
@@ -50,11 +71,11 @@ export function PostCard({
         </div>
       )}
 
-      <a
-        href={video.videoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block aspect-[9/16] bg-gray-800"
+      <div
+        onClick={handleClick}
+        className={`block aspect-[9/16] bg-gray-800 ${
+          onViewComments ? "cursor-pointer" : ""
+        }`}
       >
         {video.thumbnailUrl ? (
           <img
@@ -74,7 +95,7 @@ export function PostCard({
             </svg>
           </div>
         )}
-      </a>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { Virtuoso } from "react-virtuoso";
 import { ScrapedUser } from "@/utils/constants";
 import { UserCard } from "./UserCard";
 
@@ -17,6 +18,7 @@ interface CommentTableProps {
   onSendMessage: (user: ScrapedUser) => void;
   onReplyComment: (user: ScrapedUser) => void;
   onCommentLimitChange: (limit: number) => void;
+  videoIdFilter?: string | null;
 }
 
 export function CommentTable({
@@ -29,6 +31,7 @@ export function CommentTable({
   onSendMessage,
   onReplyComment,
   onCommentLimitChange,
+  videoIdFilter,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -48,6 +51,10 @@ export function CommentTable({
 
   const filteredUsers = useMemo(() => {
     const filtered = users.filter((user) => {
+      if (videoIdFilter && user.videoId !== videoIdFilter) {
+        return false;
+      }
+
       const matchesSearch =
         search === "" ||
         user.handle.toLowerCase().includes(search.toLowerCase()) ||
@@ -76,7 +83,7 @@ export function CommentTable({
       // recent_scrape
       return new Date(b.scrapedAt).getTime() - new Date(a.scrapedAt).getTime();
     });
-  }, [users, search, filter, sort]);
+  }, [users, search, filter, sort, videoIdFilter]);
 
   const allSelected =
     filteredUsers.length > 0 &&
@@ -169,19 +176,23 @@ export function CommentTable({
             : "No comments match your search/filter criteria."}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredUsers.map((user) => (
-            <UserCard
-              key={user.id}
-              user={user}
-              selected={selectedIds.has(user.id)}
-              onSelect={(selected) => onSelectUser(user.id, selected)}
-              onRemove={() => onRemoveUser(user.id)}
-              onSendMessage={() => onSendMessage(user)}
-              onReplyComment={() => onReplyComment(user)}
-            />
-          ))}
-        </div>
+        <Virtuoso
+          data={filteredUsers}
+          useWindowScroll
+          overscan={10}
+          itemContent={(index, user) => (
+            <div className={index > 0 ? "pt-3" : ""}>
+              <UserCard
+                user={user}
+                selected={selectedIds.has(user.id)}
+                onSelect={(selected) => onSelectUser(user.id, selected)}
+                onRemove={() => onRemoveUser(user.id)}
+                onSendMessage={() => onSendMessage(user)}
+                onReplyComment={() => onReplyComment(user)}
+              />
+            </div>
+          )}
+        />
       )}
     </div>
   );

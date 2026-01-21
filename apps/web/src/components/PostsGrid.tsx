@@ -1,8 +1,27 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, forwardRef } from "react";
+import { VirtuosoGrid, GridComponents } from "react-virtuoso";
 import { PostCard } from "./PostCard";
 import { ScrapedVideo, GetVideoCommentsProgress } from "@/utils/constants";
+
+const gridComponents: GridComponents<ScrapedVideo> = {
+  List: forwardRef(({ style, children, ...props }, ref) => (
+    <div
+      ref={ref}
+      {...props}
+      style={{
+        ...style,
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+        gap: "0.75rem",
+      }}
+    >
+      {children}
+    </div>
+  )),
+  Item: ({ children, ...props }) => <div {...props}>{children}</div>,
+};
 
 interface PostsGridProps {
   videos: ScrapedVideo[];
@@ -12,6 +31,7 @@ interface PostsGridProps {
   onPostLimitChange: (limit: number) => void;
   onGetComments: (videoIds: string[]) => void;
   onRemoveVideos: (videoIds: string[]) => void;
+  onViewPostComments?: (videoId: string) => void;
 }
 
 export function PostsGrid({
@@ -22,6 +42,7 @@ export function PostsGrid({
   onPostLimitChange,
   onGetComments,
   onRemoveVideos,
+  onViewPostComments,
 }: PostsGridProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [postLimitInput, setPostLimitInput] = useState<string>(String(postLimit));
@@ -180,10 +201,13 @@ export function PostsGrid({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-          {videos.map((video, index) => (
+        <VirtuosoGrid
+          data={videos}
+          useWindowScroll
+          overscan={20}
+          components={gridComponents}
+          itemContent={(index, video) => (
             <PostCard
-              key={video.videoId}
               video={video}
               selected={selectedIds.has(video.videoId)}
               onSelect={(selected) => {
@@ -191,9 +215,12 @@ export function PostsGrid({
                 handleSelectVideo(video.videoId, selected, index, event?.shiftKey || false);
               }}
               progress={getCommentsProgress.get(video.videoId)}
+              onViewComments={
+                onViewPostComments ? () => onViewPostComments(video.videoId) : undefined
+              }
             />
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );
