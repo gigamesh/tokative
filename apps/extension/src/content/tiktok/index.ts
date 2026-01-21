@@ -1,9 +1,8 @@
 import { MessageType, ExtensionMessage, ScrapedUser } from "../../types";
 import { guardExtensionContext } from "../../utils/dom";
-import { startScraping, stopScraping, ScrapeOptions } from "./notifications-scraper";
 import { sendMessageToUser } from "./profile-messenger";
 import { replyToComment } from "./comment-replier";
-import { scrapeVideoComments, cancelVideoScrape } from "./video-scraper";
+import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape } from "./video-scraper";
 
 let port: chrome.runtime.Port | null = null;
 
@@ -36,7 +35,7 @@ function init(): void {
   port.onDisconnect.addListener(() => {
     console.log("[TikTok] Port disconnected");
     port = null;
-    stopScraping();
+    cancelVideoScrape();
   });
 }
 
@@ -48,23 +47,6 @@ function handleMessage(
   console.log("[TikTok] Message received:", message.type);
 
   switch (message.type) {
-    case MessageType.SCRAPE_COMMENTS_START: {
-      if (port) {
-        const options = message.payload as ScrapeOptions | undefined;
-        startScraping(port, options);
-        sendResponse({ success: true });
-      } else {
-        sendResponse({ success: false, error: "Port not connected" });
-      }
-      return true;
-    }
-
-    case MessageType.SCRAPE_COMMENTS_STOP: {
-      stopScraping();
-      sendResponse({ success: true });
-      return true;
-    }
-
     case MessageType.SEND_MESSAGE: {
       const { user, message: msgContent } = message.payload as {
         user: ScrapedUser;
@@ -156,6 +138,40 @@ function handleMessage(
       return true;
     }
 
+    case MessageType.SCRAPE_VIDEOS_START: {
+      const { postLimit } = (message.payload as { postLimit?: number }) || {};
+      sendResponse({ success: true, started: true });
+
+      scrapeProfileVideoMetadata(postLimit ?? Infinity, (progress) => {
+        chrome.runtime.sendMessage({
+          type: MessageType.SCRAPE_VIDEOS_PROGRESS,
+          payload: progress,
+        });
+      })
+        .then((videos) => {
+          chrome.runtime.sendMessage({
+            type: MessageType.SCRAPE_VIDEOS_COMPLETE,
+            payload: { videos },
+          });
+        })
+        .catch((error) => {
+          chrome.runtime.sendMessage({
+            type: MessageType.SCRAPE_VIDEOS_ERROR,
+            payload: {
+              error: error instanceof Error ? error.message : "Unknown error",
+            },
+          });
+        });
+
+      return true;
+    }
+
+    case MessageType.SCRAPE_VIDEOS_STOP: {
+      cancelVideoScrape();
+      sendResponse({ success: true });
+      return true;
+    }
+
     default:
       return false;
   }
@@ -165,19 +181,6 @@ function handlePortMessage(message: ExtensionMessage): void {
   console.log("[TikTok] Port message:", message.type);
 
   switch (message.type) {
-    case MessageType.SCRAPE_COMMENTS_START: {
-      if (port) {
-        const options = message.payload as ScrapeOptions | undefined;
-        startScraping(port, options);
-      }
-      break;
-    }
-
-    case MessageType.SCRAPE_COMMENTS_STOP: {
-      stopScraping();
-      break;
-    }
-
     case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
       if (port) {
         const { maxComments } = (message.payload as { maxComments?: number }) || {};
@@ -206,6 +209,38 @@ function handlePortMessage(message: ExtensionMessage): void {
     }
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_STOP: {
+      cancelVideoScrape();
+      break;
+    }
+
+    case MessageType.SCRAPE_VIDEOS_START: {
+      if (port) {
+        const { postLimit } = (message.payload as { postLimit?: number }) || {};
+        scrapeProfileVideoMetadata(postLimit ?? Infinity, (progress) => {
+          port?.postMessage({
+            type: MessageType.SCRAPE_VIDEOS_PROGRESS,
+            payload: progress,
+          });
+        })
+          .then((videos) => {
+            port?.postMessage({
+              type: MessageType.SCRAPE_VIDEOS_COMPLETE,
+              payload: { videos },
+            });
+          })
+          .catch((error) => {
+            port?.postMessage({
+              type: MessageType.SCRAPE_VIDEOS_ERROR,
+              payload: {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+            });
+          });
+      }
+      break;
+    }
+
+    case MessageType.SCRAPE_VIDEOS_STOP: {
       cancelVideoScrape();
       break;
     }

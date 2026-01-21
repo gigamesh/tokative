@@ -2,11 +2,9 @@ import {
   MessageType,
   ExtensionMessage,
   ScrapedUser,
+  ScrapedVideo,
   MessageTemplate,
-  ScrapeProgress,
-  SendProgress,
   BulkSendProgress,
-  ReplyProgress,
   BulkReplyProgress,
 } from "../types";
 import {
@@ -15,6 +13,11 @@ import {
   updateUser,
   removeUser,
   removeUsers,
+  getVideos,
+  addVideos,
+  updateVideo,
+  removeVideo,
+  removeVideos,
   getTemplates,
   saveTemplate,
   deleteTemplate,
@@ -23,6 +26,8 @@ import {
   saveAccountHandle,
   getCommentLimit,
   saveCommentLimit,
+  getPostLimit,
+  savePostLimit,
 } from "../utils/storage";
 
 const activePorts = new Map<string, chrome.runtime.Port>();
@@ -138,6 +143,50 @@ async function handleMessage(
       return { success: true };
     }
 
+    case MessageType.GET_POST_LIMIT: {
+      const limit = await getPostLimit();
+      return { limit };
+    }
+
+    case MessageType.SAVE_POST_LIMIT: {
+      const { limit } = message.payload as { limit: number };
+      await savePostLimit(limit);
+      return { success: true };
+    }
+
+    case MessageType.GET_STORED_VIDEOS: {
+      const videos = await getVideos();
+      return { videos };
+    }
+
+    case MessageType.REMOVE_VIDEO: {
+      const { videoId } = message.payload as { videoId: string };
+      await removeVideo(videoId);
+      return { success: true };
+    }
+
+    case MessageType.REMOVE_VIDEOS: {
+      const { videoIds } = message.payload as { videoIds: string[] };
+      await removeVideos(videoIds);
+      return { success: true };
+    }
+
+    // Forward video scraping messages from content script to dashboard
+    case MessageType.SCRAPE_VIDEOS_PROGRESS:
+    case MessageType.SCRAPE_VIDEOS_COMPLETE:
+    case MessageType.SCRAPE_VIDEOS_ERROR: {
+      broadcastToDashboard(message);
+      return { success: true };
+    }
+
+    // Forward get video comments messages
+    case MessageType.GET_VIDEO_COMMENTS_PROGRESS:
+    case MessageType.GET_VIDEO_COMMENTS_COMPLETE:
+    case MessageType.GET_VIDEO_COMMENTS_ERROR: {
+      broadcastToDashboard(message);
+      return { success: true };
+    }
+
     // Forward reply messages from content script to dashboard
     case MessageType.REPLY_COMMENT_PROGRESS:
     case MessageType.REPLY_COMMENT_COMPLETE:
@@ -167,58 +216,6 @@ async function handlePortMessage(
   console.log("[Background] Port message:", message.type);
 
   switch (message.type) {
-    case MessageType.SCRAPE_COMMENTS_START: {
-      const payload = message.payload as { handle?: string; maxComments?: number } | undefined;
-      const handle = payload?.handle || await getAccountHandle();
-
-      if (!handle) {
-        port.postMessage({
-          type: MessageType.SCRAPE_COMMENTS_ERROR,
-          payload: { error: "No account handle set. Please enter your TikTok handle." },
-        });
-        return;
-      }
-
-      const tiktokTab = await findOrCreateTikTokTab(handle);
-      if (!tiktokTab?.id) {
-        port.postMessage({
-          type: MessageType.SCRAPE_COMMENTS_ERROR,
-          payload: { error: "Could not find or create TikTok tab" },
-        });
-        return;
-      }
-
-      await forwardToContentScript(tiktokTab.id, message, port);
-      break;
-    }
-
-    case MessageType.SCRAPE_COMMENTS_PROGRESS: {
-      const progress = message.payload as ScrapeProgress;
-      if (progress.newUsers > 0) {
-        const users = (message.payload as { users?: ScrapedUser[] }).users;
-        if (users) {
-          await addUsers(users);
-        }
-      }
-      broadcastToDashboard(message);
-      break;
-    }
-
-    case MessageType.SCRAPE_COMMENTS_COMPLETE: {
-      const { users } = message.payload as { users: ScrapedUser[] };
-      const added = await addUsers(users);
-      broadcastToDashboard({
-        type: MessageType.SCRAPE_COMMENTS_COMPLETE,
-        payload: { totalAdded: added },
-      });
-      break;
-    }
-
-    case MessageType.SCRAPE_COMMENTS_ERROR: {
-      broadcastToDashboard(message);
-      break;
-    }
-
     case MessageType.SEND_MESSAGE: {
       const { user, message: msgContent } = message.payload as {
         user: ScrapedUser;
@@ -263,6 +260,78 @@ async function handlePortMessage(
       break;
     }
 
+    case MessageType.SCRAPE_VIDEOS_START: {
+      try {
+        const payload = message.payload as { profileHandle?: string; postLimit?: number } | undefined;
+        const handle = payload?.profileHandle || await getAccountHandle();
+
+        if (!handle) {
+          port.postMessage({
+            type: MessageType.SCRAPE_VIDEOS_ERROR,
+            payload: { error: "No profile handle set. Please enter a TikTok handle." },
+          });
+          return;
+        }
+
+        const tiktokTab = await findOrCreateTikTokTab(handle);
+        if (!tiktokTab?.id) {
+          port.postMessage({
+            type: MessageType.SCRAPE_VIDEOS_ERROR,
+            payload: { error: "Could not find or create TikTok tab" },
+          });
+          return;
+        }
+
+        const postLimit = payload?.postLimit ?? await getPostLimit();
+        const messageWithLimit = {
+          ...message,
+          payload: { ...payload, postLimit },
+        };
+
+        await forwardToContentScript(tiktokTab.id, messageWithLimit, port);
+      } catch (error) {
+        port.postMessage({
+          type: MessageType.SCRAPE_VIDEOS_ERROR,
+          payload: { error: error instanceof Error ? error.message : "Failed to start scraping" },
+        });
+      }
+      break;
+    }
+
+    case MessageType.SCRAPE_VIDEOS_PROGRESS: {
+      broadcastToDashboard(message);
+      break;
+    }
+
+    case MessageType.SCRAPE_VIDEOS_COMPLETE: {
+      const { videos } = message.payload as { videos: ScrapedVideo[] };
+      const added = await addVideos(videos);
+      broadcastToDashboard({
+        type: MessageType.SCRAPE_VIDEOS_COMPLETE,
+        payload: { totalAdded: added, videos },
+      });
+      break;
+    }
+
+    case MessageType.SCRAPE_VIDEOS_ERROR: {
+      broadcastToDashboard(message);
+      break;
+    }
+
+    case MessageType.SCRAPE_VIDEOS_STOP: {
+      const tabs = await chrome.tabs.query({ url: "https://www.tiktok.com/*" });
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: MessageType.SCRAPE_VIDEOS_STOP });
+      }
+      break;
+    }
+
+    case MessageType.GET_VIDEO_COMMENTS: {
+      const { videoId } = message.payload as { videoId: string };
+      await handleGetVideoComments(videoId, port);
+      break;
+    }
+
     default:
       console.log("[Background] Unknown port message:", message.type);
   }
@@ -276,14 +345,14 @@ async function findOrCreateTikTokTab(handle?: string): Promise<chrome.tabs.Tab |
   const tabs = await chrome.tabs.query({ url: "https://www.tiktok.com/*" });
 
   if (tabs.length > 0) {
-    await chrome.tabs.update(tabs[0].id!, { url: targetUrl, active: true });
+    await chrome.tabs.update(tabs[0].id!, { url: targetUrl });
     await waitForTabLoad(tabs[0].id!);
     return chrome.tabs.get(tabs[0].id!);
   }
 
   const tab = await chrome.tabs.create({
     url: targetUrl,
-    active: true,
+    active: false,
   });
 
   if (tab.id) {
@@ -298,8 +367,8 @@ async function forwardToContentScript(
   message: ExtensionMessage,
   responsePort: chrome.runtime.Port
 ): Promise<void> {
-  const maxRetries = 5;
-  const retryDelay = 1000;
+  const maxRetries = 20;
+  const retryDelay = 2000;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -311,7 +380,7 @@ async function forwardToContentScript(
 
       if (attempt === maxRetries - 1) {
         responsePort.postMessage({
-          type: MessageType.SCRAPE_COMMENTS_ERROR,
+          type: MessageType.SCRAPE_VIDEOS_ERROR,
           payload: { error: `Content script not responding: ${errorMessage}` },
         });
         return;
@@ -532,12 +601,97 @@ async function handleBulkReply(
   });
 }
 
+async function handleGetVideoComments(
+  videoId: string,
+  port: chrome.runtime.Port
+): Promise<void> {
+  try {
+    const videos = await getVideos();
+    const video = videos.find((v) => v.videoId === videoId);
+
+    if (!video) {
+      port.postMessage({
+        type: MessageType.GET_VIDEO_COMMENTS_ERROR,
+        payload: { videoId, error: "Video not found in storage" },
+      });
+      return;
+    }
+
+    port.postMessage({
+      type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
+      payload: { videoId, status: "navigating", message: "Opening video..." },
+    });
+
+    const tab = await chrome.tabs.create({
+      url: video.videoUrl,
+      active: false,
+    });
+
+    if (!tab.id) {
+      throw new Error("Failed to create tab");
+    }
+
+    await waitForTabLoad(tab.id);
+
+    port.postMessage({
+      type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
+      payload: { videoId, status: "scraping", message: "Scraping comments..." },
+    });
+
+    const commentLimit = await getCommentLimit();
+
+    const responseHandler = (msg: ExtensionMessage) => {
+      if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
+        port.postMessage({
+          type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
+          payload: { videoId, ...msg.payload },
+        });
+      } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
+        const { users } = msg.payload as { users: ScrapedUser[] };
+        updateVideo(videoId, {
+          commentsScraped: true,
+          commentCount: users.length,
+        });
+        port.postMessage({
+          type: MessageType.GET_VIDEO_COMMENTS_COMPLETE,
+          payload: { videoId, commentCount: users.length },
+        });
+        chrome.runtime.onMessage.removeListener(responseHandler);
+        chrome.tabs.remove(tab.id!);
+      } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
+        port.postMessage({
+          type: MessageType.GET_VIDEO_COMMENTS_ERROR,
+          payload: { videoId, ...msg.payload },
+        });
+        chrome.runtime.onMessage.removeListener(responseHandler);
+        chrome.tabs.remove(tab.id!);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(responseHandler);
+
+    chrome.tabs.sendMessage(tab.id, {
+      type: MessageType.SCRAPE_VIDEO_COMMENTS_START,
+      payload: { maxComments: commentLimit, videoThumbnailUrl: video.thumbnailUrl },
+    });
+
+  } catch (error) {
+    port.postMessage({
+      type: MessageType.GET_VIDEO_COMMENTS_ERROR,
+      payload: {
+        videoId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+  }
+}
+
 function waitForTabLoad(tabId: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(listener);
       reject(new Error("Tab load timeout"));
-    }, 30000);
+    }, 60000);
 
     const listener = (
       updatedTabId: number,
@@ -546,7 +700,7 @@ function waitForTabLoad(tabId: number): Promise<void> {
       if (updatedTabId === tabId && changeInfo.status === "complete") {
         clearTimeout(timeout);
         chrome.tabs.onUpdated.removeListener(listener);
-        setTimeout(resolve, 1000);
+        setTimeout(resolve, 2000);
       }
     };
 

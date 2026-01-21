@@ -6,7 +6,6 @@ import {
   MessageType,
   ScrapedUser,
   MessageTemplate,
-  ScrapeProgress,
 } from "@/utils/constants";
 
 interface UserDataState {
@@ -14,10 +13,9 @@ interface UserDataState {
   templates: MessageTemplate[];
   accountHandle: string;
   commentLimit: number;
+  postLimit: number;
   loading: boolean;
   error: string | null;
-  scrapeProgress: ScrapeProgress | null;
-  isScrapingActive: boolean;
 }
 
 export function useUserData() {
@@ -26,10 +24,9 @@ export function useUserData() {
     templates: [],
     accountHandle: "",
     commentLimit: 100,
+    postLimit: 50,
     loading: true,
     error: null,
-    scrapeProgress: null,
-    isScrapingActive: false,
   });
 
   const fetchData = useCallback(async () => {
@@ -38,13 +35,14 @@ export function useUserData() {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const [usersResponse, handleResponse, limitResponse] = await Promise.all([
+      const [usersResponse, handleResponse, commentLimitResponse, postLimitResponse] = await Promise.all([
         bridge.request<{
           users: ScrapedUser[];
           templates: MessageTemplate[];
         }>(MessageType.GET_STORED_USERS),
         bridge.request<{ handle: string | null }>(MessageType.GET_ACCOUNT_HANDLE),
         bridge.request<{ limit: number }>(MessageType.GET_COMMENT_LIMIT),
+        bridge.request<{ limit: number }>(MessageType.GET_POST_LIMIT),
       ]);
 
       setState((prev) => ({
@@ -52,7 +50,8 @@ export function useUserData() {
         users: usersResponse.users || [],
         templates: usersResponse.templates || [],
         accountHandle: handleResponse.handle || "",
-        commentLimit: limitResponse.limit ?? 100,
+        commentLimit: commentLimitResponse.limit ?? 100,
+        postLimit: postLimitResponse.limit ?? 50,
         loading: false,
       }));
     } catch (error) {
@@ -66,57 +65,8 @@ export function useUserData() {
 
   useEffect(() => {
     if (!bridge) return;
-
     fetchData();
-
-    const cleanups = [
-      bridge.on(MessageType.SCRAPE_COMMENTS_PROGRESS, (payload) => {
-        const progress = payload as ScrapeProgress;
-        setState((prev) => ({
-          ...prev,
-          scrapeProgress: progress,
-          isScrapingActive: progress.status !== "complete",
-        }));
-      }),
-
-      bridge.on(MessageType.SCRAPE_COMMENTS_COMPLETE, () => {
-        setState((prev) => ({
-          ...prev,
-          isScrapingActive: false,
-          scrapeProgress: null,
-        }));
-        fetchData();
-      }),
-
-      bridge.on(MessageType.SCRAPE_COMMENTS_ERROR, (payload) => {
-        const { error } = payload as { error: string };
-        setState((prev) => ({
-          ...prev,
-          isScrapingActive: false,
-          scrapeProgress: null,
-          error,
-        }));
-      }),
-    ];
-
-    return () => cleanups.forEach((cleanup) => cleanup());
   }, [fetchData]);
-
-  const startScraping = useCallback(() => {
-    if (!bridge) return;
-
-    setState((prev) => ({
-      ...prev,
-      isScrapingActive: true,
-      scrapeProgress: { current: 0, total: 0, newUsers: 0, status: "scrolling" },
-      error: null,
-    }));
-
-    bridge.send(MessageType.SCRAPE_COMMENTS_START, {
-      handle: state.accountHandle,
-      maxComments: state.commentLimit,
-    });
-  }, [state.accountHandle, state.commentLimit]);
 
   const saveAccountHandle = useCallback(async (handle: string) => {
     if (!bridge) return;
@@ -133,14 +83,11 @@ export function useUserData() {
     bridge.send(MessageType.SAVE_COMMENT_LIMIT, { limit });
   }, []);
 
-  const stopScraping = useCallback(() => {
+  const savePostLimit = useCallback(async (limit: number) => {
     if (!bridge) return;
-    bridge.send(MessageType.SCRAPE_COMMENTS_STOP);
-    setState((prev) => ({
-      ...prev,
-      isScrapingActive: false,
-      scrapeProgress: null,
-    }));
+
+    setState((prev) => ({ ...prev, postLimit: limit }));
+    bridge.send(MessageType.SAVE_POST_LIMIT, { limit });
   }, []);
 
   const removeUser = useCallback(async (userId: string) => {
@@ -181,12 +128,11 @@ export function useUserData() {
   return {
     ...state,
     fetchData,
-    startScraping,
-    stopScraping,
     removeUser,
     removeUsers,
     updateUser,
     saveAccountHandle,
     saveCommentLimit,
+    savePostLimit,
   };
 }

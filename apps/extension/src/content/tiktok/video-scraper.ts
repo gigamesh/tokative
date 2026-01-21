@@ -1,6 +1,7 @@
 import { VIDEO_SELECTORS } from "./video-selectors";
 import { querySelector, querySelectorAll, waitForSelector } from "./selectors";
-import type { ScrapedUser, VideoScrapeProgress } from "../../types";
+import { addUsers, addVideos } from "../../utils/storage";
+import type { ScrapedUser, ScrapedVideo, VideoScrapeProgress, VideoMetadataScrapeProgress } from "../../types";
 
 interface RawCommentData {
   commentId: string;
@@ -29,59 +30,87 @@ function extractVideoIdFromUrl(url: string): string | null {
   return match ? match[1] : null;
 }
 
-function getVideoMetadata(): { videoId: string | null; thumbnailUrl: string | null } {
-  const ogImage = document.querySelector<HTMLMetaElement>(VIDEO_SELECTORS.videoMetaThumbnail[0]);
-  const ogUrl = document.querySelector<HTMLMetaElement>(VIDEO_SELECTORS.videoMetaUrl[0]);
-
-  return {
-    videoId: ogUrl ? extractVideoIdFromUrl(ogUrl.content) : null,
-    thumbnailUrl: ogImage?.content || null,
-  };
-}
-
-function extractReactProps(element: Element): Record<string, unknown> | null {
-  const keys = Object.getOwnPropertyNames(element);
-  const fiberKey = keys.find((k) => k.startsWith("__reactFiber$"));
-  if (!fiberKey) return null;
-
-  const fiber = (element as Record<string, unknown>)[fiberKey] as Record<string, unknown>;
-  return fiber?.memoizedProps as Record<string, unknown> | null;
-}
-
-function findInObject(obj: unknown, key: string): unknown[] {
-  const results: unknown[] = [];
-  function search(current: unknown, depth = 0): void {
-    if (depth > 20 || current == null) return;
-    if (typeof current !== "object") return;
-
-    const record = current as Record<string, unknown>;
-    if (key in record) {
-      results.push(record[key]);
-    }
-    for (const value of Object.values(record)) {
-      search(value, depth + 1);
+function getVideoId(): string | null {
+  for (const selector of VIDEO_SELECTORS.videoMetaUrl) {
+    const el = document.querySelector<HTMLMetaElement>(selector);
+    if (el?.content) {
+      const videoId = extractVideoIdFromUrl(el.content);
+      if (videoId) return videoId;
     }
   }
-  search(obj);
+
+  // Fallback: try to get video ID from current URL
+  return extractVideoIdFromUrl(window.location.href);
+}
+
+interface CommentReactData {
+  cid: string;
+  create_time: number;
+  aweme_id: string;
+}
+
+function injectReactExtractor(): Promise<void> {
+  return new Promise((resolve) => {
+    if (document.getElementById("tiktok-buddy-extractor")) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "tiktok-buddy-extractor";
+    script.src = chrome.runtime.getURL("page-script.js");
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
+    document.documentElement.appendChild(script);
+  });
+}
+
+async function extractAllReactData(): Promise<Map<number, CommentReactData>> {
+  await injectReactExtractor();
+
+  const isReady = document.documentElement.getAttribute("data-tiktok-buddy-ready") === "true";
+  console.log("[TikTok Buddy] React extractor ready:", isReady);
+  if (!isReady) {
+    return new Map();
+  }
+
+  // Trigger extraction via a custom event
+  const extractEvent = new CustomEvent("tiktok-buddy-extract");
+  document.dispatchEvent(extractEvent);
+
+  // Wait a tick for the extraction to complete
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  const dataAttr = document.documentElement.getAttribute("data-tiktok-buddy-comments");
+  document.documentElement.removeAttribute("data-tiktok-buddy-comments");
+
+  console.log("[TikTok Buddy] React data attribute length:", dataAttr?.length || 0);
+
+  const results = new Map<number, CommentReactData>();
+  if (dataAttr) {
+    try {
+      const parsed = JSON.parse(dataAttr) as Array<{ index: number; cid: string; create_time: number; aweme_id: string }>;
+      console.log("[TikTok Buddy] Parsed React data for", parsed.length, "comments");
+      for (const item of parsed) {
+        results.set(item.index, {
+          cid: item.cid,
+          create_time: item.create_time,
+          aweme_id: item.aweme_id,
+        });
+      }
+    } catch (e) {
+      console.error("[TikTok Buddy] Failed to parse React data:", e);
+    }
+  }
+
   return results;
 }
 
-function extractCommentDataFromReactProps(element: Element): Partial<RawCommentData> | null {
-  const props = extractReactProps(element);
-  if (!props) return null;
-
-  const createTimes = findInObject(props, "create_time") as number[];
-  const cids = findInObject(props, "cid") as string[];
-  const awemeIds = findInObject(props, "aweme_id") as string[];
-
-  return {
-    createTime: createTimes[0],
-    commentId: cids[0],
-    videoId: awemeIds[0],
-  };
-}
-
 function extractCommentFromDOM(commentContainer: Element): Partial<RawCommentData> | null {
+  // The comment content container has the comment ID as its id attribute
+  const contentContainer = commentContainer.querySelector('[class*="DivCommentContentContainer"]');
+  const commentId = contentContainer?.id || commentContainer.id || "";
+
   // First try to find an anchor element with href
   let usernameEl = querySelector<HTMLAnchorElement>(VIDEO_SELECTORS.commentUsername, commentContainer);
 
@@ -90,6 +119,14 @@ function extractCommentFromDOM(commentContainer: Element): Partial<RawCommentDat
     const anchorInside = usernameEl.querySelector("a");
     if (anchorInside) {
       usernameEl = anchorInside;
+    }
+  }
+
+  // Also try the parent anchor if username element doesn't have href
+  if (usernameEl && !usernameEl.href) {
+    const parentAnchor = usernameEl.closest("a");
+    if (parentAnchor?.href) {
+      usernameEl = parentAnchor;
     }
   }
 
@@ -103,53 +140,71 @@ function extractCommentFromDOM(commentContainer: Element): Partial<RawCommentDat
   const textEl = querySelector(VIDEO_SELECTORS.commentText, commentContainer);
   const comment = textEl?.textContent?.trim() || "";
 
-  return { handle, displayName, comment };
+  return { handle, displayName, comment, commentId };
 }
 
-export function scrapeCommentsFromCurrentVideo(): RawCommentData[] {
-  const { videoId, thumbnailUrl } = getVideoMetadata();
+export async function scrapeCommentsFromCurrentVideo(): Promise<RawCommentData[]> {
+  const videoId = getVideoId();
+  console.log("[TikTok Buddy] Video ID:", videoId);
+
+  // Try to get React data for timestamps, but don't require it
+  const reactDataMap = await extractAllReactData();
+  console.log("[TikTok Buddy] React data map size:", reactDataMap.size);
 
   const commentItems = querySelectorAll(VIDEO_SELECTORS.commentItem);
+  console.log("[TikTok Buddy] Comment items found:", commentItems.length);
+
   const comments: RawCommentData[] = [];
   const seenIds = new Set<string>();
 
-  for (const item of commentItems) {
+  for (let i = 0; i < commentItems.length; i++) {
+    const item = commentItems[i];
     const domData = extractCommentFromDOM(item);
     if (!domData || !domData.handle) continue;
 
-    const reactData = extractCommentDataFromReactProps(item);
-    const commentId = reactData?.commentId || "";
+    // Use DOM comment ID (from element id attribute), fall back to React data
+    const reactData = reactDataMap.get(i);
+    const commentId = domData.commentId || reactData?.cid || "";
 
-    // Deduplicate by commentId, or by handle+comment text if no commentId
-    const dedupeKey = commentId || `${domData.handle}:${domData.comment?.slice(0, 50)}`;
-    if (seenIds.has(dedupeKey)) continue;
-    seenIds.add(dedupeKey);
+    // Skip comments without an ID
+    if (!commentId) {
+      console.log("[TikTok Buddy] Skipping comment without ID, handle:", domData.handle);
+      continue;
+    }
+
+    // Deduplicate by commentId
+    if (seenIds.has(commentId)) continue;
+    seenIds.add(commentId);
 
     const comment: RawCommentData = {
       commentId,
       handle: domData.handle,
       displayName: domData.displayName || domData.handle,
       comment: domData.comment || "",
-      createTime: reactData?.createTime || Math.floor(Date.now() / 1000),
-      videoId: reactData?.videoId || videoId || "",
-      videoThumbnailUrl: thumbnailUrl || "",
+      createTime: reactData?.create_time || Math.floor(Date.now() / 1000),
+      videoId: reactData?.aweme_id || videoId || "",
+      videoThumbnailUrl: "",
     };
 
     comments.push(comment);
   }
 
-  console.log("[VideoScraper] Scraped", comments.length, "unique comments");
+  console.log("[TikTok Buddy] Extracted", comments.length, "comments with IDs");
   return comments;
 }
 
-function rawCommentToScrapedUser(raw: RawCommentData): ScrapedUser {
-  const cid = raw.commentId ? btoa(raw.commentId) : "";
+function rawCommentToScrapedUser(raw: RawCommentData): ScrapedUser | null {
+  if (!raw.commentId) {
+    return null;
+  }
+
+  const cid = btoa(raw.commentId);
   const videoUrl = raw.videoId
-    ? `https://www.tiktok.com/video/${raw.videoId}${cid ? `?cid=${cid}` : ""}`
+    ? `https://www.tiktok.com/video/${raw.videoId}?cid=${cid}`
     : undefined;
 
   return {
-    id: `${raw.handle}-${raw.commentId || Date.now()}`,
+    id: `${raw.handle}-${raw.commentId}`,
     handle: raw.handle,
     comment: raw.comment,
     scrapedAt: new Date().toISOString(),
@@ -164,40 +219,62 @@ function rawCommentToScrapedUser(raw: RawCommentData): ScrapedUser {
 
 async function scrollToLoadComments(
   maxComments: number,
-  onProgress?: (loaded: number) => void
-): Promise<void> {
+  videoThumbnailUrl: string | undefined,
+  onProgress?: (loaded: number, saved: number) => void
+): Promise<ScrapedUser[]> {
   const scroller = querySelector(VIDEO_SELECTORS.commentsScroller);
-  if (!scroller) {
-    console.log("[VideoScraper] Scroller not found");
-    return;
-  }
+  if (!scroller) return [];
 
   let lastCount = 0;
   let stableIterations = 0;
+  const allUsers: ScrapedUser[] = [];
+  const savedCommentIds = new Set<string>();
 
   while (!isCancelled) {
-    const comments = querySelectorAll(VIDEO_SELECTORS.commentItem);
+    const commentElements = querySelectorAll(VIDEO_SELECTORS.commentItem);
 
-    if (maxComments !== Infinity && comments.length >= maxComments) {
-      console.log("[VideoScraper] Reached max comments:", comments.length);
+    if (maxComments !== Infinity && commentElements.length >= maxComments) {
       break;
     }
 
-    if (comments.length === lastCount) {
+    if (commentElements.length === lastCount) {
       stableIterations++;
       if (stableIterations >= 3) {
-        console.log("[VideoScraper] No more comments loading, stopping at:", comments.length);
         break;
       }
     } else {
       stableIterations = 0;
-      lastCount = comments.length;
-      onProgress?.(comments.length);
+      lastCount = commentElements.length;
+
+      // Extract and save comments incrementally on each scroll
+      const rawComments = await scrapeCommentsFromCurrentVideo();
+      const newUsers: ScrapedUser[] = [];
+
+      for (const raw of rawComments) {
+        const user = rawCommentToScrapedUser(raw);
+        if (user && !savedCommentIds.has(user.id)) {
+          if (videoThumbnailUrl) {
+            user.videoThumbnailUrl = videoThumbnailUrl;
+          }
+          newUsers.push(user);
+          savedCommentIds.add(user.id);
+          allUsers.push(user);
+        }
+      }
+
+      if (newUsers.length > 0) {
+        const savedCount = await addUsers(newUsers);
+        console.log(`[TikTok Buddy] Incrementally saved ${savedCount} new comments`);
+      }
+
+      onProgress?.(commentElements.length, allUsers.length);
     }
 
     scroller.scrollTop = scroller.scrollHeight;
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
+
+  return allUsers;
 }
 
 async function waitForCommentContent(options: { timeout?: number } = {}): Promise<boolean> {
@@ -212,7 +289,6 @@ async function waitForCommentContent(options: { timeout?: number } = {}): Promis
     for (const item of commentItems) {
       const usernameEl = querySelector(VIDEO_SELECTORS.commentUsername, item);
       if (usernameEl && usernameEl.textContent?.trim()) {
-        console.log("[VideoScraper] Found loaded comment with username:", usernameEl.textContent);
         return true;
       }
     }
@@ -226,32 +302,327 @@ async function waitForCommentContent(options: { timeout?: number } = {}): Promis
 async function openCommentsPanel(): Promise<boolean> {
   const existingComments = querySelector(VIDEO_SELECTORS.commentsContainer);
   if (existingComments) {
-    console.log("[VideoScraper] Comments panel already open");
     return true;
   }
 
   const commentButton = querySelector<HTMLElement>(VIDEO_SELECTORS.commentButton);
   if (!commentButton) {
-    console.log("[VideoScraper] Comment button not found");
     return false;
   }
 
-  console.log("[VideoScraper] Clicking comment button...");
   commentButton.click();
-
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const commentsPanel = await waitForSelector(VIDEO_SELECTORS.commentsContainer, { timeout: 5000 });
   return commentsPanel !== null;
 }
 
-export async function scrapeVideoComments(
-  maxComments: number = Infinity,
+function extractThumbnailFromVideoItem(videoItem: Element): string | null {
+  const img = videoItem.querySelector("img");
+  if (img?.src) return img.src;
+
+  const picture = videoItem.querySelector("picture source");
+  if (picture) {
+    const srcset = picture.getAttribute("srcset");
+    if (srcset) {
+      const firstUrl = srcset.split(",")[0]?.split(" ")[0];
+      if (firstUrl) return firstUrl;
+    }
+  }
+  return null;
+}
+
+function extractVideoIdFromVideoItem(videoItem: Element): string | null {
+  const link = videoItem.querySelector("a[href*='/video/']");
+  if (link) {
+    const href = link.getAttribute("href");
+    if (href) {
+      const match = href.match(/\/video\/(\d+)/);
+      if (match) return match[1];
+    }
+  }
+  return null;
+}
+
+async function closeVideoModal(): Promise<void> {
+  console.log("[TikTok Buddy] Closing modal with history.back()");
+  window.history.back();
+
+  // Wait for the video grid to reappear (confirms we're back on profile)
+  const grid = await waitForSelector(VIDEO_SELECTORS.videoGrid, { timeout: 5000 });
+  if (grid) {
+    console.log("[TikTok Buddy] Back on profile page, video grid found");
+  } else {
+    console.log("[TikTok Buddy] Warning: video grid not found after going back");
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 500));
+}
+
+async function clickVideoItem(videoItem: Element): Promise<boolean> {
+  const clickTarget = videoItem.querySelector("a") as HTMLElement | null;
+  if (!clickTarget) return false;
+
+  // Push current URL to history before clicking, so history.back() has somewhere to go
+  const currentUrl = window.location.href;
+  window.history.pushState({ tiktokBuddy: true }, "", currentUrl);
+  console.log("[TikTok Buddy] Pushed history state before clicking video");
+
+  clickTarget.click();
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  const modal = await waitForSelector(VIDEO_SELECTORS.videoModal, { timeout: 5000 });
+  return modal !== null;
+}
+
+export async function scrapeProfileVideos(
+  maxVideos: number = Infinity,
+  maxCommentsPerVideo: number = Infinity,
   onProgress?: (progress: VideoScrapeProgress) => void
 ): Promise<ScrapedUser[]> {
   isCancelled = false;
+  const allUsers: ScrapedUser[] = [];
+  const videoThumbnails = new Map<string, string>();
 
-  console.log("[VideoScraper] Starting scrape...");
+  console.log("[TikTok Buddy] Starting profile scrape");
+
+  const videoGrid = querySelector(VIDEO_SELECTORS.videoGrid);
+  if (!videoGrid) {
+    console.log("[TikTok Buddy] No video grid found");
+    onProgress?.({
+      videosProcessed: 0,
+      totalVideos: 0,
+      commentsFound: 0,
+      status: "error",
+      message: "No video grid found. Are you on a profile page?",
+    });
+    return [];
+  }
+
+  const videoItems = querySelectorAll(VIDEO_SELECTORS.videoItem);
+  const videosToProcess = Math.min(videoItems.length, maxVideos);
+
+  console.log(`[TikTok Buddy] Found ${videoItems.length} videos, will process ${videosToProcess}`);
+
+  onProgress?.({
+    videosProcessed: 0,
+    totalVideos: videosToProcess,
+    commentsFound: 0,
+    status: "loading",
+    message: `Found ${videoItems.length} videos, will process ${videosToProcess}`,
+  });
+
+  for (let i = 0; i < videosToProcess && !isCancelled; i++) {
+    try {
+      const videoItem = videoItems[i];
+      const thumbnail = extractThumbnailFromVideoItem(videoItem);
+      const videoId = extractVideoIdFromVideoItem(videoItem);
+
+      console.log(`[TikTok Buddy] Processing video ${i + 1}: ${videoId}, thumbnail: ${thumbnail ? 'yes' : 'no'}`);
+
+      if (videoId && thumbnail) {
+        videoThumbnails.set(videoId, thumbnail);
+      }
+
+      onProgress?.({
+        videosProcessed: i,
+        totalVideos: videosToProcess,
+        commentsFound: allUsers.length,
+        status: "scraping",
+        message: `Opening video ${i + 1} of ${videosToProcess}...`,
+      });
+
+      const modalOpened = await clickVideoItem(videoItem);
+      if (!modalOpened) {
+        console.log(`[TikTok Buddy] Failed to open modal for video ${i + 1}`);
+        continue;
+      }
+
+      console.log(`[TikTok Buddy] Modal opened for video ${i + 1}`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Pass thumbnail to scrapeVideoComments - it saves incrementally on each scroll
+      const users = await scrapeVideoComments(maxCommentsPerVideo, (progress) => {
+        onProgress?.({
+          videosProcessed: i,
+          totalVideos: videosToProcess,
+          commentsFound: allUsers.length + progress.commentsFound,
+          status: "scraping",
+          message: `Video ${i + 1}/${videosToProcess}: ${progress.message}`,
+        });
+      }, thumbnail || undefined);
+
+      console.log(`[TikTok Buddy] Scraped ${users.length} comments from video ${i + 1}`);
+
+      // Just track locally - saving already happened incrementally during scroll
+      for (const user of users) {
+        allUsers.push(user);
+      }
+
+      console.log(`[TikTok Buddy] Closing modal for video ${i + 1}`);
+      await closeVideoModal();
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error(`[TikTok Buddy] Error processing video ${i + 1}:`, error);
+      // Try to close any open modal and continue
+      try {
+        await closeVideoModal();
+      } catch {
+        // Ignore close errors
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+
+  if (isCancelled) {
+    console.log("[TikTok Buddy] Scraping cancelled");
+    onProgress?.({
+      videosProcessed: 0,
+      totalVideos: videosToProcess,
+      commentsFound: allUsers.length,
+      status: "cancelled",
+      message: "Scraping cancelled",
+    });
+    return allUsers;
+  }
+
+  console.log(`[TikTok Buddy] Scraping complete: ${allUsers.length} comments from ${videosToProcess} videos`);
+  onProgress?.({
+    videosProcessed: videosToProcess,
+    totalVideos: videosToProcess,
+    commentsFound: allUsers.length,
+    status: "complete",
+    message: `Scraped ${allUsers.length} comments from ${videosToProcess} videos`,
+  });
+
+  return allUsers;
+}
+
+function getProfileHandleFromUrl(): string | null {
+  const match = window.location.pathname.match(/^\/@([^/?]+)/);
+  return match ? match[1] : null;
+}
+
+export async function scrapeProfileVideoMetadata(
+  maxVideos: number = Infinity,
+  onProgress?: (progress: VideoMetadataScrapeProgress) => void
+): Promise<ScrapedVideo[]> {
+  isCancelled = false;
+  const allVideos: ScrapedVideo[] = [];
+  const seenVideoIds = new Set<string>();
+
+  const profileHandle = getProfileHandleFromUrl();
+  if (!profileHandle) {
+    onProgress?.({
+      videosFound: 0,
+      status: "error",
+      message: "Not on a profile page. Navigate to a TikTok profile first.",
+    });
+    return [];
+  }
+
+  console.log("[TikTok Buddy] Starting video metadata scrape for @" + profileHandle + " (max: " + maxVideos + ")");
+
+  onProgress?.({
+    videosFound: 0,
+    status: "scrolling",
+    message: "Looking for video grid...",
+  });
+
+  const videoGrid = await waitForSelector(VIDEO_SELECTORS.videoGrid, { timeout: 10000 });
+  if (!videoGrid) {
+    onProgress?.({
+      videosFound: 0,
+      status: "error",
+      message: "No video grid found. Are you on a profile page?",
+    });
+    return [];
+  }
+
+  let lastCount = 0;
+  let stableIterations = 0;
+
+  while (!isCancelled) {
+    const videoItems = querySelectorAll(VIDEO_SELECTORS.videoItem);
+
+    onProgress?.({
+      videosFound: allVideos.length,
+      status: "scrolling",
+      message: `Found ${allVideos.length} posts${maxVideos !== Infinity ? ` (max ${maxVideos})` : ""}, scrolling for more...`,
+    });
+
+    for (let i = 0; i < videoItems.length; i++) {
+      if (allVideos.length >= maxVideos) break;
+
+      const item = videoItems[i];
+      const videoId = extractVideoIdFromVideoItem(item);
+      if (!videoId || seenVideoIds.has(videoId)) continue;
+
+      seenVideoIds.add(videoId);
+
+      const thumbnail = extractThumbnailFromVideoItem(item);
+      const video: ScrapedVideo = {
+        id: `${profileHandle}-${videoId}`,
+        videoId,
+        thumbnailUrl: thumbnail || "",
+        videoUrl: `https://www.tiktok.com/@${profileHandle}/video/${videoId}`,
+        profileHandle,
+        order: allVideos.length,
+        scrapedAt: new Date().toISOString(),
+      };
+
+      allVideos.push(video);
+    }
+
+    if (allVideos.length >= maxVideos) {
+      break;
+    }
+
+    if (videoItems.length === lastCount) {
+      stableIterations++;
+      if (stableIterations >= 3) {
+        break;
+      }
+    } else {
+      stableIterations = 0;
+      lastCount = videoItems.length;
+
+      if (allVideos.length > 0 && allVideos.length % 10 === 0) {
+        const savedCount = await addVideos(allVideos);
+        console.log(`[TikTok Buddy] Incrementally saved ${savedCount} new videos`);
+      }
+    }
+
+    window.scrollTo(0, document.body.scrollHeight);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  if (isCancelled) {
+    onProgress?.({
+      videosFound: allVideos.length,
+      status: "cancelled",
+      message: "Scraping cancelled",
+    });
+  } else {
+    const savedCount = await addVideos(allVideos);
+    console.log(`[TikTok Buddy] Final save: ${savedCount} new videos`);
+
+    onProgress?.({
+      videosFound: allVideos.length,
+      status: "complete",
+      message: `Scraped ${allVideos.length} posts from @${profileHandle}`,
+    });
+  }
+
+  return allVideos;
+}
+
+export async function scrapeVideoComments(
+  maxComments: number = Infinity,
+  onProgress?: (progress: VideoScrapeProgress) => void,
+  videoThumbnailUrl?: string
+): Promise<ScrapedUser[]> {
+  isCancelled = false;
 
   onProgress?.({
     videosProcessed: 0,
@@ -263,7 +634,6 @@ export async function scrapeVideoComments(
 
   const panelOpened = await openCommentsPanel();
   if (!panelOpened) {
-    console.log("[VideoScraper] Failed to open comments panel");
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
@@ -274,8 +644,6 @@ export async function scrapeVideoComments(
     return [];
   }
 
-  console.log("[VideoScraper] Comments panel opened, waiting for comments...");
-
   onProgress?.({
     videosProcessed: 0,
     totalVideos: 1,
@@ -284,13 +652,10 @@ export async function scrapeVideoComments(
     message: "Loading comments...",
   });
 
-  const foundElement = await waitForSelector(VIDEO_SELECTORS.commentItem, { timeout: 10000 });
-  console.log("[VideoScraper] Found comment element:", foundElement);
+  await waitForSelector(VIDEO_SELECTORS.commentItem, { timeout: 10000 });
 
-  // Wait for actual content to load (not just skeleton placeholders)
   const contentLoaded = await waitForCommentContent({ timeout: 10000 });
   if (!contentLoaded) {
-    console.log("[VideoScraper] Comment content never loaded (still showing skeletons)");
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
@@ -301,21 +666,14 @@ export async function scrapeVideoComments(
     return [];
   }
 
-  // Debug: log what we can find
-  const debugItems = querySelectorAll(VIDEO_SELECTORS.commentItem);
-  console.log("[VideoScraper] Found", debugItems.length, "comment items with content");
-  if (debugItems.length > 0) {
-    const firstUsername = querySelector(VIDEO_SELECTORS.commentUsername, debugItems[0]);
-    console.log("[VideoScraper] First comment username:", firstUsername?.textContent);
-  }
-
-  await scrollToLoadComments(maxComments, (loaded) => {
+  // scrollToLoadComments now handles extraction and saving incrementally
+  const users = await scrollToLoadComments(maxComments, videoThumbnailUrl, (loaded, saved) => {
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
-      commentsFound: loaded,
+      commentsFound: saved,
       status: "scraping",
-      message: `Found ${loaded} comments...`,
+      message: `Found ${loaded} comments, saved ${saved}...`,
     });
   });
 
@@ -323,15 +681,12 @@ export async function scrapeVideoComments(
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
-      commentsFound: 0,
+      commentsFound: users.length,
       status: "cancelled",
       message: "Scraping cancelled",
     });
-    return [];
+    return users;
   }
-
-  const rawComments = scrapeCommentsFromCurrentVideo();
-  const users = rawComments.map(rawCommentToScrapedUser);
 
   onProgress?.({
     videosProcessed: 1,

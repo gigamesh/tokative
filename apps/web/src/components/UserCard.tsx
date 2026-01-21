@@ -12,6 +12,21 @@ interface UserCardProps {
   onReplyComment: () => void;
 }
 
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 export function UserCard({
   user,
   selected,
@@ -71,6 +86,24 @@ export function UserCard({
           className="mt-1 w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red"
         />
 
+        {user.videoThumbnailUrl && (
+          <a
+            href={user.videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0"
+          >
+            <img
+              src={user.videoThumbnailUrl}
+              alt="Video thumbnail"
+              className="w-16 h-20 object-cover rounded bg-gray-800"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          </a>
+        )}
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <a
@@ -81,6 +114,11 @@ export function UserCard({
             >
               @{user.handle}
             </a>
+            {user.commentTimestamp && (
+              <span className="text-xs text-gray-500">
+                {formatRelativeTime(user.commentTimestamp)}
+              </span>
+            )}
             {messageStatusText && (
               <span className={`text-xs ${messageStatusColor}`}>{messageStatusText}</span>
             )}
@@ -104,14 +142,11 @@ export function UserCard({
             </button>
           )}
 
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span>
-              Scraped {new Date(user.scrapedAt).toLocaleDateString()}
-            </span>
-            {user.sentAt && (
-              <span>• Sent {new Date(user.sentAt).toLocaleDateString()}</span>
-            )}
-          </div>
+          {user.sentAt && (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>Sent {formatRelativeTime(user.sentAt)}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2">

@@ -1,35 +1,53 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { ScrapedUser } from "@/utils/constants";
 import { UserCard } from "./UserCard";
 
 type FilterStatus = "all" | "sent" | "not_sent" | "failed";
+type SortOption = "newest" | "oldest" | "recent_scrape";
 
-interface UserTableProps {
+interface CommentTableProps {
   users: ScrapedUser[];
   selectedIds: Set<string>;
+  commentLimit: number;
   onSelectUser: (userId: string, selected: boolean) => void;
   onSelectAll: (selected: boolean) => void;
   onRemoveUser: (userId: string) => void;
   onSendMessage: (user: ScrapedUser) => void;
   onReplyComment: (user: ScrapedUser) => void;
+  onCommentLimitChange: (limit: number) => void;
 }
 
-export function UserTable({
+export function CommentTable({
   users,
   selectedIds,
+  commentLimit,
   onSelectUser,
   onSelectAll,
   onRemoveUser,
   onSendMessage,
   onReplyComment,
-}: UserTableProps) {
+  onCommentLimitChange,
+}: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
+  const [sort, setSort] = useState<SortOption>("newest");
+  const [commentLimitInput, setCommentLimitInput] = useState<string>(String(commentLimit));
+
+  useEffect(() => {
+    setCommentLimitInput(String(commentLimit));
+  }, [commentLimit]);
+
+  const handleCommentLimitBlur = useCallback(() => {
+    const parsed = parseInt(commentLimitInput);
+    const value = isNaN(parsed) || parsed < 1 ? 100 : parsed;
+    setCommentLimitInput(String(value));
+    onCommentLimitChange(value);
+  }, [commentLimitInput, onCommentLimitChange]);
 
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
+    const filtered = users.filter((user) => {
       const matchesSearch =
         search === "" ||
         user.handle.toLowerCase().includes(search.toLowerCase()) ||
@@ -43,7 +61,22 @@ export function UserTable({
 
       return matchesSearch && matchesFilter;
     });
-  }, [users, search, filter]);
+
+    return filtered.sort((a, b) => {
+      if (sort === "newest") {
+        const aTime = a.commentTimestamp ? new Date(a.commentTimestamp).getTime() : 0;
+        const bTime = b.commentTimestamp ? new Date(b.commentTimestamp).getTime() : 0;
+        return bTime - aTime;
+      }
+      if (sort === "oldest") {
+        const aTime = a.commentTimestamp ? new Date(a.commentTimestamp).getTime() : 0;
+        const bTime = b.commentTimestamp ? new Date(b.commentTimestamp).getTime() : 0;
+        return aTime - bTime;
+      }
+      // recent_scrape
+      return new Date(b.scrapedAt).getTime() - new Date(a.scrapedAt).getTime();
+    });
+  }, [users, search, filter, sort]);
 
   const allSelected =
     filteredUsers.length > 0 &&
@@ -66,7 +99,20 @@ export function UserTable({
           <span className="text-red-400">Failed: {stats.failed}</span>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-400">Limit:</label>
+            <input
+              type="number"
+              value={commentLimitInput}
+              onChange={(e) => setCommentLimitInput(e.target.value)}
+              onBlur={handleCommentLimitBlur}
+              min={1}
+              className="w-20 px-2 py-1.5 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
+              title="Maximum comments to scrape per post"
+            />
+          </div>
+
           <input
             type="text"
             placeholder="Search comments..."
@@ -84,6 +130,16 @@ export function UserTable({
             <option value="not_sent">Not Sent</option>
             <option value="sent">Sent</option>
             <option value="failed">Failed</option>
+          </select>
+
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
+          >
+            <option value="newest">Newest Comments</option>
+            <option value="oldest">Oldest Comments</option>
+            <option value="recent_scrape">Recently Scraped</option>
           </select>
         </div>
       </div>

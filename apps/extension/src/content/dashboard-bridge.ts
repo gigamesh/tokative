@@ -85,31 +85,44 @@ function handleWindowMessage(event: MessageEvent): void {
       port.postMessage(message);
     }
   } else {
-    chrome.runtime.sendMessage(message).then((response) => {
-      if (response) {
+    chrome.runtime.sendMessage(message)
+      .then((response) => {
+        if (response) {
+          window.postMessage(
+            {
+              type: getResponseType(message.type),
+              payload: response,
+              source: "tiktok-buddy-extension",
+            },
+            "*"
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("[Bridge] Error sending message:", error);
         window.postMessage(
           {
             type: getResponseType(message.type),
-            payload: response,
+            payload: { error: error.message || "Extension communication error" },
             source: "tiktok-buddy-extension",
           },
           "*"
         );
-      }
-    });
+      });
   }
 }
 
 function isPortMessage(type: MessageType): boolean {
   return [
-    MessageType.SCRAPE_COMMENTS_START,
-    MessageType.SCRAPE_COMMENTS_STOP,
     MessageType.SEND_MESSAGE,
     MessageType.BULK_SEND_START,
     MessageType.BULK_SEND_STOP,
     MessageType.REPLY_COMMENT,
     MessageType.BULK_REPLY_START,
     MessageType.BULK_REPLY_STOP,
+    MessageType.SCRAPE_VIDEOS_START,
+    MessageType.SCRAPE_VIDEOS_STOP,
+    MessageType.GET_VIDEO_COMMENTS,
   ].includes(type);
 }
 
@@ -121,6 +134,11 @@ function getResponseType(requestType: MessageType): MessageType {
     [MessageType.SAVE_ACCOUNT_HANDLE]: MessageType.SAVE_ACCOUNT_HANDLE,
     [MessageType.GET_COMMENT_LIMIT]: MessageType.GET_COMMENT_LIMIT,
     [MessageType.SAVE_COMMENT_LIMIT]: MessageType.SAVE_COMMENT_LIMIT,
+    [MessageType.GET_POST_LIMIT]: MessageType.GET_POST_LIMIT,
+    [MessageType.SAVE_POST_LIMIT]: MessageType.SAVE_POST_LIMIT,
+    [MessageType.GET_STORED_VIDEOS]: MessageType.GET_STORED_VIDEOS,
+    [MessageType.REMOVE_VIDEO]: MessageType.REMOVE_VIDEO,
+    [MessageType.REMOVE_VIDEOS]: MessageType.REMOVE_VIDEOS,
   };
   return responseMap[requestType] || requestType;
 }

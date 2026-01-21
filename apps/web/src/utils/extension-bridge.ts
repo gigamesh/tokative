@@ -118,7 +118,7 @@ class ExtensionBridge {
       const timeout = setTimeout(() => {
         cleanup();
         reject(new Error(`Request timeout: ${type}`));
-      }, 10000);
+      }, 120000);
 
       const cleanup = this.on(responseType, (response) => {
         clearTimeout(timeout);
@@ -138,6 +138,11 @@ class ExtensionBridge {
       [MessageType.SAVE_ACCOUNT_HANDLE]: MessageType.SAVE_ACCOUNT_HANDLE,
       [MessageType.GET_COMMENT_LIMIT]: MessageType.GET_COMMENT_LIMIT,
       [MessageType.SAVE_COMMENT_LIMIT]: MessageType.SAVE_COMMENT_LIMIT,
+      [MessageType.GET_POST_LIMIT]: MessageType.GET_POST_LIMIT,
+      [MessageType.SAVE_POST_LIMIT]: MessageType.SAVE_POST_LIMIT,
+      [MessageType.GET_STORED_VIDEOS]: MessageType.GET_STORED_VIDEOS,
+      [MessageType.REMOVE_VIDEO]: MessageType.REMOVE_VIDEO,
+      [MessageType.REMOVE_VIDEOS]: MessageType.REMOVE_VIDEOS,
     };
     return responseMap[requestType] || requestType;
   }

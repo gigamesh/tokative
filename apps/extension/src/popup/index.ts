@@ -1,12 +1,12 @@
 import { MessageType } from "../types";
-import { getUsers, saveUsers } from "../utils/storage";
+import { getUsers, getVideos } from "../utils/storage";
 
 async function init(): Promise<void> {
   const statusEl = document.getElementById("status");
   const userCountEl = document.getElementById("user-count");
   const sentCountEl = document.getElementById("sent-count");
   const openDashboardBtn = document.getElementById("open-dashboard");
-  const scrapeVideoBtn = document.getElementById("scrape-video") as HTMLButtonElement | null;
+  const scrapeProfileBtn = document.getElementById("scrape-profile") as HTMLButtonElement | null;
   const scrapeStatusEl = document.getElementById("scrape-status");
 
   const users = await getUsers();
@@ -33,6 +33,21 @@ async function init(): Promise<void> {
     }
   }
 
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const isOnProfilePage = activeTab?.url?.includes("tiktok.com/@");
+
+  if (scrapeProfileBtn) {
+    if (isOnProfilePage) {
+      scrapeProfileBtn.disabled = false;
+    } else {
+      scrapeProfileBtn.disabled = true;
+      if (scrapeStatusEl) {
+        scrapeStatusEl.className = "scrape-status error";
+        scrapeStatusEl.textContent = "Open a TikTok profile page to scrape";
+      }
+    }
+  }
+
   openDashboardBtn?.addEventListener("click", async () => {
     if (dashboardOpen && tabs[0]?.id) {
       await chrome.tabs.update(tabs[0].id, { active: true });
@@ -43,52 +58,61 @@ async function init(): Promise<void> {
     }
   });
 
-  scrapeVideoBtn?.addEventListener("click", async () => {
-    if (!scrapeVideoBtn || !scrapeStatusEl) return;
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === MessageType.SCRAPE_VIDEOS_PROGRESS) {
+      const progress = message.payload;
+      if (scrapeStatusEl) {
+        scrapeStatusEl.className = "scrape-status active";
+        scrapeStatusEl.textContent = progress.message || `${progress.videosFound} posts found...`;
+      }
+    } else if (message.type === MessageType.SCRAPE_VIDEOS_COMPLETE) {
+      const { videos: scrapedVideos } = message.payload as { videos: unknown[] };
+      getVideos().then((allVideos) => {
+        if (scrapeStatusEl) {
+          scrapeStatusEl.className = "scrape-status success";
+          scrapeStatusEl.textContent = `Scraped ${scrapedVideos?.length || 0} posts (${allVideos.length} total)`;
+        }
+        if (scrapeProfileBtn) scrapeProfileBtn.disabled = false;
+      });
+    } else if (message.type === MessageType.SCRAPE_VIDEOS_ERROR) {
+      if (scrapeStatusEl) {
+        scrapeStatusEl.className = "scrape-status error";
+        scrapeStatusEl.textContent = message.payload.error || "Scraping failed";
+      }
+      if (scrapeProfileBtn) scrapeProfileBtn.disabled = false;
+    }
+  });
 
-    const tiktokTabs = await chrome.tabs.query({ url: "*://*.tiktok.com/*" });
-    const videoTab = tiktokTabs.find(tab => tab.url?.includes("/video/"));
+  scrapeProfileBtn?.addEventListener("click", async () => {
+    if (!scrapeProfileBtn || !scrapeStatusEl) return;
 
-    if (!videoTab?.id) {
+    const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!currentTab?.id || !currentTab.url?.includes("tiktok.com/@")) {
       scrapeStatusEl.className = "scrape-status error";
-      scrapeStatusEl.textContent = "No TikTok video page open";
+      scrapeStatusEl.textContent = "Navigate to a TikTok profile page first";
       return;
     }
 
-    scrapeVideoBtn.disabled = true;
+    scrapeProfileBtn.disabled = true;
     scrapeStatusEl.className = "scrape-status active";
-    scrapeStatusEl.textContent = "Scraping comments...";
+    scrapeStatusEl.textContent = "Starting profile scrape...";
 
     try {
-      const response = await chrome.tabs.sendMessage(videoTab.id, {
-        type: MessageType.SCRAPE_VIDEO_COMMENTS_START,
+      const response = await chrome.tabs.sendMessage(currentTab.id, {
+        type: MessageType.SCRAPE_VIDEOS_START,
         payload: {},
       });
 
-      if (response?.success && response?.users) {
-        const existingUsers = await getUsers();
-        const existingIds = new Set(existingUsers.map(u => u.id));
-        const newUsers = response.users.filter((u: { id: string }) => !existingIds.has(u.id));
-
-        if (newUsers.length > 0) {
-          await saveUsers([...existingUsers, ...newUsers]);
-        }
-
-        scrapeStatusEl.className = "scrape-status success";
-        scrapeStatusEl.textContent = `Found ${response.users.length} comments (${newUsers.length} new)`;
-
-        if (userCountEl) {
-          userCountEl.textContent = (existingUsers.length + newUsers.length).toString();
-        }
-      } else {
+      if (!response?.success) {
         scrapeStatusEl.className = "scrape-status error";
-        scrapeStatusEl.textContent = response?.error || "Scraping failed";
+        scrapeStatusEl.textContent = response?.error || "Failed to start scraping";
+        scrapeProfileBtn.disabled = false;
       }
     } catch (error) {
       scrapeStatusEl.className = "scrape-status error";
       scrapeStatusEl.textContent = error instanceof Error ? error.message : "Unknown error";
-    } finally {
-      scrapeVideoBtn.disabled = false;
+      scrapeProfileBtn.disabled = false;
     }
   });
 }

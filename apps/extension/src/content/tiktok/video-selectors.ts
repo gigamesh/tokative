@@ -38,8 +38,9 @@ export const VIDEO_SELECTORS = {
   ],
 
   commentItem: [
-    '[class*="DivCommentItemWrapper"]',
     '[class*="DivCommentObjectWrapper"]',
+    '[class*="DivCommentItemContainer"]',
+    '[class*="DivCommentItemWrapper"]',
   ],
 
   commentUsername: [

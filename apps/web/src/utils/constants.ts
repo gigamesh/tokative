@@ -8,11 +8,6 @@ export const MessageType = {
   REMOVE_USER: "REMOVE_USER",
   REMOVE_USERS: "REMOVE_USERS",
   UPDATE_USER: "UPDATE_USER",
-  SCRAPE_COMMENTS_START: "SCRAPE_COMMENTS_START",
-  SCRAPE_COMMENTS_PROGRESS: "SCRAPE_COMMENTS_PROGRESS",
-  SCRAPE_COMMENTS_COMPLETE: "SCRAPE_COMMENTS_COMPLETE",
-  SCRAPE_COMMENTS_ERROR: "SCRAPE_COMMENTS_ERROR",
-  SCRAPE_COMMENTS_STOP: "SCRAPE_COMMENTS_STOP",
   SEND_MESSAGE: "SEND_MESSAGE",
   SEND_MESSAGE_PROGRESS: "SEND_MESSAGE_PROGRESS",
   SEND_MESSAGE_COMPLETE: "SEND_MESSAGE_COMPLETE",
@@ -30,6 +25,8 @@ export const MessageType = {
   SAVE_ACCOUNT_HANDLE: "SAVE_ACCOUNT_HANDLE",
   GET_COMMENT_LIMIT: "GET_COMMENT_LIMIT",
   SAVE_COMMENT_LIMIT: "SAVE_COMMENT_LIMIT",
+  GET_POST_LIMIT: "GET_POST_LIMIT",
+  SAVE_POST_LIMIT: "SAVE_POST_LIMIT",
   REPLY_COMMENT: "REPLY_COMMENT",
   REPLY_COMMENT_PROGRESS: "REPLY_COMMENT_PROGRESS",
   REPLY_COMMENT_COMPLETE: "REPLY_COMMENT_COMPLETE",
@@ -43,6 +40,21 @@ export const MessageType = {
   SCRAPE_VIDEO_COMMENTS_COMPLETE: "SCRAPE_VIDEO_COMMENTS_COMPLETE",
   SCRAPE_VIDEO_COMMENTS_ERROR: "SCRAPE_VIDEO_COMMENTS_ERROR",
   SCRAPE_VIDEO_COMMENTS_STOP: "SCRAPE_VIDEO_COMMENTS_STOP",
+  // Video metadata scraping
+  SCRAPE_VIDEOS_START: "SCRAPE_VIDEOS_START",
+  SCRAPE_VIDEOS_PROGRESS: "SCRAPE_VIDEOS_PROGRESS",
+  SCRAPE_VIDEOS_COMPLETE: "SCRAPE_VIDEOS_COMPLETE",
+  SCRAPE_VIDEOS_ERROR: "SCRAPE_VIDEOS_ERROR",
+  SCRAPE_VIDEOS_STOP: "SCRAPE_VIDEOS_STOP",
+  // Get comments for specific video
+  GET_VIDEO_COMMENTS: "GET_VIDEO_COMMENTS",
+  GET_VIDEO_COMMENTS_PROGRESS: "GET_VIDEO_COMMENTS_PROGRESS",
+  GET_VIDEO_COMMENTS_COMPLETE: "GET_VIDEO_COMMENTS_COMPLETE",
+  GET_VIDEO_COMMENTS_ERROR: "GET_VIDEO_COMMENTS_ERROR",
+  // Video storage
+  GET_STORED_VIDEOS: "GET_STORED_VIDEOS",
+  REMOVE_VIDEO: "REMOVE_VIDEO",
+  REMOVE_VIDEOS: "REMOVE_VIDEOS",
 } as const;
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
@@ -76,14 +88,6 @@ export interface MessageTemplate {
   isDefault?: boolean;
 }
 
-export interface ScrapeProgress {
-  current: number;
-  total: number;
-  newUsers: number;
-  status: "scrolling" | "extracting" | "complete" | "error";
-  message?: string;
-}
-
 export interface BulkSendProgress {
   total: number;
   completed: number;
@@ -112,4 +116,29 @@ export interface VideoScrapeProgress {
   commentsFound: number;
   status: "loading" | "scraping" | "complete" | "error" | "cancelled";
   message?: string;
+}
+
+export interface ScrapedVideo {
+  id: string;
+  videoId: string;
+  thumbnailUrl: string;
+  videoUrl: string;
+  profileHandle: string;
+  order: number;
+  scrapedAt: string;
+  commentsScraped?: boolean;
+  commentCount?: number;
+}
+
+export interface VideoMetadataScrapeProgress {
+  videosFound: number;
+  status: "scrolling" | "extracting" | "complete" | "error" | "cancelled";
+  message?: string;
+}
+
+export interface GetVideoCommentsProgress {
+  videoId: string;
+  status: "navigating" | "scraping" | "complete" | "error";
+  message?: string;
+  commentCount?: number;
 }

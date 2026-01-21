@@ -39,7 +39,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["content/extract-react-props.js"],
+      "resources": ["content/extract-react-props.js", "page-script.js"],
       "matches": ["https://www.tiktok.com/*"]
     }
   ]
