@@ -199,4 +199,5 @@ export interface VideoMetadataScrapeProgress {
   videosFound: number;
   status: "scrolling" | "extracting" | "complete" | "error" | "cancelled";
   message?: string;
+  limitReached?: boolean;
 }

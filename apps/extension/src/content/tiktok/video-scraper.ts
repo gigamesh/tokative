@@ -319,16 +319,67 @@ async function openCommentsPanel(): Promise<boolean> {
 
 function extractThumbnailFromVideoItem(videoItem: Element): string | null {
   const img = videoItem.querySelector("img");
-  if (img?.src) return img.src;
+  if (img) {
+    // Check various attributes TikTok might use for lazy loading
+    const src = img.src;
+    const dataSrc = img.getAttribute("data-src");
+    const srcset = img.getAttribute("srcset");
 
+    // Prefer actual src if it's a real URL (not a data URL or placeholder)
+    if (src && src.startsWith("http") && !src.includes("data:")) {
+      return src;
+    }
+
+    // Check data-src for lazy-loaded images
+    if (dataSrc && dataSrc.startsWith("http")) {
+      return dataSrc;
+    }
+
+    // Check srcset
+    if (srcset) {
+      const firstUrl = srcset.split(",")[0]?.split(" ")[0];
+      if (firstUrl && firstUrl.startsWith("http")) {
+        return firstUrl;
+      }
+    }
+  }
+
+  // Check picture element with source
   const picture = videoItem.querySelector("picture source");
   if (picture) {
     const srcset = picture.getAttribute("srcset");
     if (srcset) {
       const firstUrl = srcset.split(",")[0]?.split(" ")[0];
-      if (firstUrl) return firstUrl;
+      if (firstUrl && firstUrl.startsWith("http")) {
+        return firstUrl;
+      }
     }
   }
+
+  // Check for background-image style
+  const divWithBg = videoItem.querySelector('[style*="background-image"]');
+  if (divWithBg) {
+    const style = divWithBg.getAttribute("style");
+    const match = style?.match(/background-image:\s*url\(["']?([^"')]+)["']?\)/);
+    if (match && match[1] && match[1].startsWith("http")) {
+      return match[1];
+    }
+  }
+
+  return null;
+}
+
+async function waitForThumbnailToLoad(videoItem: Element, timeout: number = 2000): Promise<string | null> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    const thumbnail = extractThumbnailFromVideoItem(videoItem);
+    if (thumbnail) {
+      return thumbnail;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
   return null;
 }
 
@@ -506,7 +557,7 @@ function getProfileHandleFromUrl(): string | null {
 export async function scrapeProfileVideoMetadata(
   maxVideos: number = Infinity,
   onProgress?: (progress: VideoMetadataScrapeProgress) => void
-): Promise<ScrapedVideo[]> {
+): Promise<{ videos: ScrapedVideo[]; limitReached: boolean }> {
   isCancelled = false;
   const allVideos: ScrapedVideo[] = [];
   const seenVideoIds = new Set<string>();
@@ -518,7 +569,7 @@ export async function scrapeProfileVideoMetadata(
       status: "error",
       message: "Not on a profile page. Navigate to a TikTok profile first.",
     });
-    return [];
+    return { videos: [], limitReached: false };
   }
 
   console.log("[TikTok Buddy] Starting video metadata scrape for @" + profileHandle + " (max: " + maxVideos + ")");
@@ -536,7 +587,7 @@ export async function scrapeProfileVideoMetadata(
       status: "error",
       message: "No video grid found. Are you on a profile page?",
     });
-    return [];
+    return { videos: [], limitReached: false };
   }
 
   let lastCount = 0;
@@ -560,7 +611,11 @@ export async function scrapeProfileVideoMetadata(
 
       seenVideoIds.add(videoId);
 
-      const thumbnail = extractThumbnailFromVideoItem(item);
+      // Scroll item into view to trigger lazy loading of thumbnail
+      item.scrollIntoView({ block: "center", behavior: "instant" });
+
+      // Wait for thumbnail to actually load (up to 2 seconds)
+      const thumbnail = await waitForThumbnailToLoad(item, 2000);
       const video: ScrapedVideo = {
         id: `${profileHandle}-${videoId}`,
         videoId,
@@ -603,18 +658,20 @@ export async function scrapeProfileVideoMetadata(
       status: "cancelled",
       message: "Scraping cancelled",
     });
+    return { videos: allVideos, limitReached: false };
   } else {
     const savedCount = await addVideos(allVideos);
     console.log(`[TikTok Buddy] Final save: ${savedCount} new videos`);
 
+    const limitReached = allVideos.length >= maxVideos;
     onProgress?.({
       videosFound: allVideos.length,
       status: "complete",
       message: `Scraped ${allVideos.length} posts from @${profileHandle}`,
+      limitReached,
     });
+    return { videos: allVideos, limitReached };
   }
-
-  return allVideos;
 }
 
 export async function scrapeVideoComments(

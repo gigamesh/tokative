@@ -11,7 +11,6 @@ import {
 interface UserDataState {
   users: ScrapedUser[];
   templates: MessageTemplate[];
-  accountHandle: string;
   commentLimit: number;
   postLimit: number;
   loading: boolean;
@@ -22,7 +21,6 @@ export function useUserData() {
   const [state, setState] = useState<UserDataState>({
     users: [],
     templates: [],
-    accountHandle: "",
     commentLimit: 100,
     postLimit: 50,
     loading: true,
@@ -35,12 +33,11 @@ export function useUserData() {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const [usersResponse, handleResponse, commentLimitResponse, postLimitResponse] = await Promise.all([
+      const [usersResponse, commentLimitResponse, postLimitResponse] = await Promise.all([
         bridge.request<{
           users: ScrapedUser[];
           templates: MessageTemplate[];
         }>(MessageType.GET_STORED_USERS),
-        bridge.request<{ handle: string | null }>(MessageType.GET_ACCOUNT_HANDLE),
         bridge.request<{ limit: number }>(MessageType.GET_COMMENT_LIMIT),
         bridge.request<{ limit: number }>(MessageType.GET_POST_LIMIT),
       ]);
@@ -49,7 +46,6 @@ export function useUserData() {
         ...prev,
         users: usersResponse.users || [],
         templates: usersResponse.templates || [],
-        accountHandle: handleResponse.handle || "",
         commentLimit: commentLimitResponse.limit ?? 100,
         postLimit: postLimitResponse.limit ?? 50,
         loading: false,
@@ -67,14 +63,6 @@ export function useUserData() {
     if (!bridge) return;
     fetchData();
   }, [fetchData]);
-
-  const saveAccountHandle = useCallback(async (handle: string) => {
-    if (!bridge) return;
-
-    const normalized = handle.replace(/^@/, "");
-    setState((prev) => ({ ...prev, accountHandle: normalized }));
-    bridge.send(MessageType.SAVE_ACCOUNT_HANDLE, { handle: normalized });
-  }, []);
 
   const saveCommentLimit = useCallback(async (limit: number) => {
     if (!bridge) return;
@@ -131,7 +119,6 @@ export function useUserData() {
     removeUser,
     removeUsers,
     updateUser,
-    saveAccountHandle,
     saveCommentLimit,
     savePostLimit,
   };

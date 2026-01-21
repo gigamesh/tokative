@@ -1,5 +1,5 @@
 import { MessageType } from "../types";
-import { getUsers, getVideos } from "../utils/storage";
+import { getUsers, getVideos, getPostLimit } from "../utils/storage";
 
 async function init(): Promise<void> {
   const statusEl = document.getElementById("status");
@@ -35,6 +35,12 @@ async function init(): Promise<void> {
 
   const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const isOnProfilePage = activeTab?.url?.includes("tiktok.com/@");
+  const postLimit = await getPostLimit();
+
+  const postLimitHintEl = document.getElementById("post-limit-hint");
+  if (postLimitHintEl) {
+    postLimitHintEl.textContent = `Post limit: ${postLimit} (change in dashboard)`;
+  }
 
   if (scrapeProfileBtn) {
     if (isOnProfilePage) {
@@ -66,14 +72,13 @@ async function init(): Promise<void> {
         scrapeStatusEl.textContent = progress.message || `${progress.videosFound} posts found...`;
       }
     } else if (message.type === MessageType.SCRAPE_VIDEOS_COMPLETE) {
-      const { videos: scrapedVideos } = message.payload as { videos: unknown[] };
-      getVideos().then((allVideos) => {
-        if (scrapeStatusEl) {
-          scrapeStatusEl.className = "scrape-status success";
-          scrapeStatusEl.textContent = `Scraped ${scrapedVideos?.length || 0} posts (${allVideos.length} total)`;
-        }
-        if (scrapeProfileBtn) scrapeProfileBtn.disabled = false;
-      });
+      const { videos: scrapedVideos, limitReached } = message.payload as { videos: unknown[]; limitReached?: boolean };
+      if (scrapeStatusEl) {
+        scrapeStatusEl.className = "scrape-status success";
+        const limitText = limitReached ? " · Limit reached" : "";
+        scrapeStatusEl.textContent = `Scraped ${scrapedVideos?.length || 0} posts${limitText}`;
+      }
+      if (scrapeProfileBtn) scrapeProfileBtn.disabled = false;
     } else if (message.type === MessageType.SCRAPE_VIDEOS_ERROR) {
       if (scrapeStatusEl) {
         scrapeStatusEl.className = "scrape-status error";
@@ -94,14 +99,16 @@ async function init(): Promise<void> {
       return;
     }
 
+    const postLimit = await getPostLimit();
+
     scrapeProfileBtn.disabled = true;
     scrapeStatusEl.className = "scrape-status active";
-    scrapeStatusEl.textContent = "Starting profile scrape...";
+    scrapeStatusEl.textContent = `Scraping up to ${postLimit} posts...`;
 
     try {
       const response = await chrome.tabs.sendMessage(currentTab.id, {
         type: MessageType.SCRAPE_VIDEOS_START,
-        payload: {},
+        payload: { postLimit },
       });
 
       if (!response?.success) {

@@ -148,10 +148,10 @@ function handleMessage(
           payload: progress,
         });
       })
-        .then((videos) => {
+        .then(({ videos, limitReached }) => {
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEOS_COMPLETE,
-            payload: { videos },
+            payload: { videos, limitReached },
           });
         })
         .catch((error) => {
@@ -222,10 +222,10 @@ function handlePortMessage(message: ExtensionMessage): void {
             payload: progress,
           });
         })
-          .then((videos) => {
+          .then(({ videos, limitReached }) => {
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEOS_COMPLETE,
-              payload: { videos },
+              payload: { videos, limitReached },
             });
           })
           .catch((error) => {

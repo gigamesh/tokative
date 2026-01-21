@@ -40,6 +40,18 @@ function initBridge(): void {
 
   window.addEventListener("message", handleWindowMessage);
 
+  // Listen for messages from background script (via chrome.tabs.sendMessage)
+  chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
+    console.log("[Bridge] Received from background:", message.type);
+    window.postMessage(
+      {
+        ...message,
+        source: "tiktok-buddy-extension",
+      },
+      "*"
+    );
+  });
+
   window.postMessage(
     {
       type: MessageType.BRIDGE_READY,

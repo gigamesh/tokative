@@ -13,14 +13,12 @@ import { useCallback, useState } from "react";
 export default function DashboardPage() {
   const {
     users,
-    accountHandle,
     commentLimit,
     postLimit,
     loading,
     error,
     removeUser,
     removeUsers,
-    saveAccountHandle,
     saveCommentLimit,
     savePostLimit,
   } = useUserData();
@@ -127,9 +125,7 @@ export default function DashboardPage() {
               videos={videos}
               loading={videosLoading}
               getCommentsProgress={getCommentsProgress}
-              accountHandle={accountHandle}
               postLimit={postLimit}
-              onAccountHandleChange={saveAccountHandle}
               onPostLimitChange={savePostLimit}
               onGetComments={getCommentsForVideos}
               onRemoveVideos={removeVideosList}

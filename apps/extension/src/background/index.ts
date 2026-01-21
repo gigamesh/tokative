@@ -173,9 +173,18 @@ async function handleMessage(
 
     // Forward video scraping messages from content script to dashboard
     case MessageType.SCRAPE_VIDEOS_PROGRESS:
-    case MessageType.SCRAPE_VIDEOS_COMPLETE:
     case MessageType.SCRAPE_VIDEOS_ERROR: {
       broadcastToDashboard(message);
+      return { success: true };
+    }
+
+    case MessageType.SCRAPE_VIDEOS_COMPLETE: {
+      const { videos, limitReached } = message.payload as { videos: ScrapedVideo[]; limitReached?: boolean };
+      const added = await addVideos(videos);
+      broadcastToDashboard({
+        type: MessageType.SCRAPE_VIDEOS_COMPLETE,
+        payload: { totalAdded: added, videos, limitReached },
+      });
       return { success: true };
     }
 
@@ -391,12 +400,27 @@ async function forwardToContentScript(
   }
 }
 
-function broadcastToDashboard(message: ExtensionMessage): void {
+async function broadcastToDashboard(message: ExtensionMessage): Promise<void> {
+  // Send via port connection
   activePorts.forEach((port) => {
     if (port.name === "dashboard") {
       port.postMessage(message);
     }
   });
+
+  // Also send via tabs API as backup
+  try {
+    const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+    for (const tab of tabs) {
+      if (tab.id) {
+        chrome.tabs.sendMessage(tab.id, message).catch(() => {
+          // Ignore errors if content script isn't ready
+        });
+      }
+    }
+  } catch {
+    // Ignore query errors
+  }
 }
 
 async function handleSendMessage(

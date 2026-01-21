@@ -8,9 +8,7 @@ interface PostsGridProps {
   videos: ScrapedVideo[];
   loading: boolean;
   getCommentsProgress: Map<string, GetVideoCommentsProgress>;
-  accountHandle: string;
   postLimit: number;
-  onAccountHandleChange: (handle: string) => void;
   onPostLimitChange: (limit: number) => void;
   onGetComments: (videoIds: string[]) => void;
   onRemoveVideos: (videoIds: string[]) => void;
@@ -20,9 +18,7 @@ export function PostsGrid({
   videos,
   loading,
   getCommentsProgress,
-  accountHandle,
   postLimit,
-  onAccountHandleChange,
   onPostLimitChange,
   onGetComments,
   onRemoveVideos,
@@ -155,35 +151,18 @@ export function PostsGrid({
         </div>
       </div>
 
-      <div className="flex items-end justify-between gap-4 mb-4">
-        <div className="flex items-end gap-4">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">TikTok Handle</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">@</span>
-              <input
-                type="text"
-                value={accountHandle}
-                onChange={(e) => onAccountHandleChange(e.target.value)}
-                placeholder="yourhandle"
-                className="w-48 pl-8 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Post Limit</label>
-            <input
-              type="number"
-              value={postLimitInput}
-              onChange={(e) => setPostLimitInput(e.target.value)}
-              onBlur={handlePostLimitBlur}
-              min={1}
-              className="w-20 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red"
-            />
-          </div>
+      <div className="flex items-center gap-4 mb-4">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Post Limit</label>
+          <input
+            type="number"
+            value={postLimitInput}
+            onChange={(e) => setPostLimitInput(e.target.value)}
+            onBlur={handlePostLimitBlur}
+            min={1}
+            className="w-20 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red"
+          />
         </div>
-
       </div>
 
 

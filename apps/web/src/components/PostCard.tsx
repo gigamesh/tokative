@@ -62,6 +62,7 @@ export function PostCard({
             alt={`Post ${video.videoId}`}
             className="w-full h-full object-cover"
             loading="lazy"
+            referrerPolicy="no-referrer"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
