@@ -57,6 +57,13 @@ export enum MessageType {
   BULK_REPLY_PROGRESS = "BULK_REPLY_PROGRESS",
   BULK_REPLY_COMPLETE = "BULK_REPLY_COMPLETE",
   BULK_REPLY_STOP = "BULK_REPLY_STOP",
+
+  // Video scraping
+  SCRAPE_VIDEO_COMMENTS_START = "SCRAPE_VIDEO_COMMENTS_START",
+  SCRAPE_VIDEO_COMMENTS_PROGRESS = "SCRAPE_VIDEO_COMMENTS_PROGRESS",
+  SCRAPE_VIDEO_COMMENTS_COMPLETE = "SCRAPE_VIDEO_COMMENTS_COMPLETE",
+  SCRAPE_VIDEO_COMMENTS_ERROR = "SCRAPE_VIDEO_COMMENTS_ERROR",
+  SCRAPE_VIDEO_COMMENTS_STOP = "SCRAPE_VIDEO_COMMENTS_STOP",
 }
 
 export interface ScrapedUser {
@@ -73,6 +80,13 @@ export interface ScrapedUser {
   replySent?: boolean;
   repliedAt?: string;
   replyError?: string;
+  // Video scraping fields
+  commentTimestamp?: string;
+  videoThumbnailUrl?: string;
+  commentId?: string;
+  videoId?: string;
+  replyContent?: string;
+  messageContent?: string;
 }
 
 export interface MessageTemplate {
@@ -146,3 +160,11 @@ export const DEFAULT_TEMPLATE: MessageTemplate = {
   content: "Hey {{handle}}! Thanks for your comment: \"{{comment}}\"",
   isDefault: true,
 };
+
+export interface VideoScrapeProgress {
+  videosProcessed: number;
+  totalVideos: number;
+  commentsFound: number;
+  status: "loading" | "scraping" | "complete" | "error" | "cancelled";
+  message?: string;
+}

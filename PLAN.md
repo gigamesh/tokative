@@ -1,203 +1,207 @@
-# TikTok Buddy Implementation Plan
+# TikTok Buddy Video Scraping Refactor Plan
 
-## Overview
-Chrome extension + Next.js web app to manage TikTok interactions:
-- Scrape user handles + comments from Activity > Notifications > Comments
-- Display in a dashboard with search/filter
-- Send customizable messages to users one-by-one via automated DM flow
+## Goal
 
-## Architecture
-Based on bstock-buddy patterns:
-- **Turborepo monorepo** with pnpm
-- **Three-layer messaging**: PostMessage (web↔bridge) → Chrome runtime (bridge↔background) → Ports (streaming)
-- **Storage**: `chrome.storage.local` with abstraction layer for future DB migration
+Refactor the extension to scrape comments from video pages instead of notifications, capturing richer data (timestamps, thumbnails), display in a virtualized feed sorted by time, and store reply/message content.
 
 ---
 
-## File Structure
+## Phase 1: Validation
 
-```
-tiktok-buddy/
-├── package.json              # Workspace config
-├── pnpm-workspace.yaml
-├── turbo.json
-├── tsconfig.json
-├── apps/
-│   ├── extension/
-│   │   ├── public/
-│   │   │   ├── manifest.json
-│   │   │   └── popup.html
-│   │   ├── src/
-│   │   │   ├── types.ts                    # MessageType enum + interfaces
-│   │   │   ├── background/
-│   │   │   │   └── index.ts                # Service worker
-│   │   │   ├── content/
-│   │   │   │   ├── dashboard-bridge.ts     # localhost:3000 bridge
-│   │   │   │   └── tiktok/
-│   │   │   │       ├── index.ts            # TikTok content script entry
-│   │   │   │       ├── notifications-scraper.ts
-│   │   │   │       ├── profile-messenger.ts
-│   │   │   │       └── selectors.ts
-│   │   │   ├── popup/
-│   │   │   │   └── index.ts
-│   │   │   └── utils/
-│   │   │       ├── storage.ts              # Abstract storage layer
-│   │   │       └── dom.ts                  # waitForElement, scroll helpers
-│   │   └── scripts/
-│   │       └── build.js                    # esbuild bundler
-│   └── web/
-│       └── src/
-│           ├── app/
-│           │   ├── layout.tsx
-│           │   ├── page.tsx
-│           │   └── dashboard/
-│           │       └── page.tsx
-│           ├── components/
-│           │   ├── UserTable.tsx
-│           │   ├── UserCard.tsx
-│           │   ├── MessageComposer.tsx
-│           │   └── ConnectionStatus.tsx
-│           ├── hooks/
-│           │   ├── useUserData.ts
-│           │   ├── useMessaging.ts
-│           │   └── useTemplates.ts
-│           └── utils/
-│               ├── extension-bridge.ts
-│               └── constants.ts
-```
+**Objective:** Confirm we can capture timestamps and all other needed data from video page comments.
+
+### Tasks
+
+- [x] **1.1** Navigate to a video page manually and inspect React props on comment elements ✅
+  - React props accessible via `__reactFiber$` key on `DivCommentItemContainer` elements
+  - Full data structure available in React fiber's memoizedProps
+
+- [x] **1.2** Confirm `create_time` (or equivalent timestamp) exists in comment data ✅
+  - Found: `create_time` available in React props
+
+- [x] **1.3** Confirm video thumbnail URL is accessible ✅
+  - Found: Available from `og:image` meta tag on video page
+
+- [x] **1.4** Confirm comment ID (`cid`) is accessible on video page comments ✅
+  - Found: `cid` in React props AND in DOM `id` attribute on `DivCommentContentContainer`
+
+- [x] **1.5** Document the complete data structure we can extract ✅
+  - See Data Structure Reference below
+
+### Validation Method
+
+I'll provide you with a small script to run in the browser console that will:
+1. Select a comment element on a video page
+2. Extract and log the full React props structure
+3. Show exactly what data is available
 
 ---
 
-## Core Types
+## Phase 2: Selector Discovery & Test Setup
 
-```typescript
-interface ScrapedUser {
-  id: string;
-  handle: string;
-  comment: string;
-  scrapedAt: string;
-  profileUrl: string;
-  messageSent?: boolean;
-  sentAt?: string;
-  messageError?: string;
-  customMessage?: string;
-}
+**Objective:** Find all DOM selectors needed and write tests before implementation.
 
-interface MessageTemplate {
-  id: string;
-  name: string;
-  content: string;  // Supports {{handle}} and {{comment}} placeholders
-  isDefault?: boolean;
-}
-```
+### 2A: Profile Page Selectors
+
+- [ ] **2A.1** Video grid container selector
+- [ ] **2A.2** Individual video item selector
+- [ ] **2A.3** Video thumbnail/poster image selector
+- [ ] **2A.4** Video item click target
+
+### 2B: Video Modal Selectors
+
+- [x] **2B.1** Video modal/player container ✅ `[class*="DivBrowserModeContainer"]`
+- [x] **2B.2** Close button selector ✅ `[data-e2e="browse-close"]`
+- [x] **2B.3** Comments section container ✅ `[class*="DivCommentListContainer"]`
+- [x] **2B.4** Individual comment element ✅ `[class*="DivCommentItemContainer"]`
+- [x] **2B.5** Comment username element ✅ `[data-e2e="comment-username-1"]`
+- [x] **2B.6** Comment text element ✅ `[data-e2e="comment-text"]`
+- [x] **2B.7** Comment timestamp element ✅ `[data-e2e="comment-time-1"]`
+
+### 2C: Test Setup
+
+- [x] **2C.1** Create test file for video scraper ✅
+- [x] **2C.2** Write tests for selector utilities (querySelector, waitForSelector) ✅
+- [ ] **2C.3** Write tests for React props extraction
+- [x] **2C.4** Write tests for comment data parsing ✅
+- [ ] **2C.5** Write tests for storage migration
+
+### Selector Discovery Process
+
+For each selector needed, I'll ask you to:
+1. Navigate to the relevant page
+2. Right-click the target element → Inspect
+3. Copy the outer HTML of the element
+4. Share the HTML snippet so I can identify the selector
 
 ---
 
-## Message Types
+## Phase 3: Implementation (TDD)
 
-| Type | Purpose |
+**Objective:** Implement features test-first.
+
+### 3A: Data Model & Types
+
+- [x] **3A.1** Update `ScrapedUser` interface with new fields ✅
+- [x] **3A.2** Add `VideoScrapeProgress` interface ✅
+- [x] **3A.3** Add new `MessageType` enums ✅
+- [x] **3A.4** Mirror types in web app ✅
+
+### 3B: Storage Migration
+
+- [ ] **3B.1** Add storage version tracking
+- [ ] **3B.2** Implement v1 → v2 migration
+  - Extract `commentId`/`videoId` from existing `videoUrl`
+  - Set `commentTimestamp` to `scrapedAt` as fallback
+- [ ] **3B.3** Call migration on extension load
+- [ ] **3B.4** Test migration with sample data
+
+### 3C: Video Scraper
+
+- [x] **3C.1** Create `video-selectors.ts` with discovered selectors ✅
+- [x] **3C.2** Create `video-scraper.ts` skeleton ✅
+- [ ] **3C.3** Implement `waitForProfileLoad()`
+- [ ] **3C.4** Implement `getVideoThumbnails()`
+- [ ] **3C.5** Implement video navigation (click → scrape → close)
+- [x] **3C.6** Implement `scrapeAllCommentsOnVideo()` ✅
+- [x] **3C.7** Implement React props extraction for video comments ✅
+- [x] **3C.8** Implement progress reporting ✅
+- [x] **3C.9** Implement cancellation support ✅
+- [x] **3C.10** Wire up to content script message handler ✅
+- [ ] **3C.11** Wire up to background script orchestration
+
+### 3D: Reply/Message Content Storage
+
+- [ ] **3D.1** Update reply handler to store `replyContent`
+- [ ] **3D.2** Update message handler to store `messageContent`
+
+### 3E: Web App Updates
+
+- [ ] **3E.1** Install `@tanstack/react-virtual`
+- [ ] **3E.2** Update `UserCard` with thumbnail display
+- [ ] **3E.3** Update `UserCard` with comment timestamp display
+- [ ] **3E.4** Update `UserTable` with virtualization
+- [ ] **3E.5** Add sorting controls (by comment time, scraped time)
+- [ ] **3E.6** Test with large dataset
+
+---
+
+## Phase 4: Integration Testing
+
+- [ ] **4.1** End-to-end test: scrape from profile videos
+- [ ] **4.2** Verify all data fields populated correctly
+- [ ] **4.3** Test scraping cancellation
+- [ ] **4.4** Test migration with existing data
+- [ ] **4.5** Test web app performance with 500+ comments
+- [ ] **4.6** Test reply functionality still works
+- [ ] **4.7** Test DM functionality still works
+
+---
+
+## Files Reference
+
+### Created ✅
+| File | Purpose | Status |
+|------|---------|--------|
+| `apps/extension/src/content/tiktok/video-scraper.ts` | Main video scraping logic | ✅ Created |
+| `apps/extension/src/content/tiktok/video-selectors.ts` | Video page selectors | ✅ Created |
+| `apps/extension/src/content/tiktok/__tests__/video-scraper.test.ts` | Scraper tests | ✅ Created |
+
+### Modified ✅
+| File | Purpose | Status |
+|------|---------|--------|
+| `apps/extension/src/types.ts` | Add new fields and message types | ✅ Modified |
+| `apps/extension/src/content/tiktok/index.ts` | Wire up video scraper | ✅ Modified |
+| `apps/web/src/utils/constants.ts` | Mirror types | ✅ Modified |
+
+### To Modify (Remaining)
+| File | Purpose |
 |------|---------|
-| `GET_STORED_USERS` | Fetch all scraped users |
-| `USER_DATA_RESPONSE` | Return users + templates |
-| `REMOVE_USER(S)` | Delete user(s) |
-| `UPDATE_USER` | Update user status |
-| `SCRAPE_COMMENTS_*` | Port-based scraping with progress |
-| `SEND_MESSAGE` | Send single message |
-| `BULK_SEND_*` | Port-based bulk sending with progress |
-| `SAVE/DELETE_TEMPLATE` | Template management |
-| `BRIDGE_READY/CHECK_BRIDGE` | Connection detection |
+| `apps/extension/src/background/index.ts` | Handle video scraping + content storage |
+| `apps/extension/src/utils/storage.ts` | Migration logic |
+| `apps/web/src/components/UserCard.tsx` | Thumbnail + timestamp display |
+| `apps/web/src/components/UserTable.tsx` | Virtualization + sorting |
+| `apps/web/package.json` | Add react-virtual dependency |
 
 ---
 
-## Implementation Steps
+## Current Status
 
-### Phase 1: Project Setup
-1. Initialize Turborepo monorepo with pnpm
-2. Configure `turbo.json`, `tsconfig.json`, workspace
-3. Set up extension with esbuild build scripts
-4. Set up Next.js 14 with Tailwind
+**Phase:** 3 - Implementation (TDD)
+**Completed:**
+- Phase 1: Validation ✅
+- Phase 2B: Video Modal Selectors ✅
+- Phase 2C: Test Setup (partial) ✅
+- Phase 3A: Data Model & Types ✅
+- Phase 3C: Video Scraper (core functionality) ✅
 
-### Phase 2: Extension Foundation
-1. Create `manifest.json` (Manifest V3)
-2. Implement `types.ts` with all types
-3. Build storage abstraction layer
-4. Implement background service worker
-5. Create dashboard-bridge.ts (from bstock-buddy pattern)
-6. Test bridge communication
-
-### Phase 3: TikTok Scraping
-1. Research TikTok selectors (Activity → Notifications → Comments)
-2. Implement `selectors.ts` with selector definitions
-3. Build `notifications-scraper.ts`:
-   - Click Activity button
-   - Navigate to Comments tab
-   - Scroll through infinite list
-   - Extract handle + comment per item
-4. Wire to background with port-based progress updates
-
-### Phase 4: Web Dashboard
-1. Implement `useUserData.ts` hook
-2. Build UserTable component (search, filter, selection)
-3. Build ConnectionStatus component
-4. Create dashboard page with scrape trigger
-
-### Phase 5: Message Templates
-1. Add template storage to background
-2. Build MessageComposer with:
-   - Template selection
-   - Live preview with placeholders
-   - Per-user customization
-
-### Phase 6: Message Automation
-1. Research TikTok DM selectors
-2. Implement `profile-messenger.ts`:
-   - Open profile in new tab
-   - Click message button
-   - Wait for compose area
-   - Type message with human-like delays
-   - Click send, close tab
-3. Add rate limiting (configurable delays)
-4. Build progress UI for sending
+**Next Steps:**
+- Phase 2A: Profile page selectors (for multi-video scraping)
+- Phase 3B: Storage migration
+- Phase 3C.11: Background script orchestration
+- Phase 3D: Reply/Message content storage
+- Phase 3E: Web app updates
 
 ---
 
-## TikTok Selectors to Research
+## Notes
 
-| Element | Strategy |
-|---------|----------|
-| Activity/Inbox button | `[data-e2e="inbox"]` or `[aria-label*="Inbox"]` |
-| Comments filter tab | Tab within notifications modal |
-| Comment item | List items in notification feed |
-| User handle | Link element within comment |
-| Comment text | Text content in comment item |
-| Profile message button | `[data-e2e="message-button"]` |
-| DM compose input | Input in message modal |
-| Send button | Button in compose area |
+### Phase 1 Validation Results (Completed)
 
----
+**Data Extraction Methods:**
 
-## Key Challenges & Mitigations
+| Data | Source | Method |
+|------|--------|--------|
+| `create_time` | React props | `__reactFiber$` on `DivCommentItemContainer` |
+| `cid` | React props OR DOM | React fiber OR `id` attr on `DivCommentContentContainer` |
+| `aweme_id` | React props OR URL | React fiber OR parse from video URL |
+| Video thumbnail | Meta tag | `document.querySelector('meta[property="og:image"]')` |
+| Username | DOM | `[data-e2e="comment-username-1"]` |
+| Comment text | DOM | `[data-e2e="comment-text"]` |
 
-| Challenge | Mitigation |
-|-----------|------------|
-| Dynamic TikTok selectors | Use `data-e2e`/`aria-*` attributes; implement fallback chains |
-| Rate limiting / bot detection | Add 2-5s delays, randomize timing, limit messages/hour |
-| Infinite scroll | Scroll-wait-extract loop with duplicate tracking |
-| Session/login state | Check login before operations; show clear messages |
-| Extension context invalidation | Use `guardExtensionContext` pattern; show refresh prompt |
-
----
-
-## Verification Plan
-
-1. **Extension loads**: Load unpacked extension, verify popup opens
-2. **Bridge works**: Open localhost:3000, verify connection status shows "connected"
-3. **Scraping works**:
-   - Navigate to TikTok profile
-   - Click "Start Scrape" in dashboard
-   - Verify Activity opens, comments scroll, users appear in dashboard
-4. **Templates work**: Create template with placeholders, verify preview
-5. **Messaging works**:
-   - Select a user, customize message
-   - Click send, verify new tab opens, message sends, tab closes
-   - Verify status updates to "sent" in dashboard
+**Key Selectors Discovered:**
+- Comment container: `[class*="DivCommentItemContainer"]`
+- Comment content: `[class*="DivCommentContentContainer"]` (has `id` attr with comment ID)
+- Username: `[data-e2e="comment-username-1"]`
+- Comment text: `[data-e2e="comment-text"]`
+- Reply button: `[data-e2e="comment-reply-1"]`

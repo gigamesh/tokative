@@ -38,6 +38,11 @@ export const MessageType = {
   BULK_REPLY_PROGRESS: "BULK_REPLY_PROGRESS",
   BULK_REPLY_COMPLETE: "BULK_REPLY_COMPLETE",
   BULK_REPLY_STOP: "BULK_REPLY_STOP",
+  SCRAPE_VIDEO_COMMENTS_START: "SCRAPE_VIDEO_COMMENTS_START",
+  SCRAPE_VIDEO_COMMENTS_PROGRESS: "SCRAPE_VIDEO_COMMENTS_PROGRESS",
+  SCRAPE_VIDEO_COMMENTS_COMPLETE: "SCRAPE_VIDEO_COMMENTS_COMPLETE",
+  SCRAPE_VIDEO_COMMENTS_ERROR: "SCRAPE_VIDEO_COMMENTS_ERROR",
+  SCRAPE_VIDEO_COMMENTS_STOP: "SCRAPE_VIDEO_COMMENTS_STOP",
 } as const;
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
@@ -56,6 +61,12 @@ export interface ScrapedUser {
   replySent?: boolean;
   repliedAt?: string;
   replyError?: string;
+  commentTimestamp?: string;
+  videoThumbnailUrl?: string;
+  commentId?: string;
+  videoId?: string;
+  replyContent?: string;
+  messageContent?: string;
 }
 
 export interface MessageTemplate {
@@ -93,4 +104,12 @@ export interface BulkReplyProgress {
   failed: number;
   current?: string;
   status: "running" | "complete" | "stopped" | "error";
+}
+
+export interface VideoScrapeProgress {
+  videosProcessed: number;
+  totalVideos: number;
+  commentsFound: number;
+  status: "loading" | "scraping" | "complete" | "error" | "cancelled";
+  message?: string;
 }

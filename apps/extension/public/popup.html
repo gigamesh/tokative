@@ -77,6 +77,41 @@
     .btn-primary:hover {
       background: #e0284d;
     }
+    .btn-secondary {
+      background: #2a2a2a;
+      color: white;
+      border: 1px solid #444;
+      margin-top: 8px;
+    }
+    .btn-secondary:hover {
+      background: #3a3a3a;
+    }
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .scrape-status {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+    }
+    .scrape-status.active {
+      display: block;
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+    .scrape-status.success {
+      display: block;
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+    .scrape-status.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
     .links {
       margin-top: 12px;
       text-align: center;
@@ -112,6 +147,11 @@
   <button id="open-dashboard" class="btn btn-primary">
     Open Dashboard
   </button>
+
+  <button id="scrape-video" class="btn btn-secondary">
+    Scrape Video Comments
+  </button>
+  <div id="scrape-status" class="scrape-status"></div>
 
   <div class="links">
     <a href="http://localhost:3000" target="_blank">localhost:3000</a>

@@ -3,6 +3,7 @@ import { guardExtensionContext } from "../../utils/dom";
 import { startScraping, stopScraping, ScrapeOptions } from "./notifications-scraper";
 import { sendMessageToUser } from "./profile-messenger";
 import { replyToComment } from "./comment-replier";
+import { scrapeVideoComments, cancelVideoScrape } from "./video-scraper";
 
 let port: chrome.runtime.Port | null = null;
 
@@ -120,6 +121,41 @@ function handleMessage(
       return true;
     }
 
+    case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
+      const { maxComments } = (message.payload as { maxComments?: number }) || {};
+
+      scrapeVideoComments(maxComments, (progress) => {
+        chrome.runtime.sendMessage({
+          type: MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
+          payload: progress,
+        });
+      })
+        .then((users) => {
+          chrome.runtime.sendMessage({
+            type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
+            payload: { users },
+          });
+          sendResponse({ success: true, users });
+        })
+        .catch((error) => {
+          chrome.runtime.sendMessage({
+            type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
+            payload: {
+              error: error instanceof Error ? error.message : "Unknown error",
+            },
+          });
+          sendResponse({ success: false, error: error.message });
+        });
+
+      return true;
+    }
+
+    case MessageType.SCRAPE_VIDEO_COMMENTS_STOP: {
+      cancelVideoScrape();
+      sendResponse({ success: true });
+      return true;
+    }
+
     default:
       return false;
   }
@@ -139,6 +175,38 @@ function handlePortMessage(message: ExtensionMessage): void {
 
     case MessageType.SCRAPE_COMMENTS_STOP: {
       stopScraping();
+      break;
+    }
+
+    case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
+      if (port) {
+        const { maxComments } = (message.payload as { maxComments?: number }) || {};
+        scrapeVideoComments(maxComments, (progress) => {
+          port?.postMessage({
+            type: MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
+            payload: progress,
+          });
+        })
+          .then((users) => {
+            port?.postMessage({
+              type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
+              payload: { users },
+            });
+          })
+          .catch((error) => {
+            port?.postMessage({
+              type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
+              payload: {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+            });
+          });
+      }
+      break;
+    }
+
+    case MessageType.SCRAPE_VIDEO_COMMENTS_STOP: {
+      cancelVideoScrape();
       break;
     }
 
