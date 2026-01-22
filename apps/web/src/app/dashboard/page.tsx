@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { CommentTable } from "@/components/CommentTable";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { MessageComposer } from "@/components/MessageComposer";
@@ -56,18 +56,52 @@ function DashboardContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedUser, setSelectedUser] = useState<ScrapedUser | null>(null);
   const [composerMode, setComposerMode] = useState<"message" | "reply">("message");
+  const [postLimitInput, setPostLimitInput] = useState(String(postLimit));
+  const [commentLimitInput, setCommentLimitInput] = useState(String(commentLimit));
 
   useScrollRestore("dashboard-scroll", !loading && !videosLoading);
+
+  useEffect(() => {
+    setPostLimitInput(String(postLimit));
+  }, [postLimit]);
+
+  useEffect(() => {
+    setCommentLimitInput(String(commentLimit));
+  }, [commentLimit]);
+
+  const handlePostLimitBlur = useCallback(() => {
+    const parsed = parseInt(postLimitInput);
+    const value = isNaN(parsed) || parsed < 1 ? 50 : parsed;
+    setPostLimitInput(String(value));
+    savePostLimit(value);
+  }, [postLimitInput, savePostLimit]);
+
+  const handleCommentLimitBlur = useCallback(() => {
+    const parsed = parseInt(commentLimitInput);
+    const value = isNaN(parsed) || parsed < 1 ? 100 : parsed;
+    setCommentLimitInput(String(value));
+    saveCommentLimit(value);
+  }, [commentLimitInput, saveCommentLimit]);
 
   const selectedVideo = useMemo(() => {
     if (!selectedPostId) return null;
     return videos.find((v) => v.videoId === selectedPostId) ?? null;
   }, [selectedPostId, videos]);
 
+  const commentCountsByVideo = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const user of users) {
+      if (user.videoId) {
+        counts.set(user.videoId, (counts.get(user.videoId) || 0) + 1);
+      }
+    }
+    return counts;
+  }, [users]);
+
   const filteredCommentCount = useMemo(() => {
     if (!selectedPostId) return 0;
-    return users.filter((u) => u.videoId === selectedPostId).length;
-  }, [selectedPostId, users]);
+    return commentCountsByVideo.get(selectedPostId) ?? 0;
+  }, [selectedPostId, commentCountsByVideo]);
 
   const handleSelectUser = useCallback((userId: string, selected: boolean) => {
     setSelectedIds((prev) => {
@@ -81,15 +115,19 @@ function DashboardContent() {
     });
   }, []);
 
-  const handleSelectAll = useCallback(
-    (selected: boolean) => {
-      if (selected) {
-        setSelectedIds(new Set(users.map((u) => u.id)));
-      } else {
-        setSelectedIds(new Set());
-      }
+  const handleSelectFiltered = useCallback(
+    (userIds: string[], selected: boolean) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (selected) {
+          userIds.forEach((id) => next.add(id));
+        } else {
+          userIds.forEach((id) => next.delete(id));
+        }
+        return next;
+      });
     },
-    [users]
+    []
   );
 
   const handleRemoveSelected = useCallback(() => {
@@ -148,6 +186,31 @@ function DashboardContent() {
           </div>
         )}
 
+        <div className="mb-6 flex gap-6">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Post Limit</label>
+            <input
+              type="number"
+              value={postLimitInput}
+              onChange={(e) => setPostLimitInput(e.target.value)}
+              onBlur={handlePostLimitBlur}
+              min={1}
+              className="w-20 px-2 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Comment Limit</label>
+            <input
+              type="number"
+              value={commentLimitInput}
+              onChange={(e) => setCommentLimitInput(e.target.value)}
+              onBlur={handleCommentLimitBlur}
+              min={1}
+              className="w-20 px-2 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
+            />
+          </div>
+        </div>
+
         <div className="mb-6">
           <TabNavigation
             activeTab={activeTab}
@@ -164,8 +227,7 @@ function DashboardContent() {
                 videos={videos}
                 loading={videosLoading}
                 getCommentsProgress={getCommentsProgress}
-                postLimit={postLimit}
-                onPostLimitChange={savePostLimit}
+                commentCountsByVideo={commentCountsByVideo}
                 onGetComments={getCommentsForVideos}
                 onRemoveVideos={removeVideosList}
                 onViewPostComments={handleViewPostComments}
@@ -176,16 +238,6 @@ function DashboardContent() {
               <div className="bg-tiktok-gray rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-medium text-white">Comments</h2>
-                  <div className="flex gap-2">
-                    {selectedIds.size > 0 && (
-                      <button
-                        onClick={handleRemoveSelected}
-                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
-                      >
-                        Remove Selected ({selectedIds.size})
-                      </button>
-                    )}
-                  </div>
                 </div>
 
                 {selectedVideo && (
@@ -206,13 +258,13 @@ function DashboardContent() {
                   <CommentTable
                     users={users}
                     selectedIds={selectedIds}
-                    commentLimit={commentLimit}
                     onSelectUser={handleSelectUser}
-                    onSelectAll={handleSelectAll}
+                    onSelectFiltered={handleSelectFiltered}
                     onRemoveUser={removeUser}
+                    onRemoveSelected={handleRemoveSelected}
+                    onFetchComments={getCommentsForVideos}
                     onSendMessage={handleSendToUser}
                     onReplyComment={handleReplyToUser}
-                    onCommentLimitChange={saveCommentLimit}
                     videoIdFilter={selectedPostId}
                   />
                 )}

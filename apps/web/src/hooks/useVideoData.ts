@@ -67,12 +67,12 @@ export function useVideoData() {
       }),
 
       bridge.on(MessageType.GET_VIDEO_COMMENTS_COMPLETE, (payload) => {
-        const { videoId, commentCount } = payload as { videoId: string; commentCount: number };
+        const { videoId } = payload as { videoId: string };
         setState((prev) => {
           const newProgress = new Map(prev.getCommentsProgress);
           newProgress.delete(videoId);
           const updatedVideos = prev.videos.map((v) =>
-            v.videoId === videoId ? { ...v, commentsScraped: true, commentCount } : v
+            v.videoId === videoId ? { ...v, commentsScraped: true } : v
           );
           return { ...prev, getCommentsProgress: newProgress, videos: updatedVideos };
         });
@@ -85,6 +85,19 @@ export function useVideoData() {
           newProgress.delete(videoId);
           return { ...prev, getCommentsProgress: newProgress, error };
         });
+      }),
+
+      bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE, (payload) => {
+        const { users } = payload as { users: Array<{ videoId?: string }> };
+        const videoId = users[0]?.videoId;
+        if (videoId) {
+          setState((prev) => {
+            const updatedVideos = prev.videos.map((v) =>
+              v.videoId === videoId ? { ...v, commentsScraped: true } : v
+            );
+            return { ...prev, videos: updatedVideos };
+          });
+        }
       }),
     ];
 

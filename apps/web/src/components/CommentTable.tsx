@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { Virtuoso } from "react-virtuoso";
 import { ScrapedUser } from "@/utils/constants";
-import { UserCard } from "./UserCard";
+import { useMemo, useState } from "react";
+import { Virtuoso } from "react-virtuoso";
+import { CommentCard } from "./CommentCard";
 
 type FilterStatus = "all" | "sent" | "not_sent" | "failed";
 type SortOption = "newest" | "oldest" | "recent_scrape";
@@ -11,43 +11,31 @@ type SortOption = "newest" | "oldest" | "recent_scrape";
 interface CommentTableProps {
   users: ScrapedUser[];
   selectedIds: Set<string>;
-  commentLimit: number;
   onSelectUser: (userId: string, selected: boolean) => void;
-  onSelectAll: (selected: boolean) => void;
+  onSelectFiltered: (userIds: string[], selected: boolean) => void;
   onRemoveUser: (userId: string) => void;
+  onRemoveSelected: () => void;
+  onFetchComments: (videoIds: string[]) => void;
   onSendMessage: (user: ScrapedUser) => void;
   onReplyComment: (user: ScrapedUser) => void;
-  onCommentLimitChange: (limit: number) => void;
   videoIdFilter?: string | null;
 }
 
 export function CommentTable({
   users,
   selectedIds,
-  commentLimit,
   onSelectUser,
-  onSelectAll,
+  onSelectFiltered,
   onRemoveUser,
+  onRemoveSelected,
+  onFetchComments,
   onSendMessage,
   onReplyComment,
-  onCommentLimitChange,
   videoIdFilter,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [sort, setSort] = useState<SortOption>("newest");
-  const [commentLimitInput, setCommentLimitInput] = useState<string>(String(commentLimit));
-
-  useEffect(() => {
-    setCommentLimitInput(String(commentLimit));
-  }, [commentLimit]);
-
-  const handleCommentLimitBlur = useCallback(() => {
-    const parsed = parseInt(commentLimitInput);
-    const value = isNaN(parsed) || parsed < 1 ? 100 : parsed;
-    setCommentLimitInput(String(value));
-    onCommentLimitChange(value);
-  }, [commentLimitInput, onCommentLimitChange]);
 
   const filteredUsers = useMemo(() => {
     const filtered = users.filter((user) => {
@@ -71,13 +59,21 @@ export function CommentTable({
 
     return filtered.sort((a, b) => {
       if (sort === "newest") {
-        const aTime = a.commentTimestamp ? new Date(a.commentTimestamp).getTime() : 0;
-        const bTime = b.commentTimestamp ? new Date(b.commentTimestamp).getTime() : 0;
+        const aTime = a.commentTimestamp
+          ? new Date(a.commentTimestamp).getTime()
+          : 0;
+        const bTime = b.commentTimestamp
+          ? new Date(b.commentTimestamp).getTime()
+          : 0;
         return bTime - aTime;
       }
       if (sort === "oldest") {
-        const aTime = a.commentTimestamp ? new Date(a.commentTimestamp).getTime() : 0;
-        const bTime = b.commentTimestamp ? new Date(b.commentTimestamp).getTime() : 0;
+        const aTime = a.commentTimestamp
+          ? new Date(a.commentTimestamp).getTime()
+          : 0;
+        const bTime = b.commentTimestamp
+          ? new Date(b.commentTimestamp).getTime()
+          : 0;
         return aTime - bTime;
       }
       // recent_scrape
@@ -85,9 +81,9 @@ export function CommentTable({
     });
   }, [users, search, filter, sort, videoIdFilter]);
 
-  const allSelected =
-    filteredUsers.length > 0 &&
-    filteredUsers.every((u) => selectedIds.has(u.id));
+  const filteredSelectedCount = filteredUsers.filter((u) => selectedIds.has(u.id)).length;
+  const allFilteredSelected = filteredUsers.length > 0 && filteredSelectedCount === filteredUsers.length;
+  const someFilteredSelected = filteredSelectedCount > 0 && filteredSelectedCount < filteredUsers.length;
 
   const stats = useMemo(() => {
     const sent = users.filter((u) => u.messageSent).length;
@@ -107,19 +103,6 @@ export function CommentTable({
         </div>
 
         <div className="flex gap-2 flex-wrap items-center">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-400">Limit:</label>
-            <input
-              type="number"
-              value={commentLimitInput}
-              onChange={(e) => setCommentLimitInput(e.target.value)}
-              onBlur={handleCommentLimitBlur}
-              min={1}
-              className="w-20 px-2 py-1.5 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
-              title="Maximum comments to scrape per post"
-            />
-          </div>
-
           <input
             type="text"
             placeholder="Search comments..."
@@ -151,22 +134,61 @@ export function CommentTable({
         </div>
       </div>
 
-      <div className="flex items-center gap-4 pb-2 border-b border-gray-700">
-        <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={(e) => onSelectAll(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red"
-          />
-          Select all ({filteredUsers.length})
-        </label>
+      <div className="flex items-center justify-between pb-2 border-b border-gray-700">
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allFilteredSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someFilteredSelected;
+              }}
+              onChange={(e) => {
+                const filteredIds = filteredUsers.map((u) => u.id);
+                onSelectFiltered(filteredIds, e.target.checked);
+              }}
+              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red"
+            />
+            {selectedIds.size > 0 ? `${selectedIds.size} selected` : `Select all (${filteredUsers.length})`}
+          </label>
+        </div>
 
-        {selectedIds.size > 0 && (
-          <span className="text-sm text-tiktok-red">
-            {selectedIds.size} selected
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onRemoveSelected}
+            disabled={selectedIds.size === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-red-400 hover:border-red-400/50 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Remove
+          </button>
+          <button
+            onClick={() => {
+              if (videoIdFilter) {
+                onFetchComments([videoIdFilter]);
+              } else {
+                const selectedUserIds = Array.from(selectedIds);
+                const videoIds = Array.from(new Set(
+                  users
+                    .filter((u) => selectedUserIds.includes(u.id) && u.videoId)
+                    .map((u) => u.videoId!)
+                ));
+                if (videoIds.length > 0) {
+                  onFetchComments(videoIds);
+                }
+              }
+            }}
+            disabled={!videoIdFilter && selectedIds.size === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-tiktok-red hover:border-tiktok-red/50 hover:bg-tiktok-red/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Fetch Comments
+          </button>
+        </div>
       </div>
 
       {filteredUsers.length === 0 ? (
@@ -182,7 +204,7 @@ export function CommentTable({
           overscan={10}
           itemContent={(index, user) => (
             <div className={index > 0 ? "pt-3" : ""}>
-              <UserCard
+              <CommentCard
                 user={user}
                 selected={selectedIds.has(user.id)}
                 onSelect={(selected) => onSelectUser(user.id, selected)}

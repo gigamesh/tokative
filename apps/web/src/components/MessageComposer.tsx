@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { ScrapedUser } from "@/utils/constants";
+import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import { useEffect, useRef, useState } from "react";
 
 type ComposerMode = "message" | "reply";
 
@@ -59,14 +59,14 @@ export function MessageComposer({
 
   return (
     <div className="bg-tiktok-gray rounded-lg p-4 space-y-4">
-      <h3 className="font-medium text-white">
-        {isReplyMode ? "Reply to Comment" : "Send Message"}
-      </h3>
+      <h3 className="font-medium text-white">Message Composer</h3>
 
       <div className="relative">
         <textarea
           ref={textareaRef}
-          placeholder={isReplyMode ? "Write your reply..." : "Write your message..."}
+          placeholder={
+            isReplyMode ? "Write your reply..." : "Write your message..."
+          }
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={5}
@@ -78,15 +78,28 @@ export function MessageComposer({
           className="absolute right-2 bottom-4 text-gray-400 hover:text-white transition-colors"
           title="Add emoji"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-            <line x1="9" y1="9" x2="9.01" y2="9"/>
-            <line x1="15" y1="9" x2="15.01" y2="9"/>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+            <line x1="9" y1="9" x2="9.01" y2="9" />
+            <line x1="15" y1="9" x2="15.01" y2="9" />
           </svg>
         </button>
         {showEmojiPicker && (
-          <div ref={emojiPickerRef} className="absolute right-0 top-full mt-2 z-10">
+          <div
+            ref={emojiPickerRef}
+            className="absolute right-0 top-full mt-2 z-10"
+          >
             <EmojiPicker
               theme={Theme.DARK}
               onEmojiClick={handleEmojiClick}
@@ -102,7 +115,8 @@ export function MessageComposer({
         <div className="p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm text-gray-400">
-              {isReplyMode ? "Replying to" : "Sending to"} @{selectedUser.handle}
+              {isReplyMode ? "Replying to" : "Sending to"} @
+              {selectedUser.handle}
             </span>
             <button
               onClick={onClearSelection}
@@ -133,8 +147,8 @@ export function MessageComposer({
             ? "Replying..."
             : "Sending..."
           : isReplyMode
-          ? "Send Reply"
-          : "Send Message"}
+            ? "Send Reply"
+            : "Send Message"}
       </button>
     </div>
   );

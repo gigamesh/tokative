@@ -62,6 +62,12 @@ export function useUserData() {
   useEffect(() => {
     if (!bridge) return;
     fetchData();
+
+    const cleanup = bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE, () => {
+      fetchData();
+    });
+
+    return cleanup;
   }, [fetchData]);
 
   const saveCommentLimit = useCallback(async (limit: number) => {

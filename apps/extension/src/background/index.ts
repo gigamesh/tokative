@@ -196,6 +196,28 @@ async function handleMessage(
       return { success: true };
     }
 
+    // Handle popup-triggered comment scraping
+    case MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS: {
+      broadcastToDashboard(message);
+      return { success: true };
+    }
+
+    case MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE: {
+      const { users } = message.payload as { users: ScrapedUser[] };
+      await addUsers(users);
+      const videoId = users[0]?.videoId;
+      if (videoId) {
+        await updateVideo(videoId, { commentsScraped: true });
+      }
+      broadcastToDashboard(message);
+      return { success: true };
+    }
+
+    case MessageType.SCRAPE_VIDEO_COMMENTS_ERROR: {
+      broadcastToDashboard(message);
+      return { success: true };
+    }
+
     // Forward reply messages from content script to dashboard
     case MessageType.REPLY_COMMENT_PROGRESS:
     case MessageType.REPLY_COMMENT_COMPLETE:
@@ -671,15 +693,14 @@ async function handleGetVideoComments(
           payload: { videoId, ...msg.payload },
         });
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-        const { users } = msg.payload as { users: ScrapedUser[] };
-        updateVideo(videoId, {
-          commentsScraped: true,
-          commentCount: users.length,
-        });
+        const { users: scrapedUsers } = msg.payload as { users: ScrapedUser[] };
+        addUsers(scrapedUsers);
+        updateVideo(videoId, { commentsScraped: true });
         port.postMessage({
           type: MessageType.GET_VIDEO_COMMENTS_COMPLETE,
-          payload: { videoId, commentCount: users.length },
+          payload: { videoId },
         });
+        broadcastToDashboard(msg);
         chrome.runtime.onMessage.removeListener(responseHandler);
         chrome.tabs.remove(tab.id!);
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {

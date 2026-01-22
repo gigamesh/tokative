@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, forwardRef } from "react";
+import { useState, useCallback, useRef, forwardRef } from "react";
 import { VirtuosoGrid, GridComponents } from "react-virtuoso";
 import { PostCard } from "./PostCard";
 import { ScrapedVideo, GetVideoCommentsProgress } from "@/utils/constants";
@@ -27,8 +27,7 @@ interface PostsGridProps {
   videos: ScrapedVideo[];
   loading: boolean;
   getCommentsProgress: Map<string, GetVideoCommentsProgress>;
-  postLimit: number;
-  onPostLimitChange: (limit: number) => void;
+  commentCountsByVideo: Map<string, number>;
   onGetComments: (videoIds: string[]) => void;
   onRemoveVideos: (videoIds: string[]) => void;
   onViewPostComments?: (videoId: string) => void;
@@ -38,19 +37,13 @@ export function PostsGrid({
   videos,
   loading,
   getCommentsProgress,
-  postLimit,
-  onPostLimitChange,
+  commentCountsByVideo,
   onGetComments,
   onRemoveVideos,
   onViewPostComments,
 }: PostsGridProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [postLimitInput, setPostLimitInput] = useState<string>(String(postLimit));
   const lastSelectedIndexRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    setPostLimitInput(String(postLimit));
-  }, [postLimit]);
 
   const allSelected = videos.length > 0 && selectedIds.size === videos.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < videos.length;
@@ -115,21 +108,14 @@ export function PostsGrid({
     (v) => selectedIds.has(v.videoId) && !v.commentsScraped
   ).length;
 
-  const handlePostLimitBlur = useCallback(() => {
-    const parsed = parseInt(postLimitInput);
-    const value = isNaN(parsed) || parsed < 1 ? 50 : parsed;
-    setPostLimitInput(String(value));
-    onPostLimitChange(value);
-  }, [postLimitInput, onPostLimitChange]);
-
   return (
     <div className="bg-tiktok-gray rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-medium text-white">Posts</h2>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {videos.length > 0 && (
-            <div className="flex items-center gap-2 mr-2">
+            <div className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -145,47 +131,28 @@ export function PostsGrid({
             </div>
           )}
 
-          {selectedIds.size > 0 && (
-            <>
-              <button
-                onClick={handleRemoveSelected}
-                className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                title="Remove selected posts"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-              {selectedNotScrapedCount > 0 && (
-                <button
-                  onClick={handleGetCommentsSelected}
-                  className="p-2 text-gray-400 hover:text-tiktok-red hover:bg-tiktok-red/10 rounded-lg transition-colors"
-                  title={`Get comments for ${selectedNotScrapedCount} post${selectedNotScrapedCount > 1 ? "s" : ""}`}
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-              )}
-            </>
-          )}
+          <button
+            onClick={handleRemoveSelected}
+            disabled={selectedIds.size === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-red-400 hover:border-red-400/50 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Remove
+          </button>
+          <button
+            onClick={handleGetCommentsSelected}
+            disabled={selectedIds.size === 0 || selectedNotScrapedCount === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-tiktok-red hover:border-tiktok-red/50 hover:bg-tiktok-red/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Fetch Comments
+          </button>
         </div>
       </div>
-
-      <div className="flex items-center gap-4 mb-4">
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">Post Limit</label>
-          <input
-            type="number"
-            value={postLimitInput}
-            onChange={(e) => setPostLimitInput(e.target.value)}
-            onBlur={handlePostLimitBlur}
-            min={1}
-            className="w-20 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red"
-          />
-        </div>
-      </div>
-
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading posts...</div>
@@ -215,6 +182,7 @@ export function PostsGrid({
                 handleSelectVideo(video.videoId, selected, index, event?.shiftKey || false);
               }}
               progress={getCommentsProgress.get(video.videoId)}
+              commentCount={commentCountsByVideo.get(video.videoId) ?? 0}
               onViewComments={
                 onViewPostComments ? () => onViewPostComments(video.videoId) : undefined
               }

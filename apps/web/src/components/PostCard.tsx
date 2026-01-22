@@ -7,6 +7,7 @@ interface PostCardProps {
   selected: boolean;
   onSelect: (selected: boolean) => void;
   progress?: GetVideoCommentsProgress;
+  commentCount?: number;
   onViewComments?: () => void;
 }
 
@@ -15,6 +16,7 @@ export function PostCard({
   selected,
   onSelect,
   progress,
+  commentCount = 0,
   onViewComments,
 }: PostCardProps) {
   const isLoading = progress && progress.status !== "complete" && progress.status !== "error";
@@ -27,10 +29,10 @@ export function PostCard({
 
   return (
     <div
-      className={`group relative rounded-lg overflow-hidden border transition-colors ${
+      className={`group relative rounded-lg overflow-hidden ring-2 transition-colors ${
         selected
-          ? "border-tiktok-red ring-2 ring-tiktok-red/30"
-          : "border-gray-700 hover:border-gray-600"
+          ? "ring-tiktok-red/30 border border-tiktok-red"
+          : "ring-transparent border border-gray-700 hover:border-gray-600"
       }`}
     >
       <div className="absolute top-2 left-2 z-10">
@@ -56,9 +58,9 @@ export function PostCard({
         </svg>
       </a>
 
-      {video.commentsScraped && (
+      {commentCount > 0 && (
         <div className="absolute bottom-2 right-2 z-10 bg-green-500/90 text-white text-xs px-2 py-1 rounded-full font-medium">
-          {video.commentCount ?? 0}
+          {commentCount}
         </div>
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { ScrapedUser } from "@/utils/constants";
+import { useEffect, useRef, useState } from "react";
 
 interface UserCardProps {
   user: ScrapedUser;
@@ -27,7 +27,7 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString();
 }
 
-export function UserCard({
+export function CommentCard({
   user,
   selected,
   onSelect,
@@ -49,26 +49,26 @@ export function UserCard({
   const messageStatusColor = user.messageSent
     ? "text-green-400"
     : user.messageError
-    ? "text-red-400"
-    : "text-gray-400";
+      ? "text-red-400"
+      : "text-gray-400";
 
   const messageStatusText = user.messageSent
     ? "DM sent"
     : user.messageError
-    ? "DM failed"
-    : "";
+      ? "DM failed"
+      : "";
 
   const replyStatusColor = user.replySent
     ? "text-green-400"
     : user.replyError
-    ? "text-red-400"
-    : "text-gray-400";
+      ? "text-red-400"
+      : "text-gray-400";
 
   const replyStatusText = user.replySent
     ? "Replied"
     : user.replyError
-    ? "Reply failed"
-    : "";
+      ? "Reply failed"
+      : "";
 
   return (
     <div
@@ -120,10 +120,14 @@ export function UserCard({
               </span>
             )}
             {messageStatusText && (
-              <span className={`text-xs ${messageStatusColor}`}>{messageStatusText}</span>
+              <span className={`text-xs ${messageStatusColor}`}>
+                {messageStatusText}
+              </span>
             )}
             {replyStatusText && (
-              <span className={`text-xs ${replyStatusColor}`}>{replyStatusText}</span>
+              <span className={`text-xs ${replyStatusColor}`}>
+                {replyStatusText}
+              </span>
             )}
           </div>
 
