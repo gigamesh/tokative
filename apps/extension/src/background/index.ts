@@ -568,9 +568,8 @@ async function handleGetVideoComments(
         updateVideo(videoId, { commentsScraped: true });
         port.postMessage({
           type: MessageType.GET_VIDEO_COMMENTS_COMPLETE,
-          payload: { videoId },
+          payload: { videoId, commentCount: scrapedUsers.length },
         });
-        broadcastToDashboard(msg);
         chrome.runtime.onMessage.removeListener(responseHandler);
         chrome.tabs.remove(tab.id!);
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {

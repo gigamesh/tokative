@@ -96,63 +96,54 @@ export function PostsGrid({
 
   const handleGetCommentsSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
-    const videosToScrape = videos
-      .filter((v) => selectedIds.has(v.videoId) && !v.commentsScraped)
-      .map((v) => v.videoId);
-    if (videosToScrape.length > 0) {
-      onGetComments(videosToScrape);
-    }
-  }, [selectedIds, videos, onGetComments]);
-
-  const selectedNotScrapedCount = videos.filter(
-    (v) => selectedIds.has(v.videoId) && !v.commentsScraped
-  ).length;
+    onGetComments(Array.from(selectedIds));
+  }, [selectedIds, onGetComments]);
 
   return (
     <div className="bg-tiktok-gray rounded-lg p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-medium text-white">Posts</h2>
+      <h2 className="text-lg font-medium text-white mb-3">Posts</h2>
 
-        <div className="flex items-center gap-3">
-          {videos.length > 0 && (
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = someSelected;
-                }}
-                onChange={handleSelectAll}
-                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red cursor-pointer"
-              />
-              <span className="text-sm text-gray-400">
-                {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
-              </span>
-            </div>
-          )}
+      {videos.length > 0 && (
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someSelected;
+              }}
+              onChange={handleSelectAll}
+              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red cursor-pointer"
+            />
+            <span className="text-sm text-gray-400">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+            </span>
+          </div>
 
-          <button
-            onClick={handleRemoveSelected}
-            disabled={selectedIds.size === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-red-400 hover:border-red-400/50 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Remove
-          </button>
-          <button
-            onClick={handleGetCommentsSelected}
-            disabled={selectedIds.size === 0 || selectedNotScrapedCount === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-tiktok-red hover:border-tiktok-red/50 hover:bg-tiktok-red/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Fetch Comments
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRemoveSelected}
+              disabled={selectedIds.size === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-red-400 hover:border-red-400/50 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Remove
+            </button>
+            <button
+              onClick={handleGetCommentsSelected}
+              disabled={selectedIds.size === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-tiktok-red hover:border-tiktok-red/50 hover:bg-tiktok-red/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Fetch Comments
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading posts...</div>
