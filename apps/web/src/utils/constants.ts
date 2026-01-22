@@ -40,6 +40,10 @@ export const MessageType = {
   GET_VIDEO_COMMENTS_PROGRESS: "GET_VIDEO_COMMENTS_PROGRESS",
   GET_VIDEO_COMMENTS_COMPLETE: "GET_VIDEO_COMMENTS_COMPLETE",
   GET_VIDEO_COMMENTS_ERROR: "GET_VIDEO_COMMENTS_ERROR",
+  GET_BATCH_COMMENTS: "GET_BATCH_COMMENTS",
+  GET_BATCH_COMMENTS_PROGRESS: "GET_BATCH_COMMENTS_PROGRESS",
+  GET_BATCH_COMMENTS_COMPLETE: "GET_BATCH_COMMENTS_COMPLETE",
+  GET_BATCH_COMMENTS_ERROR: "GET_BATCH_COMMENTS_ERROR",
   GET_STORED_VIDEOS: "GET_STORED_VIDEOS",
   REMOVE_VIDEO: "REMOVE_VIDEO",
   REMOVE_VIDEOS: "REMOVE_VIDEOS",
@@ -101,4 +105,13 @@ export interface GetVideoCommentsProgress {
   status: "navigating" | "scraping" | "complete" | "error";
   message?: string;
   commentCount?: number;
+}
+
+export interface BatchCommentsProgress {
+  totalVideos: number;
+  completedVideos: number;
+  currentVideoId: string | null;
+  totalComments: number;
+  status: "processing" | "complete" | "error";
+  message?: string;
 }

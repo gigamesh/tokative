@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         {children}
-        <Toaster theme="dark" position="bottom-right" />
+        <Toaster theme="dark" position="bottom-right" duration={6000} />
       </body>
     </html>
   );

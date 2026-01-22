@@ -33,9 +33,8 @@ function initBridge(): void {
   });
 
   port.onDisconnect.addListener(() => {
-    console.log("[Bridge] Port disconnected");
+    console.log("[Bridge] Port disconnected, will reconnect on next message");
     port = null;
-    marker.remove();
   });
 
   window.addEventListener("message", handleWindowMessage);
@@ -93,9 +92,18 @@ function handleWindowMessage(event: MessageEvent): void {
   }
 
   if (isPortMessage(message.type)) {
-    if (port) {
-      port.postMessage(message);
+    if (!port) {
+      console.log("[Bridge] Reconnecting port...");
+      port = chrome.runtime.connect({ name: "dashboard" });
+      port.onMessage.addListener((msg: ExtensionMessage) => {
+        window.postMessage({ ...msg, source: "tiktok-buddy-extension" }, "*");
+      });
+      port.onDisconnect.addListener(() => {
+        console.log("[Bridge] Port disconnected, will reconnect on next message");
+        port = null;
+      });
     }
+    port.postMessage(message);
   } else {
     chrome.runtime.sendMessage(message)
       .then((response) => {
@@ -132,6 +140,7 @@ function isPortMessage(type: MessageType): boolean {
     MessageType.SCRAPE_VIDEOS_START,
     MessageType.SCRAPE_VIDEOS_STOP,
     MessageType.GET_VIDEO_COMMENTS,
+    MessageType.GET_BATCH_COMMENTS,
   ].includes(type);
 }
 

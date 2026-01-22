@@ -60,6 +60,20 @@ export enum MessageType {
   GET_VIDEO_COMMENTS_COMPLETE = "GET_VIDEO_COMMENTS_COMPLETE",
   GET_VIDEO_COMMENTS_ERROR = "GET_VIDEO_COMMENTS_ERROR",
 
+  // Batch comment fetching
+  GET_BATCH_COMMENTS = "GET_BATCH_COMMENTS",
+  GET_BATCH_COMMENTS_PROGRESS = "GET_BATCH_COMMENTS_PROGRESS",
+  GET_BATCH_COMMENTS_COMPLETE = "GET_BATCH_COMMENTS_COMPLETE",
+  GET_BATCH_COMMENTS_ERROR = "GET_BATCH_COMMENTS_ERROR",
+
+  // Pause/resume scraping
+  SCRAPE_PAUSE = "SCRAPE_PAUSE",
+  SCRAPE_RESUME = "SCRAPE_RESUME",
+  SCRAPE_PAUSED = "SCRAPE_PAUSED",
+
+  // Scraping state
+  GET_SCRAPING_STATE = "GET_SCRAPING_STATE",
+
   // Video storage
   GET_STORED_VIDEOS = "GET_STORED_VIDEOS",
   VIDEOS_RESPONSE = "VIDEOS_RESPONSE",
@@ -148,4 +162,22 @@ export interface VideoMetadataScrapeProgress {
   status: "scrolling" | "extracting" | "complete" | "error" | "cancelled";
   message?: string;
   limitReached?: boolean;
+}
+
+export interface VideoScrapeProgress {
+  videosProcessed: number;
+  totalVideos: number;
+  commentsFound: number;
+  status: "loading" | "scraping" | "complete" | "error" | "cancelled";
+  message: string;
+}
+
+export interface CommentScrapingState {
+  isActive: boolean;
+  isPaused: boolean;
+  videoId: string | null;
+  tabId: number | null;
+  commentsFound: number;
+  status: "loading" | "scraping" | "paused" | "complete" | "error" | "cancelled";
+  message: string;
 }

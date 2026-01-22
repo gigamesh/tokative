@@ -3,6 +3,7 @@ import {
   ScrapedVideo,
   MessageTemplate,
   StorageData,
+  CommentScrapingState,
   DEFAULT_SETTINGS,
   DEFAULT_TEMPLATE,
 } from "../types";
@@ -15,6 +16,7 @@ const STORAGE_KEYS = {
   ACCOUNT_HANDLE: "tiktok_buddy_account_handle",
   COMMENT_LIMIT: "tiktok_buddy_comment_limit",
   POST_LIMIT: "tiktok_buddy_post_limit",
+  SCRAPING_STATE: "tiktok_buddy_scraping_state",
 } as const;
 
 const DEFAULT_COMMENT_LIMIT = 100;
@@ -211,4 +213,32 @@ export async function removeVideos(videoIds: string[]): Promise<void> {
 
 export async function clearVideos(): Promise<void> {
   await chrome.storage.local.remove(STORAGE_KEYS.VIDEOS);
+}
+
+const DEFAULT_SCRAPING_STATE: CommentScrapingState = {
+  isActive: false,
+  isPaused: false,
+  videoId: null,
+  tabId: null,
+  commentsFound: 0,
+  status: "complete",
+  message: "",
+};
+
+export async function getScrapingState(): Promise<CommentScrapingState> {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.SCRAPING_STATE);
+  return result[STORAGE_KEYS.SCRAPING_STATE] || DEFAULT_SCRAPING_STATE;
+}
+
+export async function saveScrapingState(state: Partial<CommentScrapingState>): Promise<void> {
+  const current = await getScrapingState();
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.SCRAPING_STATE]: { ...current, ...state },
+  });
+}
+
+export async function clearScrapingState(): Promise<void> {
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.SCRAPING_STATE]: DEFAULT_SCRAPING_STATE,
+  });
 }

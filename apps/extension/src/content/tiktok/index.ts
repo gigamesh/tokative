@@ -1,7 +1,7 @@
 import { MessageType, ExtensionMessage, ScrapedUser } from "../../types";
 import { guardExtensionContext } from "../../utils/dom";
 import { replyToComment } from "./comment-replier";
-import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape } from "./video-scraper";
+import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape } from "./video-scraper";
 
 let port: chrome.runtime.Port | null = null;
 
@@ -139,6 +139,18 @@ function handleMessage(
 
     case MessageType.SCRAPE_VIDEOS_STOP: {
       cancelVideoScrape();
+      sendResponse({ success: true });
+      return true;
+    }
+
+    case MessageType.SCRAPE_PAUSE: {
+      pauseVideoScrape();
+      sendResponse({ success: true });
+      return true;
+    }
+
+    case MessageType.SCRAPE_RESUME: {
+      resumeVideoScrape();
       sendResponse({ success: true });
       return true;
     }

@@ -1,6 +1,7 @@
 import { VIDEO_SELECTORS } from "./video-selectors";
 import { querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { addUsers, addVideos } from "../../utils/storage";
+import { humanDelay, humanDelayWithJitter } from "../../utils/dom";
 import type { ScrapedUser, ScrapedVideo, VideoScrapeProgress, VideoMetadataScrapeProgress } from "../../types";
 
 interface RawCommentData {
@@ -14,9 +15,24 @@ interface RawCommentData {
 }
 
 let isCancelled = false;
+let isPaused = false;
 
 export function cancelVideoScrape(): void {
   isCancelled = true;
+}
+
+export function pauseVideoScrape(): void {
+  isPaused = true;
+}
+
+export function resumeVideoScrape(): void {
+  isPaused = false;
+}
+
+async function waitWhilePaused(): Promise<void> {
+  while (isPaused && !isCancelled) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
 }
 
 function extractHandleFromHref(href: string | undefined): string | null {
@@ -231,6 +247,9 @@ async function scrollToLoadComments(
   const savedCommentIds = new Set<string>();
 
   while (!isCancelled) {
+    await waitWhilePaused();
+    if (isCancelled) break;
+
     const commentElements = querySelectorAll(VIDEO_SELECTORS.commentItem);
 
     if (maxComments !== Infinity && commentElements.length >= maxComments) {
@@ -271,7 +290,7 @@ async function scrollToLoadComments(
     }
 
     scroller.scrollTop = scroller.scrollHeight;
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await humanDelayWithJitter("medium");
   }
 
   return allUsers;
@@ -307,13 +326,18 @@ async function openCommentsPanel(): Promise<boolean> {
 
   const commentButton = querySelector<HTMLElement>(VIDEO_SELECTORS.commentButton);
   if (!commentButton) {
-    return false;
+    const button = await waitForSelector(VIDEO_SELECTORS.commentButton, { timeout: 10000 });
+    if (!button) {
+      return false;
+    }
+    (button as HTMLElement).click();
+  } else {
+    commentButton.click();
   }
 
-  commentButton.click();
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await humanDelay("short");
 
-  const commentsPanel = await waitForSelector(VIDEO_SELECTORS.commentsContainer, { timeout: 5000 });
+  const commentsPanel = await waitForSelector(VIDEO_SELECTORS.commentsContainer, { timeout: 10000 });
   return commentsPanel !== null;
 }
 
@@ -407,7 +431,7 @@ async function closeVideoModal(): Promise<void> {
     console.log("[TikTok Buddy] Warning: video grid not found after going back");
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await humanDelay("short");
 }
 
 async function clickVideoItem(videoItem: Element): Promise<boolean> {
@@ -420,7 +444,7 @@ async function clickVideoItem(videoItem: Element): Promise<boolean> {
   console.log("[TikTok Buddy] Pushed history state before clicking video");
 
   clickTarget.click();
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await humanDelayWithJitter("medium");
 
   const modal = await waitForSelector(VIDEO_SELECTORS.videoModal, { timeout: 5000 });
   return modal !== null;
@@ -490,7 +514,7 @@ export async function scrapeProfileVideos(
       }
 
       console.log(`[TikTok Buddy] Modal opened for video ${i + 1}`);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await humanDelay("short");
 
       // Pass thumbnail to scrapeVideoComments - it saves incrementally on each scroll
       const users = await scrapeVideoComments(maxCommentsPerVideo, (progress) => {
@@ -512,7 +536,7 @@ export async function scrapeProfileVideos(
 
       console.log(`[TikTok Buddy] Closing modal for video ${i + 1}`);
       await closeVideoModal();
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await humanDelayWithJitter("long");
     } catch (error) {
       console.error(`[TikTok Buddy] Error processing video ${i + 1}:`, error);
       // Try to close any open modal and continue
@@ -521,7 +545,7 @@ export async function scrapeProfileVideos(
       } catch {
         // Ignore close errors
       }
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await humanDelayWithJitter("long");
     }
   }
 
@@ -649,7 +673,7 @@ export async function scrapeProfileVideoMetadata(
     }
 
     window.scrollTo(0, document.body.scrollHeight);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await humanDelayWithJitter("medium");
   }
 
   if (isCancelled) {
@@ -730,7 +754,7 @@ export async function scrapeVideoComments(
       totalVideos: 1,
       commentsFound: saved,
       status: "scraping",
-      message: `Found ${loaded} comments, saved ${saved}...`,
+      message: `Scraping... ${saved} comments`,
     });
   });
 

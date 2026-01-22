@@ -1,5 +1,34 @@
-import { MessageType } from "../types";
-import { getUsers, getPostLimit, getCommentLimit } from "../utils/storage";
+import { MessageType, CommentScrapingState } from "../types";
+import { getUsers, getPostLimit, getCommentLimit, getScrapingState } from "../utils/storage";
+
+function updateScrapingStatusUI(
+  statusEl: HTMLElement,
+  state: CommentScrapingState,
+  btn: HTMLButtonElement | null
+): void {
+  if (state.isPaused) {
+    statusEl.className = "scrape-status paused";
+    statusEl.innerHTML = `<span class="paused-text">⏸ Paused (${state.commentsFound} comments) - <a href="#" id="resume-scrape">Click to resume</a></span>`;
+    if (btn) btn.disabled = true;
+
+    const resumeLink = document.getElementById("resume-scrape");
+    if (resumeLink && state.tabId) {
+      resumeLink.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await chrome.tabs.update(state.tabId!, { active: true });
+        window.close();
+      });
+    }
+  } else if (state.status === "scraping" || state.status === "loading") {
+    statusEl.className = "scrape-status active";
+    statusEl.textContent = state.message || `${state.commentsFound} comments found...`;
+    if (btn) btn.disabled = true;
+  } else if (state.status === "complete") {
+    statusEl.className = "scrape-status success";
+    statusEl.textContent = `Scraped ${state.commentsFound} comments`;
+    if (btn) btn.disabled = false;
+  }
+}
 
 function isVideoPage(url: string | undefined): boolean {
   if (!url) return false;
@@ -59,6 +88,11 @@ async function init(): Promise<void> {
   const commentLimitHintEl = document.getElementById("comment-limit-hint");
   if (commentLimitHintEl) {
     commentLimitHintEl.textContent = `Comment limit: ${commentLimit} (change in dashboard)`;
+  }
+
+  const scrapingState = await getScrapingState();
+  if (scrapingState.isActive && commentScrapeStatusEl) {
+    updateScrapingStatusUI(commentScrapeStatusEl, scrapingState, scrapeCommentsBtn);
   }
 
   if (scrapeProfileBtn) {
@@ -139,6 +173,13 @@ async function init(): Promise<void> {
         commentScrapeStatusEl.textContent = message.payload.error || "Comment scraping failed";
       }
       if (scrapeCommentsBtn) scrapeCommentsBtn.disabled = false;
+    }
+
+    if (message.type === MessageType.SCRAPE_PAUSED) {
+      const state = message.payload as CommentScrapingState;
+      if (state.isActive && commentScrapeStatusEl) {
+        updateScrapingStatusUI(commentScrapeStatusEl, state, scrapeCommentsBtn);
+      }
     }
   });
 
