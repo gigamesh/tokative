@@ -57,33 +57,6 @@ const NOTIFICATION_PANEL_HTML = `
 </div>
 `;
 
-const MESSAGE_INPUT_HTML = `
-<div data-e2e="message-input-area" class="css-qp35bq">
-  <div class="DraftEditor-root">
-    <div class="DraftEditor-editorContainer">
-      <div aria-label="Send a message..."
-           class="notranslate public-DraftEditor-content"
-           contenteditable="true"
-           role="textbox">
-        <div data-contents="true">
-          <div data-block="true"><span><br data-text="true"></span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-`;
-
-const MESSAGE_BUTTON_HTML = `
-<a class="link-a11y-focus" href="/messages?lang=en&u=123456">
-  <button class="TUXButton" data-e2e="message-button">
-    <div class="TUXButton-content">
-      <div class="TUXButton-label">Message</div>
-    </div>
-  </button>
-</a>
-`;
-
 describe("TikTok Selectors", () => {
   describe("activityButton", () => {
     let container: HTMLElement;
@@ -159,61 +132,4 @@ describe("TikTok Selectors", () => {
     });
   });
 
-  describe("messageButton", () => {
-    let container: HTMLElement;
-
-    beforeEach(() => {
-      container = document.createElement("div");
-      container.innerHTML = MESSAGE_BUTTON_HTML;
-      document.body.appendChild(container);
-    });
-
-    afterEach(() => {
-      document.body.removeChild(container);
-    });
-
-    it("finds message button by data-e2e attribute", () => {
-      const button = querySelector(SELECTORS.messageButton, container);
-      expect(button).not.toBeNull();
-      expect(button?.getAttribute("data-e2e")).toBe("message-button");
-    });
-
-    it("finds message link by href pattern", () => {
-      const link = container.querySelector('a[href*="/messages?"]');
-      expect(link).not.toBeNull();
-      expect(link?.getAttribute("href")).toContain("/messages?");
-    });
-  });
-
-  describe("messageInput", () => {
-    let container: HTMLElement;
-
-    beforeEach(() => {
-      container = document.createElement("div");
-      container.innerHTML = MESSAGE_INPUT_HTML;
-      document.body.appendChild(container);
-    });
-
-    afterEach(() => {
-      document.body.removeChild(container);
-    });
-
-    it("finds message input area", () => {
-      const area = querySelector(SELECTORS.messageInputArea, container);
-      expect(area).not.toBeNull();
-      expect(area?.getAttribute("data-e2e")).toBe("message-input-area");
-    });
-
-    it("finds contenteditable input within message area", () => {
-      const input = querySelector(SELECTORS.messageInput, container);
-      expect(input).not.toBeNull();
-      expect(input?.getAttribute("contenteditable")).toBe("true");
-      expect(input?.classList.contains("public-DraftEditor-content")).toBe(true);
-    });
-
-    it("finds input with role textbox", () => {
-      const input = querySelector(SELECTORS.messageInput, container);
-      expect(input?.getAttribute("role")).toBe("textbox");
-    });
-  });
 });

@@ -8,15 +8,6 @@ export const MessageType = {
   REMOVE_USER: "REMOVE_USER",
   REMOVE_USERS: "REMOVE_USERS",
   UPDATE_USER: "UPDATE_USER",
-  SEND_MESSAGE: "SEND_MESSAGE",
-  SEND_MESSAGE_PROGRESS: "SEND_MESSAGE_PROGRESS",
-  SEND_MESSAGE_COMPLETE: "SEND_MESSAGE_COMPLETE",
-  SEND_MESSAGE_ERROR: "SEND_MESSAGE_ERROR",
-  BULK_SEND_START: "BULK_SEND_START",
-  BULK_SEND_PROGRESS: "BULK_SEND_PROGRESS",
-  BULK_SEND_COMPLETE: "BULK_SEND_COMPLETE",
-  BULK_SEND_ERROR: "BULK_SEND_ERROR",
-  BULK_SEND_STOP: "BULK_SEND_STOP",
   GET_TEMPLATES: "GET_TEMPLATES",
   TEMPLATES_RESPONSE: "TEMPLATES_RESPONSE",
   SAVE_TEMPLATE: "SAVE_TEMPLATE",
@@ -40,18 +31,15 @@ export const MessageType = {
   SCRAPE_VIDEO_COMMENTS_COMPLETE: "SCRAPE_VIDEO_COMMENTS_COMPLETE",
   SCRAPE_VIDEO_COMMENTS_ERROR: "SCRAPE_VIDEO_COMMENTS_ERROR",
   SCRAPE_VIDEO_COMMENTS_STOP: "SCRAPE_VIDEO_COMMENTS_STOP",
-  // Video metadata scraping
   SCRAPE_VIDEOS_START: "SCRAPE_VIDEOS_START",
   SCRAPE_VIDEOS_PROGRESS: "SCRAPE_VIDEOS_PROGRESS",
   SCRAPE_VIDEOS_COMPLETE: "SCRAPE_VIDEOS_COMPLETE",
   SCRAPE_VIDEOS_ERROR: "SCRAPE_VIDEOS_ERROR",
   SCRAPE_VIDEOS_STOP: "SCRAPE_VIDEOS_STOP",
-  // Get comments for specific video
   GET_VIDEO_COMMENTS: "GET_VIDEO_COMMENTS",
   GET_VIDEO_COMMENTS_PROGRESS: "GET_VIDEO_COMMENTS_PROGRESS",
   GET_VIDEO_COMMENTS_COMPLETE: "GET_VIDEO_COMMENTS_COMPLETE",
   GET_VIDEO_COMMENTS_ERROR: "GET_VIDEO_COMMENTS_ERROR",
-  // Video storage
   GET_STORED_VIDEOS: "GET_STORED_VIDEOS",
   REMOVE_VIDEO: "REMOVE_VIDEO",
   REMOVE_VIDEOS: "REMOVE_VIDEOS",
@@ -66,19 +54,14 @@ export interface ScrapedUser {
   scrapedAt: string;
   profileUrl: string;
   videoUrl?: string;
-  messageSent?: boolean;
-  sentAt?: string;
-  messageError?: string;
-  customMessage?: string;
   replySent?: boolean;
   repliedAt?: string;
   replyError?: string;
+  replyContent?: string;
   commentTimestamp?: string;
   videoThumbnailUrl?: string;
   commentId?: string;
   videoId?: string;
-  replyContent?: string;
-  messageContent?: string;
 }
 
 export interface MessageTemplate {
@@ -86,14 +69,6 @@ export interface MessageTemplate {
   name: string;
   content: string;
   isDefault?: boolean;
-}
-
-export interface BulkSendProgress {
-  total: number;
-  completed: number;
-  failed: number;
-  current?: string;
-  status: "running" | "complete" | "stopped" | "error";
 }
 
 export interface ReplyProgress {
@@ -110,14 +85,6 @@ export interface BulkReplyProgress {
   status: "running" | "complete" | "stopped" | "error";
 }
 
-export interface VideoScrapeProgress {
-  videosProcessed: number;
-  totalVideos: number;
-  commentsFound: number;
-  status: "loading" | "scraping" | "complete" | "error" | "cancelled";
-  message?: string;
-}
-
 export interface ScrapedVideo {
   id: string;
   videoId: string;
@@ -127,13 +94,6 @@ export interface ScrapedVideo {
   order: number;
   scrapedAt: string;
   commentsScraped?: boolean;
-  commentCount?: number;
-}
-
-export interface VideoMetadataScrapeProgress {
-  videosFound: number;
-  status: "scrolling" | "extracting" | "complete" | "error" | "cancelled";
-  message?: string;
 }
 
 export interface GetVideoCommentsProgress {

@@ -28,8 +28,8 @@ async function init(): Promise<void> {
   }
 
   if (sentCountEl) {
-    const sentCount = users.filter((u) => u.messageSent).length;
-    sentCountEl.textContent = sentCount.toString();
+    const repliedCount = users.filter((u) => u.replySent).length;
+    sentCountEl.textContent = repliedCount.toString();
   }
 
   const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });

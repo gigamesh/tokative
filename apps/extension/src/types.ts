@@ -10,19 +10,6 @@ export enum MessageType {
   REMOVE_USERS = "REMOVE_USERS",
   UPDATE_USER = "UPDATE_USER",
 
-  // Messaging
-  SEND_MESSAGE = "SEND_MESSAGE",
-  SEND_MESSAGE_PROGRESS = "SEND_MESSAGE_PROGRESS",
-  SEND_MESSAGE_COMPLETE = "SEND_MESSAGE_COMPLETE",
-  SEND_MESSAGE_ERROR = "SEND_MESSAGE_ERROR",
-
-  // Bulk messaging
-  BULK_SEND_START = "BULK_SEND_START",
-  BULK_SEND_PROGRESS = "BULK_SEND_PROGRESS",
-  BULK_SEND_COMPLETE = "BULK_SEND_COMPLETE",
-  BULK_SEND_ERROR = "BULK_SEND_ERROR",
-  BULK_SEND_STOP = "BULK_SEND_STOP",
-
   // Templates
   GET_TEMPLATES = "GET_TEMPLATES",
   TEMPLATES_RESPONSE = "TEMPLATES_RESPONSE",
@@ -87,20 +74,14 @@ export interface ScrapedUser {
   scrapedAt: string;
   profileUrl: string;
   videoUrl?: string;
-  messageSent?: boolean;
-  sentAt?: string;
-  messageError?: string;
-  customMessage?: string;
   replySent?: boolean;
   repliedAt?: string;
   replyError?: string;
-  // Video scraping fields
+  replyContent?: string;
   commentTimestamp?: string;
   videoThumbnailUrl?: string;
   commentId?: string;
   videoId?: string;
-  replyContent?: string;
-  messageContent?: string;
 }
 
 export interface MessageTemplate {
@@ -114,28 +95,6 @@ export interface ExtensionMessage<T = unknown> {
   type: MessageType;
   payload?: T;
   source?: "dashboard" | "tiktok" | "background" | "popup";
-}
-
-export interface ScrapeProgress {
-  current: number;
-  total: number;
-  newUsers: number;
-  status: "scrolling" | "extracting" | "complete" | "error";
-  message?: string;
-}
-
-export interface SendProgress {
-  userId: string;
-  status: "opening" | "typing" | "sending" | "complete" | "error";
-  message?: string;
-}
-
-export interface BulkSendProgress {
-  total: number;
-  completed: number;
-  failed: number;
-  current?: string;
-  status: "running" | "complete" | "stopped" | "error";
 }
 
 export interface ReplyProgress {
@@ -158,14 +117,12 @@ export interface StorageData {
   settings: {
     messageDelay: number;
     scrollDelay: number;
-    maxMessagesPerHour: number;
   };
 }
 
 export const DEFAULT_SETTINGS: StorageData["settings"] = {
   messageDelay: 3000,
   scrollDelay: 1500,
-  maxMessagesPerHour: 20,
 };
 
 export const DEFAULT_TEMPLATE: MessageTemplate = {
@@ -174,14 +131,6 @@ export const DEFAULT_TEMPLATE: MessageTemplate = {
   content: "Hey {{handle}}! Thanks for your comment: \"{{comment}}\"",
   isDefault: true,
 };
-
-export interface VideoScrapeProgress {
-  videosProcessed: number;
-  totalVideos: number;
-  commentsFound: number;
-  status: "loading" | "scraping" | "complete" | "error" | "cancelled";
-  message?: string;
-}
 
 export interface ScrapedVideo {
   id: string;
@@ -192,7 +141,6 @@ export interface ScrapedVideo {
   order: number;
   scrapedAt: string;
   commentsScraped?: boolean;
-  commentCount?: number;
 }
 
 export interface VideoMetadataScrapeProgress {

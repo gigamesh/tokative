@@ -1,6 +1,5 @@
 import { MessageType, ExtensionMessage, ScrapedUser } from "../../types";
 import { guardExtensionContext } from "../../utils/dom";
-import { sendMessageToUser } from "./profile-messenger";
 import { replyToComment } from "./comment-replier";
 import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape } from "./video-scraper";
 
@@ -47,34 +46,6 @@ function handleMessage(
   console.log("[TikTok] Message received:", message.type);
 
   switch (message.type) {
-    case MessageType.SEND_MESSAGE: {
-      const { user, message: msgContent } = message.payload as {
-        user: ScrapedUser;
-        message: string;
-      };
-
-      sendMessageToUser(user, msgContent)
-        .then(() => {
-          chrome.runtime.sendMessage({
-            type: MessageType.SEND_MESSAGE_COMPLETE,
-            payload: { userId: user.id },
-          });
-          sendResponse({ success: true });
-        })
-        .catch((error) => {
-          chrome.runtime.sendMessage({
-            type: MessageType.SEND_MESSAGE_ERROR,
-            payload: {
-              userId: user.id,
-              error: error instanceof Error ? error.message : "Unknown error",
-            },
-          });
-          sendResponse({ success: false, error: error.message });
-        });
-
-      return true;
-    }
-
     case MessageType.REPLY_COMMENT: {
       const { user, message: replyMsg } = message.payload as {
         user: ScrapedUser;

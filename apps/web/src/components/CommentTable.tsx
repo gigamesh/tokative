@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
 
-type FilterStatus = "all" | "sent" | "not_sent" | "failed";
+type FilterStatus = "all" | "replied" | "not_replied" | "failed";
 type SortOption = "newest" | "oldest" | "recent_scrape";
 
 interface CommentTableProps {
@@ -16,7 +16,6 @@ interface CommentTableProps {
   onRemoveUser: (userId: string) => void;
   onRemoveSelected: () => void;
   onFetchComments: (videoIds: string[]) => void;
-  onSendMessage: (user: ScrapedUser) => void;
   onReplyComment: (user: ScrapedUser) => void;
   videoIdFilter?: string | null;
 }
@@ -29,7 +28,6 @@ export function CommentTable({
   onRemoveUser,
   onRemoveSelected,
   onFetchComments,
-  onSendMessage,
   onReplyComment,
   videoIdFilter,
 }: CommentTableProps) {
@@ -50,9 +48,9 @@ export function CommentTable({
 
       const matchesFilter =
         filter === "all" ||
-        (filter === "sent" && user.messageSent) ||
-        (filter === "not_sent" && !user.messageSent && !user.messageError) ||
-        (filter === "failed" && user.messageError);
+        (filter === "replied" && user.replySent) ||
+        (filter === "not_replied" && !user.replySent && !user.replyError) ||
+        (filter === "failed" && user.replyError);
 
       return matchesSearch && matchesFilter;
     });
@@ -76,32 +74,22 @@ export function CommentTable({
           : 0;
         return aTime - bTime;
       }
-      // recent_scrape
       return new Date(b.scrapedAt).getTime() - new Date(a.scrapedAt).getTime();
     });
   }, [users, search, filter, sort, videoIdFilter]);
 
-  const filteredSelectedCount = filteredUsers.filter((u) => selectedIds.has(u.id)).length;
-  const allFilteredSelected = filteredUsers.length > 0 && filteredSelectedCount === filteredUsers.length;
-  const someFilteredSelected = filteredSelectedCount > 0 && filteredSelectedCount < filteredUsers.length;
-
-  const stats = useMemo(() => {
-    const sent = users.filter((u) => u.messageSent).length;
-    const failed = users.filter((u) => u.messageError).length;
-    const pending = users.length - sent - failed;
-    return { total: users.length, sent, failed, pending };
-  }, [users]);
+  const filteredSelectedCount = filteredUsers.filter((u) =>
+    selectedIds.has(u.id),
+  ).length;
+  const allFilteredSelected =
+    filteredUsers.length > 0 && filteredSelectedCount === filteredUsers.length;
+  const someFilteredSelected =
+    filteredSelectedCount > 0 && filteredSelectedCount < filteredUsers.length;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex gap-4 text-sm text-gray-400">
-          <span>Total: {stats.total}</span>
-          <span className="text-green-400">Sent: {stats.sent}</span>
-          <span className="text-yellow-400">Pending: {stats.pending}</span>
-          <span className="text-red-400">Failed: {stats.failed}</span>
-        </div>
-
+        {" "}
         <div className="flex gap-2 flex-wrap items-center">
           <input
             type="text"
@@ -117,8 +105,8 @@ export function CommentTable({
             className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
           >
             <option value="all">All</option>
-            <option value="not_sent">Not Sent</option>
-            <option value="sent">Sent</option>
+            <option value="not_replied">Not Replied</option>
+            <option value="replied">Replied</option>
             <option value="failed">Failed</option>
           </select>
 
@@ -149,7 +137,9 @@ export function CommentTable({
               }}
               className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red"
             />
-            {selectedIds.size > 0 ? `${selectedIds.size} selected` : `Select all (${filteredUsers.length})`}
+            {selectedIds.size > 0
+              ? `${selectedIds.size} selected`
+              : `Select all (${filteredUsers.length})`}
           </label>
         </div>
 
@@ -159,8 +149,18 @@ export function CommentTable({
             disabled={selectedIds.size === 0}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-red-400 hover:border-red-400/50 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
             </svg>
             Remove
           </button>
@@ -170,11 +170,15 @@ export function CommentTable({
                 onFetchComments([videoIdFilter]);
               } else {
                 const selectedUserIds = Array.from(selectedIds);
-                const videoIds = Array.from(new Set(
-                  users
-                    .filter((u) => selectedUserIds.includes(u.id) && u.videoId)
-                    .map((u) => u.videoId!)
-                ));
+                const videoIds = Array.from(
+                  new Set(
+                    users
+                      .filter(
+                        (u) => selectedUserIds.includes(u.id) && u.videoId,
+                      )
+                      .map((u) => u.videoId!),
+                  ),
+                );
                 if (videoIds.length > 0) {
                   onFetchComments(videoIds);
                 }
@@ -183,8 +187,18 @@ export function CommentTable({
             disabled={!videoIdFilter && selectedIds.size === 0}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-tiktok-red hover:border-tiktok-red/50 hover:bg-tiktok-red/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             Fetch Comments
           </button>
@@ -209,7 +223,6 @@ export function CommentTable({
                 selected={selectedIds.has(user.id)}
                 onSelect={(selected) => onSelectUser(user.id, selected)}
                 onRemove={() => onRemoveUser(user.id)}
-                onSendMessage={() => onSendMessage(user)}
                 onReplyComment={() => onReplyComment(user)}
               />
             </div>

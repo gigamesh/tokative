@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { CommentTable } from "@/components/CommentTable";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
-import { MessageComposer } from "@/components/MessageComposer";
+import { ReplyComposer } from "@/components/MessageComposer";
 import { PostsGrid } from "@/components/PostsGrid";
 import { TabNavigation } from "@/components/TabNavigation";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
@@ -28,12 +28,9 @@ function DashboardContent() {
   } = useUserData();
 
   const {
-    isSending,
     isReplying,
-    currentProgress,
     replyProgress,
-    error: messagingError,
-    sendMessage,
+    error: replyError,
     replyToComment,
   } = useMessaging();
 
@@ -55,7 +52,6 @@ function DashboardContent() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedUser, setSelectedUser] = useState<ScrapedUser | null>(null);
-  const [composerMode, setComposerMode] = useState<"message" | "reply">("message");
   const [postLimitInput, setPostLimitInput] = useState(String(postLimit));
   const [commentLimitInput, setCommentLimitInput] = useState(String(commentLimit));
 
@@ -136,31 +132,21 @@ function DashboardContent() {
     setSelectedIds(new Set());
   }, [selectedIds, removeUsers]);
 
-  const handleSendToUser = useCallback((user: ScrapedUser) => {
-    setSelectedUser(user);
-    setComposerMode("message");
-  }, []);
-
   const handleClearSelection = useCallback(() => {
     setSelectedUser(null);
   }, []);
 
-  const handleSendFromComposer = useCallback(
+  const handleReplyFromComposer = useCallback(
     (message: string) => {
       if (!selectedUser) return;
-      if (composerMode === "reply") {
-        replyToComment(selectedUser, message);
-      } else {
-        sendMessage(selectedUser, message);
-      }
+      replyToComment(selectedUser, message);
       setSelectedUser(null);
     },
-    [selectedUser, composerMode, sendMessage, replyToComment]
+    [selectedUser, replyToComment]
   );
 
   const handleReplyToUser = useCallback((user: ScrapedUser) => {
     setSelectedUser(user);
-    setComposerMode("reply");
   }, []);
 
   const handleViewPostComments = useCallback(
@@ -180,9 +166,9 @@ function DashboardContent() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {(error || messagingError) && (
+        {(error || replyError) && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400">
-            {error || messagingError}
+            {error || replyError}
           </div>
         )}
 
@@ -263,7 +249,6 @@ function DashboardContent() {
                     onRemoveUser={removeUser}
                     onRemoveSelected={handleRemoveSelected}
                     onFetchComments={getCommentsForVideos}
-                    onSendMessage={handleSendToUser}
                     onReplyComment={handleReplyToUser}
                     videoIdFilter={selectedPostId}
                   />
@@ -273,30 +258,12 @@ function DashboardContent() {
           </div>
 
           <div className="space-y-6 sticky top-24 self-start">
-            <MessageComposer
+            <ReplyComposer
               selectedUser={selectedUser}
-              mode={composerMode}
-              onSend={handleSendFromComposer}
+              onSend={handleReplyFromComposer}
               onClearSelection={handleClearSelection}
-              disabled={isSending || isReplying}
+              disabled={isReplying}
             />
-
-            {currentProgress && (
-              <div className="bg-tiktok-gray rounded-lg p-4">
-                <h3 className="font-medium text-white mb-2">Sending Status</h3>
-                <p className="text-sm text-gray-400">
-                  {currentProgress.status === "opening" && "Opening profile..."}
-                  {currentProgress.status === "typing" && "Typing message..."}
-                  {currentProgress.status === "sending" && "Sending message..."}
-                  {currentProgress.status === "complete" && "Message sent!"}
-                  {currentProgress.status === "error" && (
-                    <span className="text-red-400">
-                      Error: {currentProgress.message}
-                    </span>
-                  )}
-                </p>
-              </div>
-            )}
 
             {replyProgress && (
               <div className="bg-tiktok-gray rounded-lg p-4">

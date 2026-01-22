@@ -33,21 +33,6 @@ export const SELECTORS = {
     'a[href*="/@"]',
   ],
 
-  messageButton: [
-    '[data-e2e="message-button"]',
-    'a[href*="/messages?"]',
-  ],
-
-  messageInputArea: [
-    '[data-e2e="message-input-area"]',
-  ],
-
-  messageInput: [
-    '[data-e2e="message-input-area"] .public-DraftEditor-content[contenteditable="true"]',
-    '[data-e2e="message-input-area"] [contenteditable="true"]',
-    '.DraftEditor-root [contenteditable="true"]',
-  ],
-
   commentItem: [
     '[data-e2e="comment-level-1"]',
   ],

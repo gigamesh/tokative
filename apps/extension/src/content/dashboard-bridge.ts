@@ -126,9 +126,6 @@ function handleWindowMessage(event: MessageEvent): void {
 
 function isPortMessage(type: MessageType): boolean {
   return [
-    MessageType.SEND_MESSAGE,
-    MessageType.BULK_SEND_START,
-    MessageType.BULK_SEND_STOP,
     MessageType.REPLY_COMMENT,
     MessageType.BULK_REPLY_START,
     MessageType.BULK_REPLY_STOP,

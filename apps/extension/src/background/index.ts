@@ -4,7 +4,6 @@ import {
   ScrapedUser,
   ScrapedVideo,
   MessageTemplate,
-  BulkSendProgress,
   BulkReplyProgress,
 } from "../types";
 import {
@@ -226,14 +225,6 @@ async function handleMessage(
       return { success: true };
     }
 
-    // Forward send message messages from content script to dashboard
-    case MessageType.SEND_MESSAGE_PROGRESS:
-    case MessageType.SEND_MESSAGE_COMPLETE:
-    case MessageType.SEND_MESSAGE_ERROR: {
-      broadcastToDashboard(message);
-      return { success: true };
-    }
-
     default:
       console.log("[Background] Unknown message type:", message.type);
       return null;
@@ -247,28 +238,6 @@ async function handlePortMessage(
   console.log("[Background] Port message:", message.type);
 
   switch (message.type) {
-    case MessageType.SEND_MESSAGE: {
-      const { user, message: msgContent } = message.payload as {
-        user: ScrapedUser;
-        message: string;
-      };
-      await handleSendMessage(user, msgContent, port);
-      break;
-    }
-
-    case MessageType.BULK_SEND_START: {
-      const { userIds, templateId } = message.payload as {
-        userIds: string[];
-        templateId: string;
-      };
-      await handleBulkSend(userIds, templateId, port);
-      break;
-    }
-
-    case MessageType.BULK_SEND_STOP: {
-      break;
-    }
-
     case MessageType.REPLY_COMMENT: {
       const { user, message: replyContent } = message.payload as {
         user: ScrapedUser;
@@ -443,105 +412,6 @@ async function broadcastToDashboard(message: ExtensionMessage): Promise<void> {
   } catch {
     // Ignore query errors
   }
-}
-
-async function handleSendMessage(
-  user: ScrapedUser,
-  messageContent: string,
-  port: chrome.runtime.Port
-): Promise<void> {
-  try {
-    port.postMessage({
-      type: MessageType.SEND_MESSAGE_PROGRESS,
-      payload: { userId: user.id, status: "opening" },
-    });
-
-    const tab = await chrome.tabs.create({
-      url: user.profileUrl,
-      active: false,
-    });
-
-    if (!tab.id) throw new Error("Failed to create tab");
-
-    await waitForTabLoad(tab.id);
-
-    chrome.tabs.sendMessage(tab.id, {
-      type: MessageType.SEND_MESSAGE,
-      payload: { user, message: messageContent },
-    });
-
-  } catch (error) {
-    port.postMessage({
-      type: MessageType.SEND_MESSAGE_ERROR,
-      payload: {
-        userId: user.id,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-    });
-  }
-}
-
-async function handleBulkSend(
-  userIds: string[],
-  templateId: string,
-  port: chrome.runtime.Port
-): Promise<void> {
-  const users = await getUsers();
-  const templates = await getTemplates();
-  const template = templates.find((t) => t.id === templateId);
-  const settings = await getSettings();
-
-  if (!template) {
-    port.postMessage({
-      type: MessageType.BULK_SEND_ERROR,
-      payload: { error: "Template not found" },
-    });
-    return;
-  }
-
-  const targetUsers = users.filter((u) => userIds.includes(u.id) && !u.messageSent);
-
-  const progress: BulkSendProgress = {
-    total: targetUsers.length,
-    completed: 0,
-    failed: 0,
-    status: "running",
-  };
-
-  for (const user of targetUsers) {
-    progress.current = user.handle;
-    port.postMessage({
-      type: MessageType.BULK_SEND_PROGRESS,
-      payload: progress,
-    });
-
-    try {
-      const messageContent = template.content
-        .replace(/\{\{handle\}\}/g, user.handle)
-        .replace(/\{\{comment\}\}/g, user.comment);
-
-      await handleSendMessage(user, messageContent, port);
-      progress.completed++;
-
-      await updateUser(user.id, {
-        messageSent: true,
-        sentAt: new Date().toISOString(),
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, settings.messageDelay));
-    } catch {
-      progress.failed++;
-      await updateUser(user.id, {
-        messageError: "Failed to send message",
-      });
-    }
-  }
-
-  progress.status = "complete";
-  port.postMessage({
-    type: MessageType.BULK_SEND_COMPLETE,
-    payload: progress,
-  });
 }
 
 async function handleReplyComment(

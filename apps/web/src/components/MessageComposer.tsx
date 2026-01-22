@@ -4,24 +4,19 @@ import { ScrapedUser } from "@/utils/constants";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { useEffect, useRef, useState } from "react";
 
-type ComposerMode = "message" | "reply";
-
-interface MessageComposerProps {
+interface ReplyComposerProps {
   selectedUser: ScrapedUser | null;
-  mode: ComposerMode;
   onSend: (message: string) => void;
   onClearSelection: () => void;
   disabled?: boolean;
 }
 
-export function MessageComposer({
+export function ReplyComposer({
   selectedUser,
-  mode,
   onSend,
   onClearSelection,
   disabled,
-}: MessageComposerProps) {
-  const isReplyMode = mode === "reply";
+}: ReplyComposerProps) {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,14 +54,12 @@ export function MessageComposer({
 
   return (
     <div className="bg-tiktok-gray rounded-lg p-4 space-y-4">
-      <h3 className="font-medium text-white">Message Composer</h3>
+      <h3 className="font-medium text-white">Reply Composer</h3>
 
       <div className="relative">
         <textarea
           ref={textareaRef}
-          placeholder={
-            isReplyMode ? "Write your reply..." : "Write your message..."
-          }
+          placeholder="Write your reply..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={5}
@@ -115,8 +108,7 @@ export function MessageComposer({
         <div className="p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm text-gray-400">
-              {isReplyMode ? "Replying to" : "Sending to"} @
-              {selectedUser.handle}
+              Replying to @{selectedUser.handle}
             </span>
             <button
               onClick={onClearSelection}
@@ -125,30 +117,18 @@ export function MessageComposer({
               Clear
             </button>
           </div>
-          {isReplyMode && (
-            <p className="text-xs text-gray-500 truncate">
-              Comment: "{selectedUser.comment}"
-            </p>
-          )}
+          <p className="text-xs text-gray-500 truncate">
+            Comment: "{selectedUser.comment}"
+          </p>
         </div>
       )}
 
       <button
         onClick={handleSend}
         disabled={disabled || !selectedUser || !message.trim()}
-        className={`w-full px-4 py-2 ${
-          isReplyMode
-            ? "bg-blue-600 hover:bg-blue-500"
-            : "bg-tiktok-red hover:bg-tiktok-red/80"
-        } disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg font-medium transition-colors`}
+        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg font-medium transition-colors"
       >
-        {disabled
-          ? isReplyMode
-            ? "Replying..."
-            : "Sending..."
-          : isReplyMode
-            ? "Send Reply"
-            : "Send Message"}
+        {disabled ? "Replying..." : "Send Reply"}
       </button>
     </div>
   );

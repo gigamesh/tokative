@@ -3,12 +3,11 @@
 import { ScrapedUser } from "@/utils/constants";
 import { useEffect, useRef, useState } from "react";
 
-interface UserCardProps {
+interface CommentCardProps {
   user: ScrapedUser;
   selected: boolean;
   onSelect: (selected: boolean) => void;
   onRemove: () => void;
-  onSendMessage: () => void;
   onReplyComment: () => void;
 }
 
@@ -32,9 +31,8 @@ export function CommentCard({
   selected,
   onSelect,
   onRemove,
-  onSendMessage,
   onReplyComment,
-}: UserCardProps) {
+}: CommentCardProps) {
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
   const commentRef = useRef<HTMLParagraphElement>(null);
@@ -45,18 +43,6 @@ export function CommentCard({
       setIsTruncated(el.scrollHeight > el.clientHeight);
     }
   }, [user.comment]);
-
-  const messageStatusColor = user.messageSent
-    ? "text-green-400"
-    : user.messageError
-      ? "text-red-400"
-      : "text-gray-400";
-
-  const messageStatusText = user.messageSent
-    ? "DM sent"
-    : user.messageError
-      ? "DM failed"
-      : "";
 
   const replyStatusColor = user.replySent
     ? "text-green-400"
@@ -119,11 +105,6 @@ export function CommentCard({
                 {formatRelativeTime(user.commentTimestamp)}
               </span>
             )}
-            {messageStatusText && (
-              <span className={`text-xs ${messageStatusColor}`}>
-                {messageStatusText}
-              </span>
-            )}
             {replyStatusText && (
               <span className={`text-xs ${replyStatusColor}`}>
                 {replyStatusText}
@@ -146,9 +127,9 @@ export function CommentCard({
             </button>
           )}
 
-          {user.sentAt && (
+          {user.repliedAt && (
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>Sent {formatRelativeTime(user.sentAt)}</span>
+              <span>Replied {formatRelativeTime(user.repliedAt)}</span>
             </div>
           )}
         </div>
@@ -160,14 +141,6 @@ export function CommentCard({
               className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"
             >
               Reply
-            </button>
-          )}
-          {!user.messageSent && (
-            <button
-              onClick={onSendMessage}
-              className="px-3 py-1.5 text-sm bg-tiktok-red hover:bg-tiktok-red/80 text-white rounded transition-colors"
-            >
-              Message
             </button>
           )}
           <button
