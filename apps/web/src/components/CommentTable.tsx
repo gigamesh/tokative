@@ -1,9 +1,10 @@
 "use client";
 
 import { ScrapedComment } from "@/utils/constants";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
+import { FetchCommentsButton } from "./FetchCommentsButton";
 
 type FilterStatus = "all" | "replied" | "not_replied" | "failed";
 type SortOption = "newest" | "oldest" | "recent_scrape";
@@ -86,6 +87,24 @@ export function CommentTable({
   const someFilteredSelected =
     filteredSelectedCount > 0 && filteredSelectedCount < filteredComments.length;
 
+  const handleFetchComments = useCallback(() => {
+    if (videoIdFilter) {
+      onFetchComments([videoIdFilter]);
+    } else {
+      const selectedCommentIds = Array.from(selectedIds);
+      const videoIds = Array.from(
+        new Set(
+          comments
+            .filter((c) => selectedCommentIds.includes(c.id) && c.videoId)
+            .map((c) => c.videoId!),
+        ),
+      );
+      if (videoIds.length > 0) {
+        onFetchComments(videoIds);
+      }
+    }
+  }, [videoIdFilter, selectedIds, comments, onFetchComments]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -164,44 +183,10 @@ export function CommentTable({
             </svg>
             Remove
           </button>
-          <button
-            onClick={() => {
-              if (videoIdFilter) {
-                onFetchComments([videoIdFilter]);
-              } else {
-                const selectedCommentIds = Array.from(selectedIds);
-                const videoIds = Array.from(
-                  new Set(
-                    comments
-                      .filter(
-                        (c) => selectedCommentIds.includes(c.id) && c.videoId,
-                      )
-                      .map((c) => c.videoId!),
-                  ),
-                );
-                if (videoIds.length > 0) {
-                  onFetchComments(videoIds);
-                }
-              }
-            }}
+          <FetchCommentsButton
+            onClick={handleFetchComments}
             disabled={!videoIdFilter && selectedIds.size === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-tiktok-red hover:border-tiktok-red/50 hover:bg-tiktok-red/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            Fetch Comments
-          </button>
+          />
         </div>
       </div>
 
