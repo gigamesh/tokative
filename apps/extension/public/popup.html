@@ -1,191 +1,152 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TikTok Buddy</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      width: 300px;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #1a1a1a;
-      color: #fff;
-    }
-    h1 {
-      font-size: 18px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .status {
-      padding: 8px 12px;
-      border-radius: 6px;
-      margin-bottom: 12px;
-      font-size: 13px;
-    }
-    .status.connected {
-      background: rgba(34, 197, 94, 0.2);
-      color: #22c55e;
-    }
-    .status.disconnected {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-    }
-    .stats {
-      background: #2a2a2a;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 12px;
-    }
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-    .stat-row:last-child {
-      margin-bottom: 0;
-    }
-    .stat-label {
-      color: #888;
-      font-size: 13px;
-    }
-    .stat-value {
-      font-weight: 600;
-      font-size: 13px;
-    }
-    .btn {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn-primary {
-      background: #fe2c55;
-      color: white;
-    }
-    .btn-primary:hover {
-      background: #e0284d;
-    }
-    .btn-secondary {
-      background: #2a2a2a;
-      color: white;
-      border: 1px solid #444;
-      margin-top: 8px;
-    }
-    .btn-secondary:hover {
-      background: #3a3a3a;
-    }
-    .btn-secondary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .scrape-status {
-      margin-top: 8px;
-      padding: 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      display: none;
-    }
-    .scrape-status.active {
-      display: block;
-      background: rgba(59, 130, 246, 0.2);
-      color: #3b82f6;
-    }
-    .scrape-status.success {
-      display: block;
-      background: rgba(34, 197, 94, 0.2);
-      color: #22c55e;
-    }
-    .scrape-status.error {
-      display: block;
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-    }
-    .scrape-status.paused {
-      display: block;
-      background: rgba(251, 191, 36, 0.2);
-      color: #fbbf24;
-    }
-    .scrape-status.paused a {
-      color: #fbbf24;
-      text-decoration: underline;
-    }
-    .scrape-status.paused a:hover {
-      color: #fcd34d;
-    }
-    .btn-cancel {
-      background: #fe2c55;
-      color: white;
-      margin-top: 8px;
-    }
-    .btn-cancel:hover {
-      background: #e0284d;
-    }
-    .links {
-      margin-top: 12px;
-      text-align: center;
-    }
-    .links a {
-      color: #888;
-      font-size: 12px;
-      text-decoration: none;
-    }
-    .links a:hover {
-      color: #fff;
-    }
-    .post-limit-hint {
-      margin-top: 8px;
-      font-size: 12px;
-      color: #888;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <h1>TikTok Buddy</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TikTok Buddy</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        width: 280px;
+        padding: 16px;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #1a1a1a;
+        color: #fff;
+      }
+      h1 {
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+      .context-section {
+        display: none;
+      }
+      .btn {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .btn-primary {
+        background: #3b82f6;
+        color: white;
+        border: 1px solid #3b82f6;
+      }
+      .btn-primary:hover {
+        background: #2563eb;
+        border-color: #2563eb;
+      }
+      .btn-primary:disabled {
+        background: #2a2a2a;
+        border-color: #444;
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .btn-cancel {
+        background: #fe2c55;
+        color: white;
+      }
+      .btn-cancel:hover {
+        background: #e0284d;
+      }
+      .scrape-status {
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        display: none;
+      }
+      .scrape-status.active {
+        display: block;
+        background: rgba(59, 130, 246, 0.2);
+        color: #3b82f6;
+      }
+      .scrape-status.success {
+        display: block;
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+      }
+      .scrape-status.error {
+        display: block;
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+      }
+      .scrape-status.paused {
+        display: block;
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+      }
+      .scrape-status.paused a {
+        color: #fbbf24;
+        text-decoration: underline;
+      }
+      .scrape-status.paused a:hover {
+        color: #fcd34d;
+      }
+      .limit-hint {
+        margin-top: 6px;
+        font-size: 11px;
+        color: #666;
+        text-align: center;
+      }
+      .not-scraped-hint {
+        display: none;
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+        text-align: center;
+        line-height: 1.4;
+      }
+      .non-tiktok-message {
+        text-align: center;
+        padding: 16px 8px;
+        color: #888;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>TikTok Buddy</h1>
 
-  <div id="status" class="status disconnected">
-    Checking connection...
-  </div>
-
-  <div class="stats">
-    <div class="stat-row">
-      <span class="stat-label">Users Scraped</span>
-      <span id="user-count" class="stat-value">0</span>
+    <div id="profile-section" class="context-section">
+      <button id="scrape-profile" class="btn btn-primary">
+        Scrape Profile
+      </button>
+      <div id="scrape-status" class="scrape-status"></div>
+      <div id="post-limit-hint" class="limit-hint">Post limit: 50</div>
     </div>
-    <div class="stat-row">
-      <span class="stat-label">Messages Sent</span>
-      <span id="sent-count" class="stat-value">0</span>
+
+    <div id="video-section" class="context-section">
+      <button id="scrape-comments" class="btn btn-primary">
+        Scrape Comments
+      </button>
+      <div id="comment-scrape-status" class="scrape-status"></div>
+      <div id="comment-limit-hint" class="limit-hint">Comment limit: 100</div>
+      <div id="video-not-scraped-hint" class="not-scraped-hint">
+        This post hasn't been scraped yet.<br />
+        It must first be scraped via the user's profile to enable comment
+        scraping.
+      </div>
     </div>
-  </div>
 
-  <button id="scrape-profile" class="btn btn-secondary" disabled>
-    Scrape Profile
-  </button>
-  <div id="scrape-status" class="scrape-status"></div>
-  <div id="post-limit-hint" class="post-limit-hint">Post limit: 50 (change in dashboard)</div>
+    <div id="non-tiktok-section" class="context-section">
+      <div class="non-tiktok-message">
+        Navigate to a TikTok profile or video page to start scraping
+      </div>
+    </div>
 
-  <button id="scrape-comments" class="btn btn-secondary" disabled>
-    Scrape Comments
-  </button>
-  <div id="comment-scrape-status" class="scrape-status"></div>
-  <div id="comment-limit-hint" class="post-limit-hint">Comment limit: 100 (change in dashboard)</div>
-
-  <div class="links">
-    <a href="http://localhost:3000" target="_blank">localhost:3000</a>
-  </div>
-
-  <script src="popup.js"></script>
-</body>
+    <script src="popup.js"></script>
+  </body>
 </html>

@@ -166,7 +166,7 @@ export function CommentTable({
           <button
             onClick={onRemoveSelected}
             disabled={selectedIds.size === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-red-400 hover:border-red-400/50 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-gray-400 disabled:border-gray-600 disabled:hover:bg-transparent"
           >
             <svg
               className="w-4 h-4"

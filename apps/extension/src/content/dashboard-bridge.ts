@@ -146,7 +146,7 @@ function isPortMessage(type: MessageType): boolean {
 
 function getResponseType(requestType: MessageType): MessageType {
   const responseMap: Partial<Record<MessageType, MessageType>> = {
-    [MessageType.GET_STORED_USERS]: MessageType.USER_DATA_RESPONSE,
+    [MessageType.GET_SCRAPED_COMMENTS]: MessageType.SCRAPED_COMMENTS_RESPONSE,
     [MessageType.GET_ACCOUNT_HANDLE]: MessageType.GET_ACCOUNT_HANDLE,
     [MessageType.SAVE_ACCOUNT_HANDLE]: MessageType.SAVE_ACCOUNT_HANDLE,
     [MessageType.GET_COMMENT_LIMIT]: MessageType.GET_COMMENT_LIMIT,

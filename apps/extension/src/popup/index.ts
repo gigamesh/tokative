@@ -1,5 +1,5 @@
 import { MessageType, CommentScrapingState } from "../types";
-import { getScrapedComments, getPostLimit, getCommentLimit, getScrapingState } from "../utils/storage";
+import { getPostLimit, getCommentLimit, getScrapingState, getVideos } from "../utils/storage";
 
 function updateScrapingStatusUI(
   statusEl: HTMLElement,
@@ -40,6 +40,12 @@ function isProfilePage(url: string | undefined): boolean {
   return url.includes("tiktok.com/@") && !isVideoPage(url);
 }
 
+function extractVideoId(url: string | undefined): string | null {
+  if (!url) return null;
+  const match = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
+  return match ? match[1] : null;
+}
+
 let isProfileScraping = false;
 let isCommentScraping = false;
 
@@ -55,88 +61,73 @@ function updateScrapeButtonState(
     btn.disabled = false;
   } else {
     btn.textContent = defaultText;
-    btn.className = "btn btn-secondary";
+    btn.className = "btn btn-primary";
   }
 }
 
 async function init(): Promise<void> {
-  const statusEl = document.getElementById("status");
-  const userCountEl = document.getElementById("user-count");
-  const sentCountEl = document.getElementById("sent-count");
+  const profileSection = document.getElementById("profile-section");
+  const videoSection = document.getElementById("video-section");
+  const nonTiktokSection = document.getElementById("non-tiktok-section");
   const scrapeProfileBtn = document.getElementById("scrape-profile") as HTMLButtonElement | null;
   const scrapeStatusEl = document.getElementById("scrape-status");
   const scrapeCommentsBtn = document.getElementById("scrape-comments") as HTMLButtonElement | null;
   const commentScrapeStatusEl = document.getElementById("comment-scrape-status");
 
-  const comments = await getScrapedComments();
-
-  if (userCountEl) {
-    userCountEl.textContent = comments.length.toString();
-  }
-
-  if (sentCountEl) {
-    const repliedCount = comments.filter((c) => c.replySent).length;
-    sentCountEl.textContent = repliedCount.toString();
-  }
-
-  const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
-  const dashboardOpen = tabs.length > 0;
-
-  if (statusEl) {
-    if (dashboardOpen) {
-      statusEl.className = "status connected";
-      statusEl.textContent = "Dashboard connected";
-    } else {
-      statusEl.className = "status disconnected";
-      statusEl.textContent = "Dashboard not open";
-    }
-  }
-
+  // Determine current page type and show appropriate section
   const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const onProfilePage = isProfilePage(activeTab?.url);
   const onVideoPage = isVideoPage(activeTab?.url);
-  const postLimit = await getPostLimit();
-  const commentLimit = await getCommentLimit();
 
-  const postLimitHintEl = document.getElementById("post-limit-hint");
-  if (postLimitHintEl) {
-    postLimitHintEl.textContent = `Post limit: ${postLimit} (change in dashboard)`;
-  }
+  if (onProfilePage && profileSection) {
+    profileSection.style.display = "block";
+    const postLimit = await getPostLimit();
+    const postLimitHintEl = document.getElementById("post-limit-hint");
+    if (postLimitHintEl) {
+      postLimitHintEl.textContent = `Post limit: ${postLimit}`;
+    }
+  } else if (onVideoPage && videoSection) {
+    videoSection.style.display = "block";
+    const commentLimitHintEl = document.getElementById("comment-limit-hint");
+    const videoNotScrapedHintEl = document.getElementById("video-not-scraped-hint");
 
-  const commentLimitHintEl = document.getElementById("comment-limit-hint");
-  if (commentLimitHintEl) {
-    commentLimitHintEl.textContent = `Comment limit: ${commentLimit} (change in dashboard)`;
-  }
+    // Check if this video has been scraped
+    const videoId = extractVideoId(activeTab?.url);
+    const videos = await getVideos();
+    const videoScraped = videoId && videos.some((v) => v.videoId === videoId);
 
-  const scrapingState = await getScrapingState();
-  if (scrapingState.isActive && commentScrapeStatusEl) {
-    updateScrapingStatusUI(commentScrapeStatusEl, scrapingState, scrapeCommentsBtn);
-  }
+    if (videoScraped) {
+      const commentLimit = await getCommentLimit();
+      if (commentLimitHintEl) {
+        commentLimitHintEl.style.display = "block";
+        commentLimitHintEl.textContent = `Comment limit: ${commentLimit}`;
+      }
+      if (videoNotScrapedHintEl) {
+        videoNotScrapedHintEl.style.display = "none";
+      }
 
-  if (scrapeProfileBtn) {
-    if (onProfilePage) {
-      scrapeProfileBtn.disabled = false;
+      // Check for active scraping state for THIS video
+      const scrapingState = await getScrapingState();
+      if (scrapingState.isActive && scrapingState.videoId === videoId && commentScrapeStatusEl) {
+        updateScrapingStatusUI(commentScrapeStatusEl, scrapingState, scrapeCommentsBtn);
+      }
     } else {
-      scrapeProfileBtn.disabled = true;
-      if (scrapeStatusEl && !onVideoPage) {
-        scrapeStatusEl.className = "scrape-status error";
-        scrapeStatusEl.textContent = "Open a TikTok profile page to scrape";
+      // Video not scraped - disable button and show message
+      if (scrapeCommentsBtn) {
+        scrapeCommentsBtn.disabled = true;
+      }
+      if (commentLimitHintEl) {
+        commentLimitHintEl.style.display = "none";
+      }
+      if (videoNotScrapedHintEl) {
+        videoNotScrapedHintEl.style.display = "block";
       }
     }
+  } else if (nonTiktokSection) {
+    nonTiktokSection.style.display = "block";
   }
 
-  if (scrapeCommentsBtn) {
-    if (onVideoPage) {
-      scrapeCommentsBtn.disabled = false;
-    } else {
-      scrapeCommentsBtn.disabled = true;
-      if (commentScrapeStatusEl && !onProfilePage) {
-        commentScrapeStatusEl.className = "scrape-status error";
-        commentScrapeStatusEl.textContent = "Open a TikTok video page to scrape comments";
-      }
-    }
-  }
-
+  // Listen for scraping progress messages
   chrome.runtime.onMessage.addListener((message) => {
     // Profile scraping messages
     if (message.type === MessageType.SCRAPE_VIDEOS_PROGRESS) {
@@ -151,7 +142,6 @@ async function init(): Promise<void> {
       const { videos: scrapedVideos, limitReached } = message.payload as { videos: unknown[]; limitReached?: boolean };
       isProfileScraping = false;
       updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
-      if (scrapeProfileBtn && onProfilePage) scrapeProfileBtn.disabled = false;
       if (scrapeStatusEl) {
         scrapeStatusEl.className = "scrape-status success";
         const limitText = limitReached ? " · Limit reached" : "";
@@ -160,7 +150,6 @@ async function init(): Promise<void> {
     } else if (message.type === MessageType.SCRAPE_VIDEOS_ERROR) {
       isProfileScraping = false;
       updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
-      if (scrapeProfileBtn && onProfilePage) scrapeProfileBtn.disabled = false;
       if (scrapeStatusEl) {
         scrapeStatusEl.className = "scrape-status error";
         scrapeStatusEl.textContent = message.payload.error || "Scraping failed";
@@ -180,7 +169,6 @@ async function init(): Promise<void> {
       const { comments: scrapedComments } = message.payload as { comments: unknown[] };
       isCommentScraping = false;
       updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
-      if (scrapeCommentsBtn && onVideoPage) scrapeCommentsBtn.disabled = false;
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status success";
         commentScrapeStatusEl.textContent = `Scraped ${scrapedComments?.length || 0} comments`;
@@ -188,7 +176,6 @@ async function init(): Promise<void> {
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
       isCommentScraping = false;
       updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
-      if (scrapeCommentsBtn && onVideoPage) scrapeCommentsBtn.disabled = false;
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status error";
         commentScrapeStatusEl.textContent = message.payload.error || "Comment scraping failed";
@@ -203,10 +190,10 @@ async function init(): Promise<void> {
     }
   });
 
+  // Profile scrape button click handler
   scrapeProfileBtn?.addEventListener("click", async () => {
     if (!scrapeProfileBtn || !scrapeStatusEl) return;
 
-    // Handle cancel
     if (isProfileScraping) {
       const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (currentTab?.id) {
@@ -220,7 +207,6 @@ async function init(): Promise<void> {
       updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
       scrapeStatusEl.className = "scrape-status error";
       scrapeStatusEl.textContent = "Scraping cancelled";
-      if (onProfilePage) scrapeProfileBtn.disabled = false;
       return;
     }
 
@@ -250,21 +236,19 @@ async function init(): Promise<void> {
         scrapeStatusEl.textContent = response?.error || "Failed to start scraping";
         isProfileScraping = false;
         updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
-        if (onProfilePage) scrapeProfileBtn.disabled = false;
       }
     } catch (error) {
       scrapeStatusEl.className = "scrape-status error";
       scrapeStatusEl.textContent = error instanceof Error ? error.message : "Unknown error";
       isProfileScraping = false;
       updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
-      if (onProfilePage) scrapeProfileBtn.disabled = false;
     }
   });
 
+  // Comment scrape button click handler
   scrapeCommentsBtn?.addEventListener("click", async () => {
     if (!scrapeCommentsBtn || !commentScrapeStatusEl) return;
 
-    // Handle cancel
     if (isCommentScraping) {
       const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (currentTab?.id) {
@@ -278,7 +262,6 @@ async function init(): Promise<void> {
       updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
       commentScrapeStatusEl.className = "scrape-status error";
       commentScrapeStatusEl.textContent = "Scraping cancelled";
-      if (onVideoPage) scrapeCommentsBtn.disabled = false;
       return;
     }
 
@@ -308,14 +291,12 @@ async function init(): Promise<void> {
         commentScrapeStatusEl.textContent = response?.error || "Failed to start comment scraping";
         isCommentScraping = false;
         updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
-        if (onVideoPage) scrapeCommentsBtn.disabled = false;
       }
     } catch (error) {
       commentScrapeStatusEl.className = "scrape-status error";
       commentScrapeStatusEl.textContent = error instanceof Error ? error.message : "Unknown error";
       isCommentScraping = false;
       updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
-      if (onVideoPage) scrapeCommentsBtn.disabled = false;
     }
   });
 }
