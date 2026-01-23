@@ -80,7 +80,7 @@ export function useMessaging() {
     bridge.send(MessageType.REPLY_COMMENT, { user, message });
   }, []);
 
-  const startBulkReply = useCallback((userIds: string[], templateId: string) => {
+  const startBulkReply = useCallback((userIds: string[], message: string) => {
     if (!bridge) return;
 
     setState((prev) => ({
@@ -95,7 +95,7 @@ export function useMessaging() {
       },
     }));
 
-    bridge.send(MessageType.BULK_REPLY_START, { userIds, templateId });
+    bridge.send(MessageType.BULK_REPLY_START, { userIds, message });
   }, []);
 
   const stopBulkReply = useCallback(() => {

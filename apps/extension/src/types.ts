@@ -10,12 +10,6 @@ export enum MessageType {
   REMOVE_USERS = "REMOVE_USERS",
   UPDATE_USER = "UPDATE_USER",
 
-  // Templates
-  GET_TEMPLATES = "GET_TEMPLATES",
-  TEMPLATES_RESPONSE = "TEMPLATES_RESPONSE",
-  SAVE_TEMPLATE = "SAVE_TEMPLATE",
-  DELETE_TEMPLATE = "DELETE_TEMPLATE",
-
   // Tab management
   OPEN_TIKTOK_TAB = "OPEN_TIKTOK_TAB",
   GET_TIKTOK_TAB = "GET_TIKTOK_TAB",
@@ -98,13 +92,6 @@ export interface ScrapedUser {
   videoId?: string;
 }
 
-export interface MessageTemplate {
-  id: string;
-  name: string;
-  content: string;
-  isDefault?: boolean;
-}
-
 export interface ExtensionMessage<T = unknown> {
   type: MessageType;
   payload?: T;
@@ -127,7 +114,6 @@ export interface BulkReplyProgress {
 
 export interface StorageData {
   users: ScrapedUser[];
-  templates: MessageTemplate[];
   settings: {
     messageDelay: number;
     scrollDelay: number;
@@ -137,13 +123,6 @@ export interface StorageData {
 export const DEFAULT_SETTINGS: StorageData["settings"] = {
   messageDelay: 3000,
   scrollDelay: 1500,
-};
-
-export const DEFAULT_TEMPLATE: MessageTemplate = {
-  id: "default",
-  name: "Default",
-  content: "Hey {{handle}}! Thanks for your comment: \"{{comment}}\"",
-  isDefault: true,
 };
 
 export interface ScrapedVideo {

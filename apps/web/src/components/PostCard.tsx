@@ -30,8 +30,10 @@ export function PostCard({
   return (
     <div
       className={`group relative rounded-lg overflow-hidden ring-2 transition-colors ${
-        selected
-          ? "ring-tiktok-red/30 border border-tiktok-red"
+        isLoading
+          ? "ring-blue-500/30 border border-blue-500"
+          : selected
+          ? "ring-blue-500/30 border border-blue-500"
           : "ring-transparent border border-gray-700 hover:border-gray-600"
       }`}
     >
@@ -41,7 +43,7 @@ export function PostCard({
           checked={selected}
           onChange={(e) => onSelect(e.target.checked)}
           onClick={(e) => e.stopPropagation()}
-          className="w-5 h-5 rounded border-gray-600 bg-gray-800/80 text-tiktok-red focus:ring-tiktok-red cursor-pointer"
+          className="w-5 h-5 rounded border-gray-600 bg-gray-800/80 text-blue-500 focus:ring-blue-500 cursor-pointer"
         />
       </div>
 
@@ -67,7 +69,7 @@ export function PostCard({
       {isLoading && (
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
           <div className="text-center">
-            <div className="w-8 h-8 border-2 border-tiktok-red border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p className="text-white text-xs">{progress?.message || "Loading..."}</p>
           </div>
         </div>

@@ -31,6 +31,8 @@ interface PostsGridProps {
   onGetComments: (videoIds: string[]) => void;
   onRemoveVideos: (videoIds: string[]) => void;
   onViewPostComments?: (videoId: string) => void;
+  isScraping?: boolean;
+  onCancelScraping?: () => void;
 }
 
 export function PostsGrid({
@@ -41,6 +43,8 @@ export function PostsGrid({
   onGetComments,
   onRemoveVideos,
   onViewPostComments,
+  isScraping = false,
+  onCancelScraping,
 }: PostsGridProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastSelectedIndexRef = useRef<number | null>(null);
@@ -113,7 +117,7 @@ export function PostsGrid({
                 if (el) el.indeterminate = someSelected;
               }}
               onChange={handleSelectAll}
-              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red cursor-pointer"
+              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 cursor-pointer"
             />
             <span className="text-sm text-gray-400">
               {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
@@ -131,16 +135,28 @@ export function PostsGrid({
               </svg>
               Remove
             </button>
-            <button
-              onClick={handleGetCommentsSelected}
-              disabled={selectedIds.size === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-tiktok-red hover:border-tiktok-red/50 hover:bg-tiktok-red/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Fetch Comments
-            </button>
+            {isScraping ? (
+              <button
+                onClick={onCancelScraping}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white bg-tiktok-red hover:bg-red-600 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+              </button>
+            ) : (
+              <button
+                onClick={handleGetCommentsSelected}
+                disabled={selectedIds.size === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 border border-gray-600 hover:text-tiktok-red hover:border-tiktok-red/50 hover:bg-tiktok-red/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 disabled:hover:border-gray-600"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Fetch Comments
+              </button>
+            )}
           </div>
         </div>
       )}

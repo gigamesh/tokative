@@ -25,6 +25,7 @@ function DashboardContent() {
     removeUsers,
     saveCommentLimit,
     savePostLimit,
+    fetchData: fetchUsers,
   } = useUserData();
 
   const {
@@ -40,6 +41,10 @@ function DashboardContent() {
     getCommentsProgress,
     getCommentsForVideos,
     removeVideos: removeVideosList,
+    scrapingState,
+    batchProgress,
+    isScraping,
+    cancelScraping,
   } = useVideoData();
 
   const {
@@ -156,6 +161,12 @@ function DashboardContent() {
     [setSelectedPost]
   );
 
+  const handleCancelScraping = useCallback(() => {
+    cancelScraping();
+    // Refresh users to get any comments that were saved before cancellation
+    fetchUsers();
+  }, [cancelScraping, fetchUsers]);
+
   return (
     <div className="min-h-screen bg-tiktok-dark">
       <header className="border-b border-gray-800 bg-tiktok-gray/50 backdrop-blur-sm sticky top-0 z-10">
@@ -166,6 +177,30 @@ function DashboardContent() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
+        {scrapingState?.isPaused && (
+          <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+            <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <span className="text-yellow-400 font-medium">Scraping Paused</span>
+              <span className="text-yellow-400/80 ml-2">Return to the TikTok tab to continue scraping.</span>
+            </div>
+          </div>
+        )}
+
+        {batchProgress && !scrapingState?.isPaused && (
+          <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <div>
+              <span className="text-blue-400 font-medium">
+                Scraping {batchProgress.completedVideos}/{batchProgress.totalVideos} posts
+              </span>
+              <span className="text-blue-400/80 ml-2">({batchProgress.totalComments} comments)</span>
+            </div>
+          </div>
+        )}
+
         {(error || replyError) && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400">
             {error || replyError}
@@ -217,6 +252,8 @@ function DashboardContent() {
                 onGetComments={getCommentsForVideos}
                 onRemoveVideos={removeVideosList}
                 onViewPostComments={handleViewPostComments}
+                isScraping={isScraping}
+                onCancelScraping={handleCancelScraping}
               />
             )}
 

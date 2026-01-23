@@ -8,11 +8,7 @@ export const MessageType = {
   REMOVE_USER: "REMOVE_USER",
   REMOVE_USERS: "REMOVE_USERS",
   UPDATE_USER: "UPDATE_USER",
-  GET_TEMPLATES: "GET_TEMPLATES",
-  TEMPLATES_RESPONSE: "TEMPLATES_RESPONSE",
-  SAVE_TEMPLATE: "SAVE_TEMPLATE",
-  DELETE_TEMPLATE: "DELETE_TEMPLATE",
-  GET_ACCOUNT_HANDLE: "GET_ACCOUNT_HANDLE",
+    GET_ACCOUNT_HANDLE: "GET_ACCOUNT_HANDLE",
   SAVE_ACCOUNT_HANDLE: "SAVE_ACCOUNT_HANDLE",
   GET_COMMENT_LIMIT: "GET_COMMENT_LIMIT",
   SAVE_COMMENT_LIMIT: "SAVE_COMMENT_LIMIT",
@@ -44,6 +40,7 @@ export const MessageType = {
   GET_BATCH_COMMENTS_PROGRESS: "GET_BATCH_COMMENTS_PROGRESS",
   GET_BATCH_COMMENTS_COMPLETE: "GET_BATCH_COMMENTS_COMPLETE",
   GET_BATCH_COMMENTS_ERROR: "GET_BATCH_COMMENTS_ERROR",
+  SCRAPE_PAUSED: "SCRAPE_PAUSED",
   GET_STORED_VIDEOS: "GET_STORED_VIDEOS",
   REMOVE_VIDEO: "REMOVE_VIDEO",
   REMOVE_VIDEOS: "REMOVE_VIDEOS",
@@ -66,13 +63,6 @@ export interface ScrapedUser {
   videoThumbnailUrl?: string;
   commentId?: string;
   videoId?: string;
-}
-
-export interface MessageTemplate {
-  id: string;
-  name: string;
-  content: string;
-  isDefault?: boolean;
 }
 
 export interface ReplyProgress {
@@ -114,4 +104,14 @@ export interface BatchCommentsProgress {
   totalComments: number;
   status: "processing" | "complete" | "error";
   message?: string;
+}
+
+export interface ScrapingState {
+  isActive: boolean;
+  isPaused: boolean;
+  videoId: string | null;
+  tabId: number | null;
+  commentsFound: number;
+  status: "loading" | "scraping" | "paused" | "complete" | "error" | "cancelled";
+  message: string;
 }

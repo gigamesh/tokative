@@ -1,17 +1,14 @@
 import {
   ScrapedUser,
   ScrapedVideo,
-  MessageTemplate,
   StorageData,
   CommentScrapingState,
   DEFAULT_SETTINGS,
-  DEFAULT_TEMPLATE,
 } from "../types";
 
 const STORAGE_KEYS = {
   USERS: "tiktok_buddy_users",
   VIDEOS: "tiktok_buddy_videos",
-  TEMPLATES: "tiktok_buddy_templates",
   SETTINGS: "tiktok_buddy_settings",
   ACCOUNT_HANDLE: "tiktok_buddy_account_handle",
   COMMENT_LIMIT: "tiktok_buddy_comment_limit",
@@ -72,42 +69,6 @@ export async function removeUsers(userIds: string[]): Promise<void> {
   await saveUsers(users.filter((u) => !idsToRemove.has(u.id)));
 }
 
-export async function getTemplates(): Promise<MessageTemplate[]> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.TEMPLATES);
-  const templates = result[STORAGE_KEYS.TEMPLATES];
-
-  if (!templates || templates.length === 0) {
-    await saveTemplates([DEFAULT_TEMPLATE]);
-    return [DEFAULT_TEMPLATE];
-  }
-
-  return templates;
-}
-
-export async function saveTemplates(
-  templates: MessageTemplate[]
-): Promise<void> {
-  await chrome.storage.local.set({ [STORAGE_KEYS.TEMPLATES]: templates });
-}
-
-export async function saveTemplate(template: MessageTemplate): Promise<void> {
-  const templates = await getTemplates();
-  const index = templates.findIndex((t) => t.id === template.id);
-
-  if (index !== -1) {
-    templates[index] = template;
-  } else {
-    templates.push(template);
-  }
-
-  await saveTemplates(templates);
-}
-
-export async function deleteTemplate(templateId: string): Promise<void> {
-  const templates = await getTemplates();
-  await saveTemplates(templates.filter((t) => t.id !== templateId));
-}
-
 export async function getSettings(): Promise<StorageData["settings"]> {
   const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
   return result[STORAGE_KEYS.SETTINGS] || DEFAULT_SETTINGS;
@@ -120,19 +81,17 @@ export async function saveSettings(
 }
 
 export async function getAllData(): Promise<StorageData> {
-  const [users, templates, settings] = await Promise.all([
+  const [users, settings] = await Promise.all([
     getUsers(),
-    getTemplates(),
     getSettings(),
   ]);
 
-  return { users, templates, settings };
+  return { users, settings };
 }
 
 export async function clearAllData(): Promise<void> {
   await chrome.storage.local.remove([
     STORAGE_KEYS.USERS,
-    STORAGE_KEYS.TEMPLATES,
     STORAGE_KEYS.SETTINGS,
   ]);
 }

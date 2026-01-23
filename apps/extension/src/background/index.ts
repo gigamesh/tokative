@@ -3,7 +3,6 @@ import {
   ExtensionMessage,
   ScrapedUser,
   ScrapedVideo,
-  MessageTemplate,
   BulkReplyProgress,
   CommentScrapingState,
 } from "../types";
@@ -18,9 +17,6 @@ import {
   updateVideo,
   removeVideo,
   removeVideos,
-  getTemplates,
-  saveTemplate,
-  deleteTemplate,
   getSettings,
   getAccountHandle,
   saveAccountHandle,
@@ -131,8 +127,7 @@ async function handleMessage(
   switch (message.type) {
     case MessageType.GET_STORED_USERS: {
       const users = await getUsers();
-      const templates = await getTemplates();
-      return { users, templates };
+      return { users };
     }
 
     case MessageType.REMOVE_USER: {
@@ -153,23 +148,6 @@ async function handleMessage(
         updates: Partial<ScrapedUser>;
       };
       await updateUser(userId, updates);
-      return { success: true };
-    }
-
-    case MessageType.GET_TEMPLATES: {
-      const templates = await getTemplates();
-      return { templates };
-    }
-
-    case MessageType.SAVE_TEMPLATE: {
-      const { template } = message.payload as { template: MessageTemplate };
-      await saveTemplate(template);
-      return { success: true };
-    }
-
-    case MessageType.DELETE_TEMPLATE: {
-      const { templateId } = message.payload as { templateId: string };
-      await deleteTemplate(templateId);
       return { success: true };
     }
 
@@ -325,11 +303,11 @@ async function handlePortMessage(
     }
 
     case MessageType.BULK_REPLY_START: {
-      const { userIds, templateId } = message.payload as {
+      const { userIds, message: replyMessage } = message.payload as {
         userIds: string[];
-        templateId: string;
+        message: string;
       };
-      await handleBulkReply(userIds, templateId, port);
+      await handleBulkReply(userIds, replyMessage, port);
       break;
     }
 
@@ -543,21 +521,11 @@ async function handleReplyComment(
 
 async function handleBulkReply(
   userIds: string[],
-  templateId: string,
+  replyMessage: string,
   port: chrome.runtime.Port
 ): Promise<void> {
   const users = await getUsers();
-  const templates = await getTemplates();
-  const template = templates.find((t) => t.id === templateId);
   const settings = await getSettings();
-
-  if (!template) {
-    port.postMessage({
-      type: MessageType.BULK_REPLY_COMPLETE,
-      payload: { error: "Template not found" },
-    });
-    return;
-  }
 
   const targetUsers = users.filter((u) => userIds.includes(u.id) && !u.replySent && u.videoUrl);
 
@@ -576,7 +544,7 @@ async function handleBulkReply(
     });
 
     try {
-      const replyContent = template.content
+      const replyContent = replyMessage
         .replace(/\{\{handle\}\}/g, user.handle)
         .replace(/\{\{comment\}\}/g, user.comment);
 

@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { bridge } from "@/utils/extension-bridge";
 import {
   MessageType,
   ScrapedUser,
-  MessageTemplate,
 } from "@/utils/constants";
 
 interface UserDataState {
   users: ScrapedUser[];
-  templates: MessageTemplate[];
   commentLimit: number;
   postLimit: number;
   loading: boolean;
@@ -20,7 +18,6 @@ interface UserDataState {
 export function useUserData() {
   const [state, setState] = useState<UserDataState>({
     users: [],
-    templates: [],
     commentLimit: 100,
     postLimit: 50,
     loading: true,
@@ -36,7 +33,6 @@ export function useUserData() {
       const [usersResponse, commentLimitResponse, postLimitResponse] = await Promise.all([
         bridge.request<{
           users: ScrapedUser[];
-          templates: MessageTemplate[];
         }>(MessageType.GET_STORED_USERS),
         bridge.request<{ limit: number }>(MessageType.GET_COMMENT_LIMIT),
         bridge.request<{ limit: number }>(MessageType.GET_POST_LIMIT),
@@ -45,7 +41,6 @@ export function useUserData() {
       setState((prev) => ({
         ...prev,
         users: usersResponse.users || [],
-        templates: usersResponse.templates || [],
         commentLimit: commentLimitResponse.limit ?? 100,
         postLimit: postLimitResponse.limit ?? 50,
         loading: false,
@@ -59,16 +54,72 @@ export function useUserData() {
     }
   }, []);
 
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCommentsCountRef = useRef<number>(0);
+
+  const debouncedFetchData = useCallback(() => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    refreshTimeoutRef.current = setTimeout(() => {
+      fetchData();
+    }, 250);
+  }, [fetchData]);
+
   useEffect(() => {
     if (!bridge) return;
     fetchData();
 
-    const cleanup = bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE, () => {
-      fetchData();
-    });
+    const cleanups = [
+      bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE, () => {
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+        fetchData();
+      }),
 
-    return cleanup;
-  }, [fetchData]);
+      bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS, (payload) => {
+        const progress = payload as { commentsFound?: number; status?: string };
+        if (progress.status === "scraping" && progress.commentsFound !== undefined) {
+          if (progress.commentsFound > lastCommentsCountRef.current) {
+            lastCommentsCountRef.current = progress.commentsFound;
+            debouncedFetchData();
+          }
+        }
+      }),
+
+      bridge.on(MessageType.GET_VIDEO_COMMENTS_PROGRESS, (payload) => {
+        const progress = payload as { commentsFound?: number; status?: string };
+        if (progress.commentsFound !== undefined && progress.commentsFound > lastCommentsCountRef.current) {
+          lastCommentsCountRef.current = progress.commentsFound;
+          debouncedFetchData();
+        }
+      }),
+
+      bridge.on(MessageType.GET_BATCH_COMMENTS_PROGRESS, (payload) => {
+        const progress = payload as { totalComments?: number };
+        if (progress.totalComments !== undefined && progress.totalComments > lastCommentsCountRef.current) {
+          lastCommentsCountRef.current = progress.totalComments;
+          debouncedFetchData();
+        }
+      }),
+
+      bridge.on(MessageType.GET_BATCH_COMMENTS_COMPLETE, () => {
+        lastCommentsCountRef.current = 0;
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+        fetchData();
+      }),
+    ];
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, [fetchData, debouncedFetchData]);
 
   const saveCommentLimit = useCallback(async (limit: number) => {
     if (!bridge) return;

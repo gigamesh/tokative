@@ -133,7 +133,6 @@ class ExtensionBridge {
   private getResponseType(requestType: string): string {
     const responseMap: Record<string, string> = {
       [MessageType.GET_STORED_USERS]: MessageType.USER_DATA_RESPONSE,
-      [MessageType.GET_TEMPLATES]: MessageType.TEMPLATES_RESPONSE,
       [MessageType.GET_ACCOUNT_HANDLE]: MessageType.GET_ACCOUNT_HANDLE,
       [MessageType.SAVE_ACCOUNT_HANDLE]: MessageType.SAVE_ACCOUNT_HANDLE,
       [MessageType.GET_COMMENT_LIMIT]: MessageType.GET_COMMENT_LIMIT,
