@@ -1,10 +1,10 @@
 "use client";
 
-import { ScrapedUser } from "@/utils/constants";
+import { ScrapedComment } from "@/utils/constants";
 import { useEffect, useRef, useState } from "react";
 
 interface CommentCardProps {
-  user: ScrapedUser;
+  comment: ScrapedComment;
   selected: boolean;
   onSelect: (selected: boolean) => void;
   onRemove: () => void;
@@ -27,7 +27,7 @@ function formatRelativeTime(dateString: string): string {
 }
 
 export function CommentCard({
-  user,
+  comment,
   selected,
   onSelect,
   onRemove,
@@ -42,17 +42,17 @@ export function CommentCard({
     if (el) {
       setIsTruncated(el.scrollHeight > el.clientHeight);
     }
-  }, [user.comment]);
+  }, [comment.comment]);
 
-  const replyStatusColor = user.replySent
+  const replyStatusColor = comment.replySent
     ? "text-green-400"
-    : user.replyError
+    : comment.replyError
       ? "text-red-400"
       : "text-gray-400";
 
-  const replyStatusText = user.replySent
+  const replyStatusText = comment.replySent
     ? "Replied"
-    : user.replyError
+    : comment.replyError
       ? "Reply failed"
       : "";
 
@@ -72,15 +72,15 @@ export function CommentCard({
           className="mt-1 w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red"
         />
 
-        {user.videoThumbnailUrl && (
+        {comment.videoThumbnailUrl && (
           <a
-            href={user.videoUrl}
+            href={comment.videoUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-shrink-0"
           >
             <img
-              src={user.videoThumbnailUrl}
+              src={comment.videoThumbnailUrl}
               alt="Video thumbnail"
               className="w-16 h-20 object-cover rounded bg-gray-800"
               onError={(e) => {
@@ -93,16 +93,16 @@ export function CommentCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <a
-              href={user.profileUrl}
+              href={comment.profileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-white hover:text-tiktok-red transition-colors"
             >
-              @{user.handle}
+              @{comment.handle}
             </a>
-            {user.commentTimestamp && (
+            {comment.commentTimestamp && (
               <span className="text-xs text-gray-500">
-                {formatRelativeTime(user.commentTimestamp)}
+                {formatRelativeTime(comment.commentTimestamp)}
               </span>
             )}
             {replyStatusText && (
@@ -116,7 +116,7 @@ export function CommentCard({
             ref={commentRef}
             className={`text-sm text-gray-400 ${isCommentExpanded ? "" : "line-clamp-2"}`}
           >
-            {user.comment}
+            {comment.comment}
           </p>
           {(isTruncated || isCommentExpanded) && (
             <button
@@ -127,15 +127,15 @@ export function CommentCard({
             </button>
           )}
 
-          {user.repliedAt && (
+          {comment.repliedAt && (
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>Replied {formatRelativeTime(user.repliedAt)}</span>
+              <span>Replied {formatRelativeTime(comment.repliedAt)}</span>
             </div>
           )}
         </div>
 
         <div className="flex gap-2">
-          {!user.replySent && user.videoUrl && (
+          {!comment.replySent && comment.videoUrl && (
             <button
               onClick={onReplyComment}
               className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"

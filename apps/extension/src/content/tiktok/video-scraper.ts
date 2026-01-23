@@ -1,8 +1,8 @@
 import { VIDEO_SELECTORS } from "./video-selectors";
 import { querySelector, querySelectorAll, waitForSelector } from "./selectors";
-import { addUsers, addVideos } from "../../utils/storage";
+import { addScrapedComments, addVideos } from "../../utils/storage";
 import { humanDelay, humanDelayWithJitter } from "../../utils/dom";
-import type { ScrapedUser, ScrapedVideo, VideoScrapeProgress, VideoMetadataScrapeProgress } from "../../types";
+import type { ScrapedComment, ScrapedVideo, VideoScrapeProgress, VideoMetadataScrapeProgress } from "../../types";
 
 interface RawCommentData {
   commentId: string;
@@ -209,7 +209,7 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<RawCommentData[]
   return comments;
 }
 
-function rawCommentToScrapedUser(raw: RawCommentData): ScrapedUser | null {
+function rawCommentToScrapedComment(raw: RawCommentData): ScrapedComment | null {
   if (!raw.commentId) {
     return null;
   }
@@ -237,13 +237,13 @@ async function scrollToLoadComments(
   maxComments: number,
   videoThumbnailUrl: string | undefined,
   onProgress?: (loaded: number, saved: number) => void
-): Promise<ScrapedUser[]> {
+): Promise<ScrapedComment[]> {
   const scroller = querySelector(VIDEO_SELECTORS.commentsScroller);
   if (!scroller) return [];
 
   let lastCount = 0;
   let stableIterations = 0;
-  const allUsers: ScrapedUser[] = [];
+  const allComments: ScrapedComment[] = [];
   const savedCommentIds = new Set<string>();
 
   while (!isCancelled) {
@@ -267,33 +267,33 @@ async function scrollToLoadComments(
 
       // Extract and save comments incrementally on each scroll
       const rawComments = await scrapeCommentsFromCurrentVideo();
-      const newUsers: ScrapedUser[] = [];
+      const newComments: ScrapedComment[] = [];
 
       for (const raw of rawComments) {
-        const user = rawCommentToScrapedUser(raw);
-        if (user && !savedCommentIds.has(user.id)) {
+        const scraped = rawCommentToScrapedComment(raw);
+        if (scraped && !savedCommentIds.has(scraped.id)) {
           if (videoThumbnailUrl) {
-            user.videoThumbnailUrl = videoThumbnailUrl;
+            scraped.videoThumbnailUrl = videoThumbnailUrl;
           }
-          newUsers.push(user);
-          savedCommentIds.add(user.id);
-          allUsers.push(user);
+          newComments.push(scraped);
+          savedCommentIds.add(scraped.id);
+          allComments.push(scraped);
         }
       }
 
-      if (newUsers.length > 0) {
-        const savedCount = await addUsers(newUsers);
+      if (newComments.length > 0) {
+        const savedCount = await addScrapedComments(newComments);
         console.log(`[TikTok Buddy] Incrementally saved ${savedCount} new comments`);
       }
 
-      onProgress?.(commentElements.length, allUsers.length);
+      onProgress?.(commentElements.length, allComments.length);
     }
 
     scroller.scrollTop = scroller.scrollHeight;
     await humanDelayWithJitter("medium");
   }
 
-  return allUsers;
+  return allComments;
 }
 
 async function waitForCommentContent(options: { timeout?: number } = {}): Promise<boolean> {
@@ -454,9 +454,9 @@ export async function scrapeProfileVideos(
   maxVideos: number = Infinity,
   maxCommentsPerVideo: number = Infinity,
   onProgress?: (progress: VideoScrapeProgress) => void
-): Promise<ScrapedUser[]> {
+): Promise<ScrapedComment[]> {
   isCancelled = false;
-  const allUsers: ScrapedUser[] = [];
+  const allComments: ScrapedComment[] = [];
   const videoThumbnails = new Map<string, string>();
 
   console.log("[TikTok Buddy] Starting profile scrape");
@@ -502,7 +502,7 @@ export async function scrapeProfileVideos(
       onProgress?.({
         videosProcessed: i,
         totalVideos: videosToProcess,
-        commentsFound: allUsers.length,
+        commentsFound: allComments.length,
         status: "scraping",
         message: `Opening video ${i + 1} of ${videosToProcess}...`,
       });
@@ -517,21 +517,21 @@ export async function scrapeProfileVideos(
       await humanDelay("short");
 
       // Pass thumbnail to scrapeVideoComments - it saves incrementally on each scroll
-      const users = await scrapeVideoComments(maxCommentsPerVideo, (progress) => {
+      const comments = await scrapeVideoComments(maxCommentsPerVideo, (progress) => {
         onProgress?.({
           videosProcessed: i,
           totalVideos: videosToProcess,
-          commentsFound: allUsers.length + progress.commentsFound,
+          commentsFound: allComments.length + progress.commentsFound,
           status: "scraping",
           message: `Video ${i + 1}/${videosToProcess}: ${progress.message}`,
         });
       }, thumbnail || undefined);
 
-      console.log(`[TikTok Buddy] Scraped ${users.length} comments from video ${i + 1}`);
+      console.log(`[TikTok Buddy] Scraped ${comments.length} comments from video ${i + 1}`);
 
       // Just track locally - saving already happened incrementally during scroll
-      for (const user of users) {
-        allUsers.push(user);
+      for (const comment of comments) {
+        allComments.push(comment);
       }
 
       console.log(`[TikTok Buddy] Closing modal for video ${i + 1}`);
@@ -554,23 +554,23 @@ export async function scrapeProfileVideos(
     onProgress?.({
       videosProcessed: 0,
       totalVideos: videosToProcess,
-      commentsFound: allUsers.length,
+      commentsFound: allComments.length,
       status: "cancelled",
       message: "Scraping cancelled",
     });
-    return allUsers;
+    return allComments;
   }
 
-  console.log(`[TikTok Buddy] Scraping complete: ${allUsers.length} comments from ${videosToProcess} videos`);
+  console.log(`[TikTok Buddy] Scraping complete: ${allComments.length} comments from ${videosToProcess} videos`);
   onProgress?.({
     videosProcessed: videosToProcess,
     totalVideos: videosToProcess,
-    commentsFound: allUsers.length,
+    commentsFound: allComments.length,
     status: "complete",
-    message: `Scraped ${allUsers.length} comments from ${videosToProcess} videos`,
+    message: `Scraped ${allComments.length} comments from ${videosToProcess} videos`,
   });
 
-  return allUsers;
+  return allComments;
 }
 
 function getProfileHandleFromUrl(): string | null {
@@ -702,7 +702,7 @@ export async function scrapeVideoComments(
   maxComments: number = Infinity,
   onProgress?: (progress: VideoScrapeProgress) => void,
   videoThumbnailUrl?: string
-): Promise<ScrapedUser[]> {
+): Promise<ScrapedComment[]> {
   isCancelled = false;
 
   onProgress?.({
@@ -748,7 +748,7 @@ export async function scrapeVideoComments(
   }
 
   // scrollToLoadComments now handles extraction and saving incrementally
-  const users = await scrollToLoadComments(maxComments, videoThumbnailUrl, (loaded, saved) => {
+  const comments = await scrollToLoadComments(maxComments, videoThumbnailUrl, (loaded, saved) => {
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
@@ -762,20 +762,20 @@ export async function scrapeVideoComments(
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
-      commentsFound: users.length,
+      commentsFound: comments.length,
       status: "cancelled",
       message: "Scraping cancelled",
     });
-    return users;
+    return comments;
   }
 
   onProgress?.({
     videosProcessed: 1,
     totalVideos: 1,
-    commentsFound: users.length,
+    commentsFound: comments.length,
     status: "complete",
-    message: `Scraped ${users.length} comments`,
+    message: `Scraped ${comments.length} comments`,
   });
 
-  return users;
+  return comments;
 }

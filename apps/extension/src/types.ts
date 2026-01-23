@@ -3,12 +3,12 @@ export enum MessageType {
   BRIDGE_READY = "BRIDGE_READY",
   CHECK_BRIDGE = "CHECK_BRIDGE",
 
-  // User data
-  GET_STORED_USERS = "GET_STORED_USERS",
-  USER_DATA_RESPONSE = "USER_DATA_RESPONSE",
-  REMOVE_USER = "REMOVE_USER",
-  REMOVE_USERS = "REMOVE_USERS",
-  UPDATE_USER = "UPDATE_USER",
+  // Scraped comments data
+  GET_SCRAPED_COMMENTS = "GET_SCRAPED_COMMENTS",
+  SCRAPED_COMMENTS_RESPONSE = "SCRAPED_COMMENTS_RESPONSE",
+  REMOVE_SCRAPED_COMMENT = "REMOVE_SCRAPED_COMMENT",
+  REMOVE_SCRAPED_COMMENTS = "REMOVE_SCRAPED_COMMENTS",
+  UPDATE_SCRAPED_COMMENT = "UPDATE_SCRAPED_COMMENT",
 
   // Tab management
   OPEN_TIKTOK_TAB = "OPEN_TIKTOK_TAB",
@@ -75,7 +75,7 @@ export enum MessageType {
   REMOVE_VIDEOS = "REMOVE_VIDEOS",
 }
 
-export interface ScrapedUser {
+export interface ScrapedComment {
   id: string;
   handle: string;
   comment: string;
@@ -99,7 +99,7 @@ export interface ExtensionMessage<T = unknown> {
 }
 
 export interface ReplyProgress {
-  userId: string;
+  commentId: string;
   status: "navigating" | "finding" | "replying" | "complete" | "error";
   message?: string;
 }
@@ -113,7 +113,7 @@ export interface BulkReplyProgress {
 }
 
 export interface StorageData {
-  users: ScrapedUser[];
+  comments: ScrapedComment[];
   settings: {
     messageDelay: number;
     scrollDelay: number;

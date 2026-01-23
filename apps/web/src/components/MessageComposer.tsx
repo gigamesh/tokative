@@ -1,18 +1,18 @@
 "use client";
 
-import { ScrapedUser } from "@/utils/constants";
+import { ScrapedComment } from "@/utils/constants";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { useEffect, useRef, useState } from "react";
 
 interface ReplyComposerProps {
-  selectedUser: ScrapedUser | null;
+  selectedComment: ScrapedComment | null;
   onSend: (message: string) => void;
   onClearSelection: () => void;
   disabled?: boolean;
 }
 
 export function ReplyComposer({
-  selectedUser,
+  selectedComment,
   onSend,
   onClearSelection,
   disabled,
@@ -47,7 +47,7 @@ export function ReplyComposer({
   };
 
   const handleSend = () => {
-    if (!selectedUser || !message.trim()) return;
+    if (!selectedComment || !message.trim()) return;
     onSend(message);
     setMessage("");
   };
@@ -104,11 +104,11 @@ export function ReplyComposer({
         )}
       </div>
 
-      {selectedUser && (
+      {selectedComment && (
         <div className="p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm text-gray-400">
-              Replying to @{selectedUser.handle}
+              Replying to @{selectedComment.handle}
             </span>
             <button
               onClick={onClearSelection}
@@ -118,14 +118,14 @@ export function ReplyComposer({
             </button>
           </div>
           <p className="text-xs text-gray-500 truncate">
-            Comment: "{selectedUser.comment}"
+            Comment: "{selectedComment.comment}"
           </p>
         </div>
       )}
 
       <button
         onClick={handleSend}
-        disabled={disabled || !selectedUser || !message.trim()}
+        disabled={disabled || !selectedComment || !message.trim()}
         className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg font-medium transition-colors"
       >
         {disabled ? "Replying..." : "Send Reply"}

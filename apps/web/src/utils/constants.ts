@@ -3,11 +3,11 @@ export const EXTENSION_SOURCE = "tiktok-buddy-extension";
 export const MessageType = {
   BRIDGE_READY: "BRIDGE_READY",
   CHECK_BRIDGE: "CHECK_BRIDGE",
-  GET_STORED_USERS: "GET_STORED_USERS",
-  USER_DATA_RESPONSE: "USER_DATA_RESPONSE",
-  REMOVE_USER: "REMOVE_USER",
-  REMOVE_USERS: "REMOVE_USERS",
-  UPDATE_USER: "UPDATE_USER",
+  GET_SCRAPED_COMMENTS: "GET_SCRAPED_COMMENTS",
+  SCRAPED_COMMENTS_RESPONSE: "SCRAPED_COMMENTS_RESPONSE",
+  REMOVE_SCRAPED_COMMENT: "REMOVE_SCRAPED_COMMENT",
+  REMOVE_SCRAPED_COMMENTS: "REMOVE_SCRAPED_COMMENTS",
+  UPDATE_SCRAPED_COMMENT: "UPDATE_SCRAPED_COMMENT",
     GET_ACCOUNT_HANDLE: "GET_ACCOUNT_HANDLE",
   SAVE_ACCOUNT_HANDLE: "SAVE_ACCOUNT_HANDLE",
   GET_COMMENT_LIMIT: "GET_COMMENT_LIMIT",
@@ -48,7 +48,7 @@ export const MessageType = {
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
 
-export interface ScrapedUser {
+export interface ScrapedComment {
   id: string;
   handle: string;
   comment: string;
@@ -66,7 +66,7 @@ export interface ScrapedUser {
 }
 
 export interface ReplyProgress {
-  userId: string;
+  commentId: string;
   status: "navigating" | "finding" | "replying" | "complete" | "error";
   message?: string;
 }

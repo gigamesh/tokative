@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { bridge } from "@/utils/extension-bridge";
-import { MessageType, ScrapedUser, ReplyProgress, BulkReplyProgress } from "@/utils/constants";
+import { MessageType, ScrapedComment, ReplyProgress, BulkReplyProgress } from "@/utils/constants";
 
 interface ReplyState {
   isReplying: boolean;
@@ -67,20 +67,20 @@ export function useMessaging() {
     return () => cleanups.forEach((cleanup) => cleanup());
   }, []);
 
-  const replyToComment = useCallback((user: ScrapedUser, message: string) => {
+  const replyToComment = useCallback((comment: ScrapedComment, message: string) => {
     if (!bridge) return;
 
     setState((prev) => ({
       ...prev,
       isReplying: true,
       error: null,
-      replyProgress: { userId: user.id, status: "navigating" },
+      replyProgress: { commentId: comment.id, status: "navigating" },
     }));
 
-    bridge.send(MessageType.REPLY_COMMENT, { user, message });
+    bridge.send(MessageType.REPLY_COMMENT, { comment, message });
   }, []);
 
-  const startBulkReply = useCallback((userIds: string[], message: string) => {
+  const startBulkReply = useCallback((commentIds: string[], message: string) => {
     if (!bridge) return;
 
     setState((prev) => ({
@@ -88,14 +88,14 @@ export function useMessaging() {
       isReplying: true,
       error: null,
       bulkReplyProgress: {
-        total: userIds.length,
+        total: commentIds.length,
         completed: 0,
         failed: 0,
         status: "running",
       },
     }));
 
-    bridge.send(MessageType.BULK_REPLY_START, { userIds, message });
+    bridge.send(MessageType.BULK_REPLY_START, { commentIds, message });
   }, []);
 
   const stopBulkReply = useCallback(() => {

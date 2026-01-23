@@ -1,6 +1,6 @@
 "use client";
 
-import { ScrapedUser } from "@/utils/constants";
+import { ScrapedComment } from "@/utils/constants";
 import { useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
@@ -9,23 +9,23 @@ type FilterStatus = "all" | "replied" | "not_replied" | "failed";
 type SortOption = "newest" | "oldest" | "recent_scrape";
 
 interface CommentTableProps {
-  users: ScrapedUser[];
+  comments: ScrapedComment[];
   selectedIds: Set<string>;
-  onSelectUser: (userId: string, selected: boolean) => void;
-  onSelectFiltered: (userIds: string[], selected: boolean) => void;
-  onRemoveUser: (userId: string) => void;
+  onSelectComment: (commentId: string, selected: boolean) => void;
+  onSelectFiltered: (commentIds: string[], selected: boolean) => void;
+  onRemoveComment: (commentId: string) => void;
   onRemoveSelected: () => void;
   onFetchComments: (videoIds: string[]) => void;
-  onReplyComment: (user: ScrapedUser) => void;
+  onReplyComment: (comment: ScrapedComment) => void;
   videoIdFilter?: string | null;
 }
 
 export function CommentTable({
-  users,
+  comments,
   selectedIds,
-  onSelectUser,
+  onSelectComment,
   onSelectFiltered,
-  onRemoveUser,
+  onRemoveComment,
   onRemoveSelected,
   onFetchComments,
   onReplyComment,
@@ -35,22 +35,22 @@ export function CommentTable({
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [sort, setSort] = useState<SortOption>("newest");
 
-  const filteredUsers = useMemo(() => {
-    const filtered = users.filter((user) => {
-      if (videoIdFilter && user.videoId !== videoIdFilter) {
+  const filteredComments = useMemo(() => {
+    const filtered = comments.filter((comment) => {
+      if (videoIdFilter && comment.videoId !== videoIdFilter) {
         return false;
       }
 
       const matchesSearch =
         search === "" ||
-        user.handle.toLowerCase().includes(search.toLowerCase()) ||
-        user.comment.toLowerCase().includes(search.toLowerCase());
+        comment.handle.toLowerCase().includes(search.toLowerCase()) ||
+        comment.comment.toLowerCase().includes(search.toLowerCase());
 
       const matchesFilter =
         filter === "all" ||
-        (filter === "replied" && user.replySent) ||
-        (filter === "not_replied" && !user.replySent && !user.replyError) ||
-        (filter === "failed" && user.replyError);
+        (filter === "replied" && comment.replySent) ||
+        (filter === "not_replied" && !comment.replySent && !comment.replyError) ||
+        (filter === "failed" && comment.replyError);
 
       return matchesSearch && matchesFilter;
     });
@@ -76,15 +76,15 @@ export function CommentTable({
       }
       return new Date(b.scrapedAt).getTime() - new Date(a.scrapedAt).getTime();
     });
-  }, [users, search, filter, sort, videoIdFilter]);
+  }, [comments, search, filter, sort, videoIdFilter]);
 
-  const filteredSelectedCount = filteredUsers.filter((u) =>
-    selectedIds.has(u.id),
+  const filteredSelectedCount = filteredComments.filter((c) =>
+    selectedIds.has(c.id),
   ).length;
   const allFilteredSelected =
-    filteredUsers.length > 0 && filteredSelectedCount === filteredUsers.length;
+    filteredComments.length > 0 && filteredSelectedCount === filteredComments.length;
   const someFilteredSelected =
-    filteredSelectedCount > 0 && filteredSelectedCount < filteredUsers.length;
+    filteredSelectedCount > 0 && filteredSelectedCount < filteredComments.length;
 
   return (
     <div className="space-y-4">
@@ -132,14 +132,14 @@ export function CommentTable({
                 if (el) el.indeterminate = someFilteredSelected;
               }}
               onChange={(e) => {
-                const filteredIds = filteredUsers.map((u) => u.id);
+                const filteredIds = filteredComments.map((c) => c.id);
                 onSelectFiltered(filteredIds, e.target.checked);
               }}
               className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red"
             />
             {selectedIds.size > 0
               ? `${selectedIds.size} selected`
-              : `Select all (${filteredUsers.length})`}
+              : `Select all (${filteredComments.length})`}
           </label>
         </div>
 
@@ -169,14 +169,14 @@ export function CommentTable({
               if (videoIdFilter) {
                 onFetchComments([videoIdFilter]);
               } else {
-                const selectedUserIds = Array.from(selectedIds);
+                const selectedCommentIds = Array.from(selectedIds);
                 const videoIds = Array.from(
                   new Set(
-                    users
+                    comments
                       .filter(
-                        (u) => selectedUserIds.includes(u.id) && u.videoId,
+                        (c) => selectedCommentIds.includes(c.id) && c.videoId,
                       )
-                      .map((u) => u.videoId!),
+                      .map((c) => c.videoId!),
                   ),
                 );
                 if (videoIds.length > 0) {
@@ -205,25 +205,25 @@ export function CommentTable({
         </div>
       </div>
 
-      {filteredUsers.length === 0 ? (
+      {filteredComments.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
-          {users.length === 0
+          {comments.length === 0
             ? "No comments scraped yet. Start scraping to see comments here."
             : "No comments match your search/filter criteria."}
         </div>
       ) : (
         <Virtuoso
-          data={filteredUsers}
+          data={filteredComments}
           useWindowScroll
           overscan={10}
-          itemContent={(index, user) => (
+          itemContent={(index, comment) => (
             <div className={index > 0 ? "pt-3" : ""}>
               <CommentCard
-                user={user}
-                selected={selectedIds.has(user.id)}
-                onSelect={(selected) => onSelectUser(user.id, selected)}
-                onRemove={() => onRemoveUser(user.id)}
-                onReplyComment={() => onReplyComment(user)}
+                comment={comment}
+                selected={selectedIds.has(comment.id)}
+                onSelect={(selected) => onSelectComment(comment.id, selected)}
+                onRemove={() => onRemoveComment(comment.id)}
+                onReplyComment={() => onReplyComment(comment)}
               />
             </div>
           )}

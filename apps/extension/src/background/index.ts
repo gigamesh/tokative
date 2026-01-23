@@ -1,17 +1,17 @@
 import {
   MessageType,
   ExtensionMessage,
-  ScrapedUser,
+  ScrapedComment,
   ScrapedVideo,
   BulkReplyProgress,
   CommentScrapingState,
 } from "../types";
 import {
-  getUsers,
-  addUsers,
-  updateUser,
-  removeUser,
-  removeUsers,
+  getScrapedComments,
+  addScrapedComments,
+  updateScrapedComment,
+  removeScrapedComment,
+  removeScrapedComments,
   getVideos,
   addVideos,
   updateVideo,
@@ -125,29 +125,29 @@ async function handleMessage(
   console.log("[Background] Message received:", message.type);
 
   switch (message.type) {
-    case MessageType.GET_STORED_USERS: {
-      const users = await getUsers();
-      return { users };
+    case MessageType.GET_SCRAPED_COMMENTS: {
+      const comments = await getScrapedComments();
+      return { comments };
     }
 
-    case MessageType.REMOVE_USER: {
-      const { userId } = message.payload as { userId: string };
-      await removeUser(userId);
+    case MessageType.REMOVE_SCRAPED_COMMENT: {
+      const { commentId } = message.payload as { commentId: string };
+      await removeScrapedComment(commentId);
       return { success: true };
     }
 
-    case MessageType.REMOVE_USERS: {
-      const { userIds } = message.payload as { userIds: string[] };
-      await removeUsers(userIds);
+    case MessageType.REMOVE_SCRAPED_COMMENTS: {
+      const { commentIds } = message.payload as { commentIds: string[] };
+      await removeScrapedComments(commentIds);
       return { success: true };
     }
 
-    case MessageType.UPDATE_USER: {
-      const { userId, updates } = message.payload as {
-        userId: string;
-        updates: Partial<ScrapedUser>;
+    case MessageType.UPDATE_SCRAPED_COMMENT: {
+      const { commentId, updates } = message.payload as {
+        commentId: string;
+        updates: Partial<ScrapedComment>;
       };
-      await updateUser(userId, updates);
+      await updateScrapedComment(commentId, updates);
       return { success: true };
     }
 
@@ -257,9 +257,9 @@ async function handleMessage(
     }
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE: {
-      const { users } = message.payload as { users: ScrapedUser[] };
-      await addUsers(users);
-      const videoId = users[0]?.videoId;
+      const { comments } = message.payload as { comments: ScrapedComment[] };
+      await addScrapedComments(comments);
+      const videoId = comments[0]?.videoId;
       if (videoId) {
         await updateVideo(videoId, { commentsScraped: true });
       }
@@ -294,20 +294,20 @@ async function handlePortMessage(
 
   switch (message.type) {
     case MessageType.REPLY_COMMENT: {
-      const { user, message: replyContent } = message.payload as {
-        user: ScrapedUser;
+      const { comment, message: replyContent } = message.payload as {
+        comment: ScrapedComment;
         message: string;
       };
-      await handleReplyComment(user, replyContent, port);
+      await handleReplyToComment(comment, replyContent, port);
       break;
     }
 
     case MessageType.BULK_REPLY_START: {
-      const { userIds, message: replyMessage } = message.payload as {
-        userIds: string[];
+      const { commentIds, message: replyMessage } = message.payload as {
+        commentIds: string[];
         message: string;
       };
-      await handleBulkReply(userIds, replyMessage, port);
+      await handleBulkReply(commentIds, replyMessage, port);
       break;
     }
 
@@ -479,23 +479,23 @@ async function broadcastToDashboard(message: ExtensionMessage): Promise<void> {
   }
 }
 
-async function handleReplyComment(
-  user: ScrapedUser,
+async function handleReplyToComment(
+  comment: ScrapedComment,
   replyContent: string,
   port: chrome.runtime.Port
 ): Promise<void> {
   try {
-    if (!user.videoUrl) {
+    if (!comment.videoUrl) {
       throw new Error("No video URL available for this comment");
     }
 
     port.postMessage({
       type: MessageType.REPLY_COMMENT_PROGRESS,
-      payload: { userId: user.id, status: "navigating", message: "Opening video..." },
+      payload: { commentId: comment.id, status: "navigating", message: "Opening video..." },
     });
 
     const tab = await chrome.tabs.create({
-      url: user.videoUrl,
+      url: comment.videoUrl,
       active: false,
     });
 
@@ -505,14 +505,14 @@ async function handleReplyComment(
 
     chrome.tabs.sendMessage(tab.id, {
       type: MessageType.REPLY_COMMENT,
-      payload: { user, message: replyContent },
+      payload: { comment, message: replyContent },
     });
 
   } catch (error) {
     port.postMessage({
       type: MessageType.REPLY_COMMENT_ERROR,
       payload: {
-        userId: user.id,
+        commentId: comment.id,
         error: error instanceof Error ? error.message : "Unknown error",
       },
     });
@@ -520,24 +520,24 @@ async function handleReplyComment(
 }
 
 async function handleBulkReply(
-  userIds: string[],
+  commentIds: string[],
   replyMessage: string,
   port: chrome.runtime.Port
 ): Promise<void> {
-  const users = await getUsers();
+  const comments = await getScrapedComments();
   const settings = await getSettings();
 
-  const targetUsers = users.filter((u) => userIds.includes(u.id) && !u.replySent && u.videoUrl);
+  const targetComments = comments.filter((c) => commentIds.includes(c.id) && !c.replySent && c.videoUrl);
 
   const progress: BulkReplyProgress = {
-    total: targetUsers.length,
+    total: targetComments.length,
     completed: 0,
     failed: 0,
     status: "running",
   };
 
-  for (const user of targetUsers) {
-    progress.current = user.handle;
+  for (const comment of targetComments) {
+    progress.current = comment.handle;
     port.postMessage({
       type: MessageType.BULK_REPLY_PROGRESS,
       payload: progress,
@@ -545,13 +545,13 @@ async function handleBulkReply(
 
     try {
       const replyContent = replyMessage
-        .replace(/\{\{handle\}\}/g, user.handle)
-        .replace(/\{\{comment\}\}/g, user.comment);
+        .replace(/\{\{handle\}\}/g, comment.handle)
+        .replace(/\{\{comment\}\}/g, comment.comment);
 
-      await handleReplyComment(user, replyContent, port);
+      await handleReplyToComment(comment, replyContent, port);
       progress.completed++;
 
-      await updateUser(user.id, {
+      await updateScrapedComment(comment.id, {
         replySent: true,
         repliedAt: new Date().toISOString(),
       });
@@ -559,7 +559,7 @@ async function handleBulkReply(
       await new Promise((resolve) => setTimeout(resolve, settings.messageDelay));
     } catch {
       progress.failed++;
-      await updateUser(user.id, {
+      await updateScrapedComment(comment.id, {
         replyError: "Failed to post reply",
       });
     }
@@ -655,12 +655,12 @@ async function handleGetVideoComments(
           payload: { videoId, ...progressPayload },
         });
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-        const { users: scrapedUsers } = msg.payload as { users: ScrapedUser[] };
-        addUsers(scrapedUsers);
+        const { comments: scrapedComments } = msg.payload as { comments: ScrapedComment[] };
+        addScrapedComments(scrapedComments);
         updateVideo(videoId, { commentsScraped: true });
         port.postMessage({
           type: MessageType.GET_VIDEO_COMMENTS_COMPLETE,
-          payload: { videoId, commentCount: scrapedUsers.length },
+          payload: { videoId, commentCount: scrapedComments.length },
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
@@ -829,10 +829,10 @@ async function scrapeVideoComments(
         const payload = msg.payload as { commentsFound?: number; message?: string };
         onProgress(video.videoId, payload.message || `Found ${payload.commentsFound || 0} comments...`);
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-        const { users } = msg.payload as { users: ScrapedUser[] };
-        addUsers(users);
+        const { comments } = msg.payload as { comments: ScrapedComment[] };
+        addScrapedComments(comments);
         chrome.runtime.onMessage.removeListener(responseHandler);
-        resolve(users.length);
+        resolve(comments.length);
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
         chrome.runtime.onMessage.removeListener(responseHandler);
         reject(new Error((msg.payload as { error?: string })?.error || "Scraping failed"));

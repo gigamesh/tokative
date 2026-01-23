@@ -10,23 +10,23 @@ import { SelectedPostContext } from "@/components/SelectedPostContext";
 import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { useMessaging } from "@/hooks/useMessaging";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
-import { useUserData } from "@/hooks/useUserData";
+import { useCommentData } from "@/hooks/useCommentData";
 import { useVideoData } from "@/hooks/useVideoData";
-import { ScrapedUser } from "@/utils/constants";
+import { ScrapedComment } from "@/utils/constants";
 
 function DashboardContent() {
   const {
-    users,
+    comments,
     commentLimit,
     postLimit,
     loading,
     error,
-    removeUser,
-    removeUsers,
+    removeComment,
+    removeComments,
     saveCommentLimit,
     savePostLimit,
-    fetchData: fetchUsers,
-  } = useUserData();
+    fetchData: fetchComments,
+  } = useCommentData();
 
   const {
     isReplying,
@@ -56,7 +56,7 @@ function DashboardContent() {
   } = useDashboardUrl();
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectedUser, setSelectedUser] = useState<ScrapedUser | null>(null);
+  const [selectedComment, setSelectedComment] = useState<ScrapedComment | null>(null);
   const [postLimitInput, setPostLimitInput] = useState(String(postLimit));
   const [commentLimitInput, setCommentLimitInput] = useState(String(commentLimit));
 
@@ -91,39 +91,39 @@ function DashboardContent() {
 
   const commentCountsByVideo = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const user of users) {
-      if (user.videoId) {
-        counts.set(user.videoId, (counts.get(user.videoId) || 0) + 1);
+    for (const comment of comments) {
+      if (comment.videoId) {
+        counts.set(comment.videoId, (counts.get(comment.videoId) || 0) + 1);
       }
     }
     return counts;
-  }, [users]);
+  }, [comments]);
 
   const filteredCommentCount = useMemo(() => {
     if (!selectedPostId) return 0;
     return commentCountsByVideo.get(selectedPostId) ?? 0;
   }, [selectedPostId, commentCountsByVideo]);
 
-  const handleSelectUser = useCallback((userId: string, selected: boolean) => {
+  const handleSelectComment = useCallback((commentId: string, selected: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (selected) {
-        next.add(userId);
+        next.add(commentId);
       } else {
-        next.delete(userId);
+        next.delete(commentId);
       }
       return next;
     });
   }, []);
 
   const handleSelectFiltered = useCallback(
-    (userIds: string[], selected: boolean) => {
+    (commentIds: string[], selected: boolean) => {
       setSelectedIds((prev) => {
         const next = new Set(prev);
         if (selected) {
-          userIds.forEach((id) => next.add(id));
+          commentIds.forEach((id) => next.add(id));
         } else {
-          userIds.forEach((id) => next.delete(id));
+          commentIds.forEach((id) => next.delete(id));
         }
         return next;
       });
@@ -133,25 +133,25 @@ function DashboardContent() {
 
   const handleRemoveSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
-    removeUsers(Array.from(selectedIds));
+    removeComments(Array.from(selectedIds));
     setSelectedIds(new Set());
-  }, [selectedIds, removeUsers]);
+  }, [selectedIds, removeComments]);
 
   const handleClearSelection = useCallback(() => {
-    setSelectedUser(null);
+    setSelectedComment(null);
   }, []);
 
   const handleReplyFromComposer = useCallback(
     (message: string) => {
-      if (!selectedUser) return;
-      replyToComment(selectedUser, message);
-      setSelectedUser(null);
+      if (!selectedComment) return;
+      replyToComment(selectedComment, message);
+      setSelectedComment(null);
     },
-    [selectedUser, replyToComment]
+    [selectedComment, replyToComment]
   );
 
-  const handleReplyToUser = useCallback((user: ScrapedUser) => {
-    setSelectedUser(user);
+  const handleReplyToComment = useCallback((comment: ScrapedComment) => {
+    setSelectedComment(comment);
   }, []);
 
   const handleViewPostComments = useCallback(
@@ -163,9 +163,9 @@ function DashboardContent() {
 
   const handleCancelScraping = useCallback(() => {
     cancelScraping();
-    // Refresh users to get any comments that were saved before cancellation
-    fetchUsers();
-  }, [cancelScraping, fetchUsers]);
+    // Refresh comments to get any comments that were saved before cancellation
+    fetchComments();
+  }, [cancelScraping, fetchComments]);
 
   return (
     <div className="min-h-screen bg-tiktok-dark">
@@ -237,7 +237,7 @@ function DashboardContent() {
             activeTab={activeTab}
             onTabChange={setTab}
             postCount={videos.length}
-            commentCount={users.length}
+            commentCount={comments.length}
           />
         </div>
 
@@ -279,14 +279,14 @@ function DashboardContent() {
                   </div>
                 ) : (
                   <CommentTable
-                    users={users}
+                    comments={comments}
                     selectedIds={selectedIds}
-                    onSelectUser={handleSelectUser}
+                    onSelectComment={handleSelectComment}
                     onSelectFiltered={handleSelectFiltered}
-                    onRemoveUser={removeUser}
+                    onRemoveComment={removeComment}
                     onRemoveSelected={handleRemoveSelected}
                     onFetchComments={getCommentsForVideos}
-                    onReplyComment={handleReplyToUser}
+                    onReplyComment={handleReplyToComment}
                     videoIdFilter={selectedPostId}
                   />
                 )}
@@ -296,7 +296,7 @@ function DashboardContent() {
 
           <div className="space-y-6 sticky top-24 self-start">
             <ReplyComposer
-              selectedUser={selectedUser}
+              selectedComment={selectedComment}
               onSend={handleReplyFromComposer}
               onClearSelection={handleClearSelection}
               disabled={isReplying}

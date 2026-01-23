@@ -1,5 +1,5 @@
 import { MessageType, CommentScrapingState } from "../types";
-import { getUsers, getPostLimit, getCommentLimit, getScrapingState } from "../utils/storage";
+import { getScrapedComments, getPostLimit, getCommentLimit, getScrapingState } from "../utils/storage";
 
 function updateScrapingStatusUI(
   statusEl: HTMLElement,
@@ -68,14 +68,14 @@ async function init(): Promise<void> {
   const scrapeCommentsBtn = document.getElementById("scrape-comments") as HTMLButtonElement | null;
   const commentScrapeStatusEl = document.getElementById("comment-scrape-status");
 
-  const users = await getUsers();
+  const comments = await getScrapedComments();
 
   if (userCountEl) {
-    userCountEl.textContent = users.length.toString();
+    userCountEl.textContent = comments.length.toString();
   }
 
   if (sentCountEl) {
-    const repliedCount = users.filter((u) => u.replySent).length;
+    const repliedCount = comments.filter((c) => c.replySent).length;
     sentCountEl.textContent = repliedCount.toString();
   }
 
@@ -177,13 +177,13 @@ async function init(): Promise<void> {
         commentScrapeStatusEl.textContent = progress.message || `${progress.commentsFound || 0} comments found...`;
       }
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-      const { users: scrapedUsers } = message.payload as { users: unknown[] };
+      const { comments: scrapedComments } = message.payload as { comments: unknown[] };
       isCommentScraping = false;
       updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
       if (scrapeCommentsBtn && onVideoPage) scrapeCommentsBtn.disabled = false;
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status success";
-        commentScrapeStatusEl.textContent = `Scraped ${scrapedUsers?.length || 0} comments`;
+        commentScrapeStatusEl.textContent = `Scraped ${scrapedComments?.length || 0} comments`;
       }
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
       isCommentScraping = false;

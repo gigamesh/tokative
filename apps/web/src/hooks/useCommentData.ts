@@ -4,20 +4,20 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { bridge } from "@/utils/extension-bridge";
 import {
   MessageType,
-  ScrapedUser,
+  ScrapedComment,
 } from "@/utils/constants";
 
-interface UserDataState {
-  users: ScrapedUser[];
+interface CommentDataState {
+  comments: ScrapedComment[];
   commentLimit: number;
   postLimit: number;
   loading: boolean;
   error: string | null;
 }
 
-export function useUserData() {
-  const [state, setState] = useState<UserDataState>({
-    users: [],
+export function useCommentData() {
+  const [state, setState] = useState<CommentDataState>({
+    comments: [],
     commentLimit: 100,
     postLimit: 50,
     loading: true,
@@ -30,17 +30,17 @@ export function useUserData() {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const [usersResponse, commentLimitResponse, postLimitResponse] = await Promise.all([
+      const [commentsResponse, commentLimitResponse, postLimitResponse] = await Promise.all([
         bridge.request<{
-          users: ScrapedUser[];
-        }>(MessageType.GET_STORED_USERS),
+          comments: ScrapedComment[];
+        }>(MessageType.GET_SCRAPED_COMMENTS),
         bridge.request<{ limit: number }>(MessageType.GET_COMMENT_LIMIT),
         bridge.request<{ limit: number }>(MessageType.GET_POST_LIMIT),
       ]);
 
       setState((prev) => ({
         ...prev,
-        users: usersResponse.users || [],
+        comments: commentsResponse.comments || [],
         commentLimit: commentLimitResponse.limit ?? 100,
         postLimit: postLimitResponse.limit ?? 50,
         loading: false,
@@ -135,35 +135,35 @@ export function useUserData() {
     bridge.send(MessageType.SAVE_POST_LIMIT, { limit });
   }, []);
 
-  const removeUser = useCallback(async (userId: string) => {
+  const removeComment = useCallback(async (commentId: string) => {
     if (!bridge) return;
 
-    bridge.send(MessageType.REMOVE_USER, { userId });
+    bridge.send(MessageType.REMOVE_SCRAPED_COMMENT, { commentId });
     setState((prev) => ({
       ...prev,
-      users: prev.users.filter((u) => u.id !== userId),
+      comments: prev.comments.filter((c) => c.id !== commentId),
     }));
   }, []);
 
-  const removeUsers = useCallback(async (userIds: string[]) => {
+  const removeComments = useCallback(async (commentIds: string[]) => {
     if (!bridge) return;
 
-    bridge.send(MessageType.REMOVE_USERS, { userIds });
+    bridge.send(MessageType.REMOVE_SCRAPED_COMMENTS, { commentIds });
     setState((prev) => ({
       ...prev,
-      users: prev.users.filter((u) => !userIds.includes(u.id)),
+      comments: prev.comments.filter((c) => !commentIds.includes(c.id)),
     }));
   }, []);
 
-  const updateUser = useCallback(
-    async (userId: string, updates: Partial<ScrapedUser>) => {
+  const updateComment = useCallback(
+    async (commentId: string, updates: Partial<ScrapedComment>) => {
       if (!bridge) return;
 
-      bridge.send(MessageType.UPDATE_USER, { userId, updates });
+      bridge.send(MessageType.UPDATE_SCRAPED_COMMENT, { commentId, updates });
       setState((prev) => ({
         ...prev,
-        users: prev.users.map((u) =>
-          u.id === userId ? { ...u, ...updates } : u
+        comments: prev.comments.map((c) =>
+          c.id === commentId ? { ...c, ...updates } : c
         ),
       }));
     },
@@ -173,9 +173,9 @@ export function useUserData() {
   return {
     ...state,
     fetchData,
-    removeUser,
-    removeUsers,
-    updateUser,
+    removeComment,
+    removeComments,
+    updateComment,
     saveCommentLimit,
     savePostLimit,
   };
