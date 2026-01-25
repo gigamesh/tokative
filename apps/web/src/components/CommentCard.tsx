@@ -33,7 +33,7 @@ export function CommentCard({
 }: CommentCardProps) {
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
-  const commentRef = useRef<HTMLParagraphElement>(null);
+  const commentRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     const el = commentRef.current;
@@ -58,7 +58,7 @@ export function CommentCard({
     <div
       className={`px-3 py-2 rounded-lg border transition-colors ${
         selected
-          ? "border-tiktok-red bg-tiktok-red/10"
+          ? "border-blue-500 bg-blue-500/10"
           : "border-gray-700 bg-tiktok-gray hover:border-gray-600"
       }`}
     >
@@ -67,7 +67,7 @@ export function CommentCard({
           type="checkbox"
           checked={selected}
           onChange={(e) => onSelect(e.target.checked)}
-          className="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red"
+          className="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
         />
 
         {thumbnailUrl && (
@@ -110,12 +110,15 @@ export function CommentCard({
             )}
           </div>
 
-          <p
+          <a
             ref={commentRef}
-            className={`text-sm text-gray-400 ${isCommentExpanded ? "" : "line-clamp-2"}`}
+            href={comment.videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`block text-sm text-gray-400 ${isCommentExpanded ? "" : "line-clamp-2"}`}
           >
             {comment.comment}
-          </p>
+          </a>
           {(isTruncated || isCommentExpanded) && (
             <button
               onClick={() => setIsCommentExpanded(!isCommentExpanded)}

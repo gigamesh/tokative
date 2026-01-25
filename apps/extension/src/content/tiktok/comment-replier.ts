@@ -1,9 +1,9 @@
-import { ScrapedUser, MessageType, ReplyProgress } from "../../types";
+import { ScrapedComment, MessageType, ReplyProgress } from "../../types";
 import { humanDelay, humanDelayWithJitter, humanClick, humanType } from "../../utils/dom";
 import { SELECTORS, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 
 export async function replyToComment(
-  user: ScrapedUser,
+  user: ScrapedComment,
   replyMessage: string
 ): Promise<void> {
   console.log("[CommentReplier] Starting reply process for @" + user.handle);
@@ -171,7 +171,7 @@ interface VerificationResult {
   foundComment: string;
 }
 
-function verifyComment(commentElement: Element, user: ScrapedUser): VerificationResult {
+function verifyComment(commentElement: Element, user: ScrapedComment): VerificationResult {
   const targetHandle = user.handle.toLowerCase();
   const targetComment = normalizeText(user.comment);
 

@@ -250,6 +250,14 @@ async function init(): Promise<void> {
     if (!scrapeCommentsBtn || !commentScrapeStatusEl) return;
 
     if (isCommentScraping) {
+      // Send cancel to background script to handle batch cancellation
+      try {
+        await chrome.runtime.sendMessage({ type: MessageType.SCRAPE_VIDEO_COMMENTS_STOP });
+      } catch {
+        // Background might not be ready, also try the current tab
+      }
+
+      // Also send to current tab in case it's a single-video scrape
       const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (currentTab?.id) {
         try {

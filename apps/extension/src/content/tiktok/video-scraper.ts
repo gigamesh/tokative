@@ -240,27 +240,70 @@ async function scrollToLoadComments(
   maxComments: number,
   onProgress?: (loaded: number, saved: number) => void
 ): Promise<ScrapedComment[]> {
+  console.log("[TikTok Buddy] scrollToLoadComments called, maxComments:", maxComments);
+
   const scroller = querySelector(VIDEO_SELECTORS.commentsScroller);
-  if (!scroller) return [];
+  console.log("[TikTok Buddy] Scroller element found:", !!scroller);
+  if (scroller) {
+    console.log("[TikTok Buddy] Scroller details:", {
+      className: scroller.className,
+      tagName: scroller.tagName,
+      scrollHeight: scroller.scrollHeight,
+      clientHeight: scroller.clientHeight,
+      scrollTop: scroller.scrollTop,
+    });
+  }
+  if (!scroller) {
+    console.log("[TikTok Buddy] No scroller found, trying all selectors:", VIDEO_SELECTORS.commentsScroller);
+    // Debug: list all potential scrollers
+    const allDivs = document.querySelectorAll('[class*="Comment"]');
+    console.log("[TikTok Buddy] Elements with 'Comment' in class:", allDivs.length);
+    allDivs.forEach((div, i) => {
+      if (i < 5) console.log(`  [${i}] ${div.tagName}.${div.className.substring(0, 60)}`);
+    });
+    return [];
+  }
 
   let lastCount = 0;
   let stableIterations = 0;
+  let loopIteration = 0;
   const allComments: ScrapedComment[] = [];
   const savedCommentIds = new Set<string>();
+  let lastIterationTime = Date.now();
 
   while (!isCancelled) {
+    loopIteration++;
+    const now = Date.now();
+    const timeSinceLastIteration = now - lastIterationTime;
+    lastIterationTime = now;
+    console.log(`[TikTok Buddy] === Scroll loop iteration ${loopIteration} === (${timeSinceLastIteration}ms since last)`);
+
     await waitWhilePaused();
-    if (isCancelled) break;
+    if (isCancelled) {
+      console.log("[TikTok Buddy] Scrape cancelled, exiting loop");
+      break;
+    }
 
     const commentElements = querySelectorAll(VIDEO_SELECTORS.commentItem);
+    console.log(`[TikTok Buddy] Found ${commentElements.length} comment elements (lastCount: ${lastCount}), saved comments: ${allComments.length}`);
 
-    if (maxComments !== Infinity && commentElements.length >= maxComments) {
+    // Check against actual saved comments, not DOM elements (which may include replies)
+    if (maxComments !== Infinity && allComments.length >= maxComments) {
+      console.log(`[TikTok Buddy] Reached maxComments limit (${allComments.length} >= ${maxComments}), breaking`);
       break;
     }
 
     if (commentElements.length === lastCount) {
       stableIterations++;
+      console.log(`[TikTok Buddy] No new comment elements, stableIterations: ${stableIterations}/3`);
+      console.log(`[TikTok Buddy] Scroller state: scrollTop=${scroller.scrollTop}, scrollHeight=${scroller.scrollHeight}, clientHeight=${scroller.clientHeight}`);
+
+      // Check if we're actually at the bottom
+      const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 10;
+      console.log(`[TikTok Buddy] At bottom: ${atBottom}`);
+
       if (stableIterations >= 3) {
+        console.log("[TikTok Buddy] Stable for 3 iterations, assuming all comments loaded. Breaking loop.");
         break;
       }
     } else {
@@ -269,9 +312,18 @@ async function scrollToLoadComments(
 
       // Extract and save comments incrementally on each scroll
       const rawComments = await scrapeCommentsFromCurrentVideo();
+      console.log(`[TikTok Buddy] Extracted ${rawComments.length} raw comments from DOM`);
       const newComments: ScrapedComment[] = [];
 
+      // Calculate how many more comments we can add
+      const remainingBudget = maxComments === Infinity ? Infinity : maxComments - allComments.length;
+
       for (const raw of rawComments) {
+        // Stop if we've used up our budget
+        if (remainingBudget !== Infinity && newComments.length >= remainingBudget) {
+          break;
+        }
+
         const scraped = rawCommentToScrapedComment(raw);
         if (scraped && !savedCommentIds.has(scraped.id)) {
           newComments.push(scraped);
@@ -280,16 +332,34 @@ async function scrollToLoadComments(
         }
       }
 
+      console.log(`[TikTok Buddy] New unique comments this iteration: ${newComments.length}, total: ${allComments.length}/${maxComments}`);
+
       if (newComments.length > 0) {
         const savedCount = await addScrapedComments(newComments);
-        console.log(`[TikTok Buddy] Incrementally saved ${savedCount} new comments`);
+        console.log(`[TikTok Buddy] Saved ${savedCount} comments to storage`);
       }
 
       onProgress?.(commentElements.length, allComments.length);
     }
 
+    const scrollBefore = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
+    const scrollAfter = scroller.scrollTop;
+    console.log(`[TikTok Buddy] Scroll: ${scrollBefore} -> ${scrollAfter} (target: ${scroller.scrollHeight})`);
+
     await humanDelayWithJitter("medium");
+  }
+
+  console.log(`[TikTok Buddy] ====== Scroll loop finished ======`);
+  console.log(`[TikTok Buddy] Total iterations: ${loopIteration}`);
+  console.log(`[TikTok Buddy] Final DOM elements: ${querySelectorAll(VIDEO_SELECTORS.commentItem).length}`);
+  console.log(`[TikTok Buddy] Total unique comments collected: ${allComments.length}`);
+  console.log(`[TikTok Buddy] Exit reason: ${isCancelled ? 'cancelled' : stableIterations >= 3 ? 'stable (no new comments)' : `maxComments reached (${maxComments})`}`);
+
+  // Truncate to exact limit if we collected more than requested
+  if (maxComments !== Infinity && allComments.length > maxComments) {
+    console.log(`[TikTok Buddy] Truncating from ${allComments.length} to ${maxComments} comments`);
+    return allComments.slice(0, maxComments);
   }
 
   return allComments;
@@ -318,25 +388,36 @@ async function waitForCommentContent(options: { timeout?: number } = {}): Promis
 }
 
 async function openCommentsPanel(): Promise<boolean> {
+  console.log("[TikTok Buddy] openCommentsPanel called");
   const existingComments = querySelector(VIDEO_SELECTORS.commentsContainer);
+  console.log("[TikTok Buddy] Existing comments panel:", !!existingComments);
   if (existingComments) {
     return true;
   }
 
+  console.log("[TikTok Buddy] Looking for comment button with selectors:", VIDEO_SELECTORS.commentButton);
   const commentButton = querySelector<HTMLElement>(VIDEO_SELECTORS.commentButton);
+  console.log("[TikTok Buddy] Comment button found:", !!commentButton);
   if (!commentButton) {
+    console.log("[TikTok Buddy] Waiting for comment button...");
     const button = await waitForSelector(VIDEO_SELECTORS.commentButton, { timeout: 10000 });
+    console.log("[TikTok Buddy] Comment button after wait:", !!button);
     if (!button) {
+      console.log("[TikTok Buddy] ERROR: Comment button not found after 10s timeout");
       return false;
     }
+    console.log("[TikTok Buddy] Clicking comment button (waited)");
     (button as HTMLElement).click();
   } else {
+    console.log("[TikTok Buddy] Clicking comment button (immediate)");
     commentButton.click();
   }
 
   await humanDelay("short");
 
+  console.log("[TikTok Buddy] Waiting for comments panel to appear...");
   const commentsPanel = await waitForSelector(VIDEO_SELECTORS.commentsContainer, { timeout: 10000 });
+  console.log("[TikTok Buddy] Comments panel found:", !!commentsPanel);
   return commentsPanel !== null;
 }
 
@@ -700,6 +781,7 @@ export async function scrapeVideoComments(
   maxComments: number = Infinity,
   onProgress?: (progress: VideoScrapeProgress) => void
 ): Promise<ScrapedComment[]> {
+  console.log("[TikTok Buddy] scrapeVideoComments called, maxComments:", maxComments);
   isCancelled = false;
 
   onProgress?.({
@@ -710,8 +792,11 @@ export async function scrapeVideoComments(
     message: "Opening comments panel...",
   });
 
+  console.log("[TikTok Buddy] Opening comments panel...");
   const panelOpened = await openCommentsPanel();
+  console.log("[TikTok Buddy] Panel opened:", panelOpened);
   if (!panelOpened) {
+    console.log("[TikTok Buddy] ERROR: Could not open comments panel");
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
@@ -730,10 +815,15 @@ export async function scrapeVideoComments(
     message: "Loading comments...",
   });
 
+  console.log("[TikTok Buddy] Waiting for comment items...");
   await waitForSelector(VIDEO_SELECTORS.commentItem, { timeout: 10000 });
+  console.log("[TikTok Buddy] Comment items selector found");
 
+  console.log("[TikTok Buddy] Waiting for comment content...");
   const contentLoaded = await waitForCommentContent({ timeout: 10000 });
+  console.log("[TikTok Buddy] Comment content loaded:", contentLoaded);
   if (!contentLoaded) {
+    console.log("[TikTok Buddy] ERROR: Comments failed to load");
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
@@ -744,6 +834,7 @@ export async function scrapeVideoComments(
     return [];
   }
 
+  console.log("[TikTok Buddy] Starting scroll loop...");
   // scrollToLoadComments now handles extraction and saving incrementally
   const comments = await scrollToLoadComments(maxComments, (loaded, saved) => {
     onProgress?.({
@@ -754,6 +845,7 @@ export async function scrapeVideoComments(
       message: `Scraping... ${saved} comments`,
     });
   });
+  console.log("[TikTok Buddy] Scroll loop completed, comments:", comments.length);
 
   if (isCancelled) {
     onProgress?.({
