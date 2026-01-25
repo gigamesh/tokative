@@ -43,6 +43,11 @@ export const VIDEO_SELECTORS = {
     '[class*="DivCommentItemWrapper"]',
   ],
 
+  commentContent: [
+    '[class*="DivCommentContentContainer"]',
+    '[class*="DivCommentContent"]',
+  ],
+
   commentUsername: [
     '[data-e2e="comment-username-1"]',
     '[data-e2e="comment-username-1"] a',
