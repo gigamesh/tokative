@@ -6,20 +6,24 @@ import { useEffect, useRef, useState } from "react";
 
 interface ReplyComposerProps {
   selectedComment: ScrapedComment | null;
+  selectedCount: number;
   onSend: (message: string) => void;
+  onBulkSend: (messages: string[]) => void;
   onClearSelection: () => void;
   disabled?: boolean;
 }
 
 export function ReplyComposer({
   selectedComment,
+  selectedCount,
   onSend,
+  onBulkSend,
   onClearSelection,
   disabled,
 }: ReplyComposerProps) {
-  const [message, setMessage] = useState("");
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [messages, setMessages] = useState<string[]>([""]);
+  const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(null);
+  const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,81 +32,144 @@ export function ReplyComposer({
         emojiPickerRef.current &&
         !emojiPickerRef.current.contains(event.target as Node)
       ) {
-        setShowEmojiPicker(false);
+        setActiveEmojiPicker(null);
       }
     };
 
-    if (showEmojiPicker) {
+    if (activeEmojiPicker !== null) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showEmojiPicker]);
+  }, [activeEmojiPicker]);
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
-    setMessage((prev) => prev + emojiData.emoji);
-    textareaRef.current?.focus();
+    if (activeEmojiPicker === null) return;
+    const index = activeEmojiPicker;
+    setMessages((prev) => {
+      const updated = [...prev];
+      updated[index] = (updated[index] || "") + emojiData.emoji;
+      return updated;
+    });
+    textareaRefs.current[index]?.focus();
   };
+
+  const updateMessage = (index: number, value: string) => {
+    setMessages((prev) => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+  };
+
+  const addMessage = () => {
+    setMessages((prev) => [...prev, ""]);
+  };
+
+  const removeMessage = (index: number) => {
+    if (messages.length <= 1) return;
+    setMessages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const validMessages = messages.filter((m) => m.trim());
 
   const handleSend = () => {
-    if (!selectedComment || !message.trim()) return;
-    onSend(message);
-    setMessage("");
+    if (validMessages.length === 0) return;
+
+    if (selectedComment) {
+      // Single reply to the selected comment
+      onSend(validMessages[0]);
+      setMessages([""]);
+    } else if (selectedCount > 0) {
+      // Bulk reply to checked comments
+      onBulkSend(validMessages);
+    }
   };
 
+  const canSend = validMessages.length > 0 && (selectedComment || selectedCount > 0);
+
   return (
-    <div className="bg-tiktok-gray rounded-lg p-4 space-y-4">
+    <div className="bg-tiktok-gray rounded-lg p-4 space-y-3">
       <h3 className="font-medium text-white">Reply Composer</h3>
 
-      <div className="relative">
-        <textarea
-          ref={textareaRef}
-          placeholder="Write your reply..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          rows={5}
-          className="w-full px-3 py-2 bg-tiktok-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red resize-y"
-        />
-        <button
-          type="button"
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="absolute right-2 bottom-4 text-gray-400 hover:text-white transition-colors"
-          title="Add emoji"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-            <line x1="9" y1="9" x2="9.01" y2="9" />
-            <line x1="15" y1="9" x2="15.01" y2="9" />
-          </svg>
-        </button>
-        {showEmojiPicker && (
-          <div
-            ref={emojiPickerRef}
-            className="absolute right-0 top-full mt-2 z-10"
-          >
-            <EmojiPicker
-              theme={Theme.DARK}
-              onEmojiClick={handleEmojiClick}
-              width={300}
-              height={350}
-              previewConfig={{ showPreview: false }}
-            />
+      <div className="space-y-2">
+        {messages.map((message, index) => (
+          <div key={index} className="relative">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <textarea
+                  ref={(el) => { textareaRefs.current[index] = el; }}
+                  placeholder={messages.length > 1 ? `Reply variation ${index + 1}...` : "Write your reply..."}
+                  value={message}
+                  onChange={(e) => updateMessage(index, e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-tiktok-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setActiveEmojiPicker(activeEmojiPicker === index ? null : index)}
+                  className="absolute right-2.5 bottom-2.5 text-gray-400 hover:text-white transition-colors"
+                  title="Add emoji"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                    <line x1="9" y1="9" x2="9.01" y2="9" />
+                    <line x1="15" y1="9" x2="15.01" y2="9" />
+                  </svg>
+                </button>
+                {activeEmojiPicker === index && (
+                  <div
+                    ref={emojiPickerRef}
+                    className="absolute right-0 top-full mt-2 z-10"
+                  >
+                    <EmojiPicker
+                      theme={Theme.DARK}
+                      onEmojiClick={handleEmojiClick}
+                      width={280}
+                      height={320}
+                      previewConfig={{ showPreview: false }}
+                    />
+                  </div>
+                )}
+              </div>
+              {messages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeMessage(index)}
+                  className="self-start mt-2 text-gray-500 hover:text-red-400 transition-colors"
+                  title="Remove this reply"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
-        )}
+        ))}
       </div>
+
+      <button
+        type="button"
+        onClick={addMessage}
+        className="w-full py-1.5 text-sm text-gray-400 hover:text-white border border-dashed border-gray-600 hover:border-gray-500 rounded-lg transition-colors"
+      >
+        + Add Reply Variation
+      </button>
+
 
       {selectedComment && (
         <div className="p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
@@ -118,17 +185,17 @@ export function ReplyComposer({
             </button>
           </div>
           <p className="text-xs text-gray-500 truncate">
-            Comment: "{selectedComment.comment}"
+            "{selectedComment.comment}"
           </p>
         </div>
       )}
 
       <button
         onClick={handleSend}
-        disabled={disabled || !selectedComment || !message.trim()}
-        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg font-medium transition-colors"
+        disabled={disabled || !canSend}
+        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg font-medium transition-colors text-sm"
       >
-        {disabled ? "Replying..." : "Send Reply"}
+        {disabled ? "Replying..." : "Reply"}
       </button>
     </div>
   );

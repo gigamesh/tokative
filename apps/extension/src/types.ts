@@ -87,7 +87,6 @@ export interface ScrapedComment {
   replyError?: string;
   replyContent?: string;
   commentTimestamp?: string;
-  videoThumbnailUrl?: string;
   commentId?: string;
   videoId?: string;
 }

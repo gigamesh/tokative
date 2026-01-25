@@ -21,7 +21,6 @@ function DashboardContent() {
     postLimit,
     loading,
     error,
-    removeComment,
     removeComments,
     saveCommentLimit,
     savePostLimit,
@@ -31,8 +30,11 @@ function DashboardContent() {
   const {
     isReplying,
     replyProgress,
+    bulkReplyProgress,
     error: replyError,
     replyToComment,
+    startBulkReply,
+    stopBulkReply,
   } = useMessaging();
 
   const {
@@ -104,6 +106,16 @@ function DashboardContent() {
     return commentCountsByVideo.get(selectedPostId) ?? 0;
   }, [selectedPostId, commentCountsByVideo]);
 
+  const videoThumbnailMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const video of videos) {
+      if (video.thumbnailUrl) {
+        map.set(video.videoId, video.thumbnailUrl);
+      }
+    }
+    return map;
+  }, [videos]);
+
   const handleSelectComment = useCallback((commentId: string, selected: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -150,9 +162,13 @@ function DashboardContent() {
     [selectedComment, replyToComment]
   );
 
-  const handleReplyToComment = useCallback((comment: ScrapedComment) => {
-    setSelectedComment(comment);
-  }, []);
+  const handleBulkReply = useCallback(
+    (messages: string[]) => {
+      if (selectedIds.size === 0) return;
+      startBulkReply(Array.from(selectedIds), messages);
+    },
+    [selectedIds, startBulkReply]
+  );
 
   const handleViewPostComments = useCallback(
     (videoId: string) => {
@@ -194,7 +210,7 @@ function DashboardContent() {
             <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
             <div>
               <span className="text-blue-400 font-medium">
-                Scraping {batchProgress.completedVideos}/{batchProgress.totalVideos} posts
+                Scraping post {batchProgress.currentVideoIndex}/{batchProgress.totalVideos}
               </span>
               <span className="text-blue-400/80 ml-2">({batchProgress.totalComments} comments)</span>
             </div>
@@ -283,11 +299,10 @@ function DashboardContent() {
                     selectedIds={selectedIds}
                     onSelectComment={handleSelectComment}
                     onSelectFiltered={handleSelectFiltered}
-                    onRemoveComment={removeComment}
                     onRemoveSelected={handleRemoveSelected}
                     onFetchComments={getCommentsForVideos}
-                    onReplyComment={handleReplyToComment}
                     videoIdFilter={selectedPostId}
+                    videoThumbnails={videoThumbnailMap}
                   />
                 )}
               </div>
@@ -297,7 +312,9 @@ function DashboardContent() {
           <div className="space-y-6 sticky top-24 self-start">
             <ReplyComposer
               selectedComment={selectedComment}
+              selectedCount={selectedIds.size}
               onSend={handleReplyFromComposer}
+              onBulkSend={handleBulkReply}
               onClearSelection={handleClearSelection}
               disabled={isReplying}
             />
@@ -316,6 +333,44 @@ function DashboardContent() {
                     </span>
                   )}
                 </p>
+              </div>
+            )}
+
+            {bulkReplyProgress && bulkReplyProgress.status === "running" && (
+              <div className="bg-tiktok-gray rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-white">Bulk Reply Progress</h3>
+                  <button
+                    onClick={stopBulkReply}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Stop
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">
+                      {bulkReplyProgress.completed + bulkReplyProgress.failed} / {bulkReplyProgress.total}
+                    </span>
+                    {bulkReplyProgress.current && (
+                      <span className="text-gray-500">@{bulkReplyProgress.current}</span>
+                    )}
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all"
+                      style={{
+                        width: `${((bulkReplyProgress.completed + bulkReplyProgress.failed) / bulkReplyProgress.total) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex gap-4 text-xs">
+                    <span className="text-green-400">{bulkReplyProgress.completed} sent</span>
+                    {bulkReplyProgress.failed > 0 && (
+                      <span className="text-red-400">{bulkReplyProgress.failed} failed</span>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -116,6 +116,7 @@ export function useVideoData() {
       batchProgress: {
         totalVideos: videoIds.length,
         completedVideos: 0,
+        currentVideoIndex: 0,
         currentVideoId: null,
         totalComments: 0,
         status: "processing",

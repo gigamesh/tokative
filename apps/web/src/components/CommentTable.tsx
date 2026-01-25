@@ -14,11 +14,10 @@ interface CommentTableProps {
   selectedIds: Set<string>;
   onSelectComment: (commentId: string, selected: boolean) => void;
   onSelectFiltered: (commentIds: string[], selected: boolean) => void;
-  onRemoveComment: (commentId: string) => void;
   onRemoveSelected: () => void;
   onFetchComments: (videoIds: string[]) => void;
-  onReplyComment: (comment: ScrapedComment) => void;
   videoIdFilter?: string | null;
+  videoThumbnails: Map<string, string>;
 }
 
 export function CommentTable({
@@ -26,11 +25,10 @@ export function CommentTable({
   selectedIds,
   onSelectComment,
   onSelectFiltered,
-  onRemoveComment,
   onRemoveSelected,
   onFetchComments,
-  onReplyComment,
   videoIdFilter,
+  videoThumbnails,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -202,13 +200,12 @@ export function CommentTable({
           useWindowScroll
           overscan={10}
           itemContent={(index, comment) => (
-            <div className={index > 0 ? "pt-3" : ""}>
+            <div className={index > 0 ? "pt-2" : ""}>
               <CommentCard
                 comment={comment}
                 selected={selectedIds.has(comment.id)}
                 onSelect={(selected) => onSelectComment(comment.id, selected)}
-                onRemove={() => onRemoveComment(comment.id)}
-                onReplyComment={() => onReplyComment(comment)}
+                thumbnailUrl={comment.videoId ? videoThumbnails.get(comment.videoId) : undefined}
               />
             </div>
           )}

@@ -11,7 +11,6 @@ interface RawCommentData {
   comment: string;
   createTime: number;
   videoId: string;
-  videoThumbnailUrl: string;
 }
 
 let isCancelled = false;
@@ -199,7 +198,6 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<RawCommentData[]
       comment: domData.comment || "",
       createTime: reactData?.create_time || Math.floor(Date.now() / 1000),
       videoId: reactData?.aweme_id || videoId || "",
-      videoThumbnailUrl: "",
     };
 
     comments.push(comment);
@@ -209,14 +207,20 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<RawCommentData[]
   return comments;
 }
 
+function getVideoAuthorFromUrl(): string | null {
+  const match = window.location.pathname.match(/^\/@([^/?]+)/);
+  return match ? match[1] : null;
+}
+
 function rawCommentToScrapedComment(raw: RawCommentData): ScrapedComment | null {
   if (!raw.commentId) {
     return null;
   }
 
   const cid = btoa(raw.commentId);
-  const videoUrl = raw.videoId
-    ? `https://www.tiktok.com/video/${raw.videoId}?cid=${cid}`
+  const videoAuthor = getVideoAuthorFromUrl();
+  const videoUrl = raw.videoId && videoAuthor
+    ? `https://www.tiktok.com/@${videoAuthor}/video/${raw.videoId}?cid=${cid}`
     : undefined;
 
   return {
@@ -227,7 +231,6 @@ function rawCommentToScrapedComment(raw: RawCommentData): ScrapedComment | null 
     profileUrl: `https://www.tiktok.com/@${raw.handle}`,
     videoUrl,
     commentTimestamp: new Date(raw.createTime * 1000).toISOString(),
-    videoThumbnailUrl: raw.videoThumbnailUrl,
     commentId: raw.commentId,
     videoId: raw.videoId,
   };
@@ -235,7 +238,6 @@ function rawCommentToScrapedComment(raw: RawCommentData): ScrapedComment | null 
 
 async function scrollToLoadComments(
   maxComments: number,
-  videoThumbnailUrl: string | undefined,
   onProgress?: (loaded: number, saved: number) => void
 ): Promise<ScrapedComment[]> {
   const scroller = querySelector(VIDEO_SELECTORS.commentsScroller);
@@ -272,9 +274,6 @@ async function scrollToLoadComments(
       for (const raw of rawComments) {
         const scraped = rawCommentToScrapedComment(raw);
         if (scraped && !savedCommentIds.has(scraped.id)) {
-          if (videoThumbnailUrl) {
-            scraped.videoThumbnailUrl = videoThumbnailUrl;
-          }
           newComments.push(scraped);
           savedCommentIds.add(scraped.id);
           allComments.push(scraped);
@@ -516,7 +515,6 @@ export async function scrapeProfileVideos(
       console.log(`[TikTok Buddy] Modal opened for video ${i + 1}`);
       await humanDelay("short");
 
-      // Pass thumbnail to scrapeVideoComments - it saves incrementally on each scroll
       const comments = await scrapeVideoComments(maxCommentsPerVideo, (progress) => {
         onProgress?.({
           videosProcessed: i,
@@ -525,7 +523,7 @@ export async function scrapeProfileVideos(
           status: "scraping",
           message: `Video ${i + 1}/${videosToProcess}: ${progress.message}`,
         });
-      }, thumbnail || undefined);
+      });
 
       console.log(`[TikTok Buddy] Scraped ${comments.length} comments from video ${i + 1}`);
 
@@ -700,8 +698,7 @@ export async function scrapeProfileVideoMetadata(
 
 export async function scrapeVideoComments(
   maxComments: number = Infinity,
-  onProgress?: (progress: VideoScrapeProgress) => void,
-  videoThumbnailUrl?: string
+  onProgress?: (progress: VideoScrapeProgress) => void
 ): Promise<ScrapedComment[]> {
   isCancelled = false;
 
@@ -748,7 +745,7 @@ export async function scrapeVideoComments(
   }
 
   // scrollToLoadComments now handles extraction and saving incrementally
-  const comments = await scrollToLoadComments(maxComments, videoThumbnailUrl, (loaded, saved) => {
+  const comments = await scrollToLoadComments(maxComments, (loaded, saved) => {
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,

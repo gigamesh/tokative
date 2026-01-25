@@ -60,7 +60,6 @@ export interface ScrapedComment {
   replyError?: string;
   replyContent?: string;
   commentTimestamp?: string;
-  videoThumbnailUrl?: string;
   commentId?: string;
   videoId?: string;
 }
@@ -100,6 +99,7 @@ export interface GetVideoCommentsProgress {
 export interface BatchCommentsProgress {
   totalVideos: number;
   completedVideos: number;
+  currentVideoIndex: number;
   currentVideoId: string | null;
   totalComments: number;
   status: "processing" | "complete" | "error";
