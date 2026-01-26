@@ -26,7 +26,7 @@ export function useDashboardUrl() {
         params.set("tab", tab);
       }
       const query = params.toString();
-      router.push(query ? `${pathname}?${query}` : pathname);
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     },
     [router, pathname]
   );
@@ -36,7 +36,7 @@ export function useDashboardUrl() {
       const params = new URLSearchParams();
       params.set("tab", "comments");
       params.set("post", videoId);
-      router.push(`${pathname}?${params.toString()}`);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
     [router, pathname]
   );
@@ -44,7 +44,7 @@ export function useDashboardUrl() {
   const clearPostFilter = useCallback(() => {
     const params = new URLSearchParams();
     params.set("tab", "comments");
-    router.push(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [router, pathname]);
 
   return {

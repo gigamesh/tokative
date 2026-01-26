@@ -92,7 +92,12 @@ export function ReplyComposer({
 
   return (
     <div className="bg-tiktok-gray rounded-lg p-4 space-y-3">
-      <h3 className="font-medium text-white">Reply Composer</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-medium text-white">Reply Composer</h3>
+        {selectedCount > 0 && (
+          <span className="text-sm text-gray-500">{selectedCount} comment{selectedCount !== 1 ? 's' : ''}</span>
+        )}
+      </div>
 
       <div className="space-y-2">
         {messages.map((message, index) => (

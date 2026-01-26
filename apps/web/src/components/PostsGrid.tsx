@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, forwardRef } from "react";
+import { useCallback, useRef, forwardRef } from "react";
 import { VirtuosoGrid, GridComponents } from "react-virtuoso";
 import { PostCard } from "./PostCard";
 import { FetchCommentsButton } from "./FetchCommentsButton";
@@ -29,9 +29,12 @@ interface PostsGridProps {
   loading: boolean;
   getCommentsProgress: Map<string, GetVideoCommentsProgress>;
   commentCountsByVideo: Map<string, number>;
+  selectedVideoIds: Set<string>;
+  onSelectedVideoIdsChange: (ids: Set<string>) => void;
   onGetComments: (videoIds: string[]) => void;
   onRemoveVideos: (videoIds: string[]) => void;
   onViewPostComments?: (videoId: string) => void;
+  onPostSelectionChange?: (videoIds: string[], selected: boolean) => void;
   isScraping?: boolean;
   onCancelScraping?: () => void;
 }
@@ -41,68 +44,71 @@ export function PostsGrid({
   loading,
   getCommentsProgress,
   commentCountsByVideo,
+  selectedVideoIds,
+  onSelectedVideoIdsChange,
   onGetComments,
   onRemoveVideos,
   onViewPostComments,
+  onPostSelectionChange,
   isScraping = false,
   onCancelScraping,
 }: PostsGridProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastSelectedIndexRef = useRef<number | null>(null);
 
-  const allSelected = videos.length > 0 && selectedIds.size === videos.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < videos.length;
+  const allSelected = videos.length > 0 && selectedVideoIds.size === videos.length;
+  const someSelected = selectedVideoIds.size > 0 && selectedVideoIds.size < videos.length;
 
   const handleSelectVideo = useCallback(
     (videoId: string, selected: boolean, index: number, shiftKey: boolean) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
+      let affectedVideoIds: string[] = [];
 
-        if (shiftKey && lastSelectedIndexRef.current !== null) {
-          const start = Math.min(lastSelectedIndexRef.current, index);
-          const end = Math.max(lastSelectedIndexRef.current, index);
-          for (let i = start; i <= end; i++) {
-            if (selected) {
-              next.add(videos[i].videoId);
-            } else {
-              next.delete(videos[i].videoId);
-            }
-          }
+      if (shiftKey && lastSelectedIndexRef.current !== null) {
+        const start = Math.min(lastSelectedIndexRef.current, index);
+        const end = Math.max(lastSelectedIndexRef.current, index);
+        affectedVideoIds = videos.slice(start, end + 1).map((v) => v.videoId);
+      } else {
+        affectedVideoIds = [videoId];
+      }
+
+      const next = new Set(selectedVideoIds);
+      for (const id of affectedVideoIds) {
+        if (selected) {
+          next.add(id);
         } else {
-          if (selected) {
-            next.add(videoId);
-          } else {
-            next.delete(videoId);
-          }
+          next.delete(id);
         }
+      }
+      lastSelectedIndexRef.current = index;
+      onSelectedVideoIdsChange(next);
 
-        lastSelectedIndexRef.current = index;
-        return next;
-      });
+      onPostSelectionChange?.(affectedVideoIds, selected);
     },
-    [videos]
+    [videos, selectedVideoIds, onSelectedVideoIdsChange, onPostSelectionChange]
   );
 
   const handleSelectAll = useCallback(() => {
+    const allVideoIds = videos.map((v) => v.videoId);
     if (allSelected) {
-      setSelectedIds(new Set());
+      onSelectedVideoIdsChange(new Set());
+      onPostSelectionChange?.(allVideoIds, false);
     } else {
-      setSelectedIds(new Set(videos.map((v) => v.videoId)));
+      onSelectedVideoIdsChange(new Set(allVideoIds));
+      onPostSelectionChange?.(allVideoIds, true);
     }
     lastSelectedIndexRef.current = null;
-  }, [allSelected, videos]);
+  }, [allSelected, videos, onSelectedVideoIdsChange, onPostSelectionChange]);
 
   const handleRemoveSelected = useCallback(() => {
-    if (selectedIds.size === 0) return;
-    onRemoveVideos(Array.from(selectedIds));
-    setSelectedIds(new Set());
+    if (selectedVideoIds.size === 0) return;
+    onRemoveVideos(Array.from(selectedVideoIds));
+    onSelectedVideoIdsChange(new Set());
     lastSelectedIndexRef.current = null;
-  }, [selectedIds, onRemoveVideos]);
+  }, [selectedVideoIds, onRemoveVideos, onSelectedVideoIdsChange]);
 
   const handleGetCommentsSelected = useCallback(() => {
-    if (selectedIds.size === 0) return;
-    onGetComments(Array.from(selectedIds));
-  }, [selectedIds, onGetComments]);
+    if (selectedVideoIds.size === 0) return;
+    onGetComments(Array.from(selectedVideoIds));
+  }, [selectedVideoIds, onGetComments]);
 
   return (
     <div className="bg-tiktok-gray rounded-lg p-4">
@@ -121,14 +127,14 @@ export function PostsGrid({
               className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 cursor-pointer"
             />
             <span className="text-sm text-gray-400">
-              {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+              {selectedVideoIds.size > 0 ? `${selectedVideoIds.size} selected` : "Select all"}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={handleRemoveSelected}
-              disabled={selectedIds.size === 0}
+              disabled={selectedVideoIds.size === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-gray-400 disabled:border-gray-600 disabled:hover:bg-transparent"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -149,7 +155,7 @@ export function PostsGrid({
             ) : (
               <FetchCommentsButton
                 onClick={handleGetCommentsSelected}
-                disabled={selectedIds.size === 0}
+                disabled={selectedVideoIds.size === 0}
               />
             )}
           </div>
@@ -178,7 +184,7 @@ export function PostsGrid({
           itemContent={(index, video) => (
             <PostCard
               video={video}
-              selected={selectedIds.has(video.videoId)}
+              selected={selectedVideoIds.has(video.videoId)}
               onSelect={(selected) => {
                 const event = window.event as MouseEvent | undefined;
                 handleSelectVideo(video.videoId, selected, index, event?.shiftKey || false);

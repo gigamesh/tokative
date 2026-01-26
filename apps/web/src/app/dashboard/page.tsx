@@ -57,7 +57,8 @@ function DashboardContent() {
     clearPostFilter,
   } = useDashboardUrl();
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedCommentIds, setSelectedCommentIds] = useState<Set<string>>(new Set());
+  const [selectedVideoIds, setSelectedVideoIds] = useState<Set<string>>(new Set());
   const [selectedComment, setSelectedComment] = useState<ScrapedComment | null>(null);
   const [postLimitInput, setPostLimitInput] = useState(String(postLimit));
   const [commentLimitInput, setCommentLimitInput] = useState(String(commentLimit));
@@ -116,8 +117,16 @@ function DashboardContent() {
     return map;
   }, [videos]);
 
+  const getCommentIdsByVideoIds = useCallback(
+    (videoIds: string[]) =>
+      comments
+        .filter((c) => c.videoId && videoIds.includes(c.videoId))
+        .map((c) => c.id),
+    [comments]
+  );
+
   const handleSelectComment = useCallback((commentId: string, selected: boolean) => {
-    setSelectedIds((prev) => {
+    setSelectedCommentIds((prev) => {
       const next = new Set(prev);
       if (selected) {
         next.add(commentId);
@@ -130,7 +139,7 @@ function DashboardContent() {
 
   const handleSelectFiltered = useCallback(
     (commentIds: string[], selected: boolean) => {
-      setSelectedIds((prev) => {
+      setSelectedCommentIds((prev) => {
         const next = new Set(prev);
         if (selected) {
           commentIds.forEach((id) => next.add(id));
@@ -144,10 +153,10 @@ function DashboardContent() {
   );
 
   const handleRemoveSelected = useCallback(() => {
-    if (selectedIds.size === 0) return;
-    removeComments(Array.from(selectedIds));
-    setSelectedIds(new Set());
-  }, [selectedIds, removeComments]);
+    if (selectedCommentIds.size === 0) return;
+    removeComments(Array.from(selectedCommentIds));
+    setSelectedCommentIds(new Set());
+  }, [selectedCommentIds, removeComments]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedComment(null);
@@ -164,10 +173,10 @@ function DashboardContent() {
 
   const handleBulkReply = useCallback(
     (messages: string[]) => {
-      if (selectedIds.size === 0) return;
-      startBulkReply(Array.from(selectedIds), messages);
+      if (selectedCommentIds.size === 0) return;
+      startBulkReply(Array.from(selectedCommentIds), messages);
     },
-    [selectedIds, startBulkReply]
+    [selectedCommentIds, startBulkReply]
   );
 
   const handleViewPostComments = useCallback(
@@ -175,6 +184,39 @@ function DashboardContent() {
       setSelectedPost(videoId);
     },
     [setSelectedPost]
+  );
+
+  const handlePostSelectionChange = useCallback(
+    (videoIds: string[], selected: boolean) => {
+      const commentIds = getCommentIdsByVideoIds(videoIds);
+      setSelectedCommentIds((prev) => {
+        const next = new Set(prev);
+        commentIds.forEach((id) => (selected ? next.add(id) : next.delete(id)));
+        return next;
+      });
+    },
+    [getCommentIdsByVideoIds]
+  );
+
+  const handleRemoveVideosWithComments = useCallback(
+    (videoIds: string[]) => {
+      const commentIds = getCommentIdsByVideoIds(videoIds);
+      if (commentIds.length > 0) {
+        removeComments(commentIds);
+      }
+      removeVideosList(videoIds);
+      setSelectedCommentIds((prev) => {
+        const next = new Set(prev);
+        commentIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      setSelectedVideoIds((prev) => {
+        const next = new Set(prev);
+        videoIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    },
+    [getCommentIdsByVideoIds, removeComments, removeVideosList]
   );
 
   const handleCancelScraping = useCallback(() => {
@@ -265,9 +307,12 @@ function DashboardContent() {
                 loading={videosLoading}
                 getCommentsProgress={getCommentsProgress}
                 commentCountsByVideo={commentCountsByVideo}
+                selectedVideoIds={selectedVideoIds}
+                onSelectedVideoIdsChange={setSelectedVideoIds}
                 onGetComments={getCommentsForVideos}
-                onRemoveVideos={removeVideosList}
+                onRemoveVideos={handleRemoveVideosWithComments}
                 onViewPostComments={handleViewPostComments}
+                onPostSelectionChange={handlePostSelectionChange}
                 isScraping={isScraping}
                 onCancelScraping={handleCancelScraping}
               />
@@ -296,7 +341,7 @@ function DashboardContent() {
                 ) : (
                   <CommentTable
                     comments={comments}
-                    selectedIds={selectedIds}
+                    selectedIds={selectedCommentIds}
                     onSelectComment={handleSelectComment}
                     onSelectFiltered={handleSelectFiltered}
                     onRemoveSelected={handleRemoveSelected}
@@ -312,7 +357,7 @@ function DashboardContent() {
           <div className="space-y-6 sticky top-24 self-start">
             <ReplyComposer
               selectedComment={selectedComment}
-              selectedCount={selectedIds.size}
+              selectedCount={selectedCommentIds.size}
               onSend={handleReplyFromComposer}
               onBulkSend={handleBulkReply}
               onClearSelection={handleClearSelection}
