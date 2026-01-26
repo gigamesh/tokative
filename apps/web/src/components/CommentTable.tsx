@@ -1,9 +1,9 @@
-"use client";
 
 import { ScrapedComment } from "@/utils/constants";
 import { useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 type FilterStatus = "all" | "replied" | "not_replied" | "failed";
 type SortOption = "newest" | "oldest" | "recent_scrape";
@@ -34,6 +34,7 @@ export function CommentTable({
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [sort, setSort] = useState<SortOption>("newest");
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const filteredComments = useMemo(() => {
     const filtered = comments.filter((comment) => {
@@ -144,7 +145,7 @@ export function CommentTable({
         </div>
 
         <button
-          onClick={onRemoveSelected}
+          onClick={() => setShowBulkDeleteConfirm(true)}
           disabled={selectedIds.size === 0}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-gray-400 disabled:border-gray-600 disabled:hover:bg-transparent"
         >
@@ -190,6 +191,16 @@ export function CommentTable({
           )}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        onConfirm={onRemoveSelected}
+        title="Delete selected comments?"
+        message={`Are you sure you want to delete ${selectedIds.size} selected comment${selectedIds.size > 1 ? "s" : ""}? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

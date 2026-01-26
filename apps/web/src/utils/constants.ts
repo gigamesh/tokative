@@ -44,6 +44,9 @@ export const MessageType = {
   GET_STORED_VIDEOS: "GET_STORED_VIDEOS",
   REMOVE_VIDEO: "REMOVE_VIDEO",
   REMOVE_VIDEOS: "REMOVE_VIDEOS",
+  GET_IGNORE_LIST: "GET_IGNORE_LIST",
+  ADD_TO_IGNORE_LIST: "ADD_TO_IGNORE_LIST",
+  REMOVE_FROM_IGNORE_LIST: "REMOVE_FROM_IGNORE_LIST",
 } as const;
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
@@ -114,4 +117,9 @@ export interface ScrapingState {
   commentsFound: number;
   status: "loading" | "scraping" | "paused" | "complete" | "error" | "cancelled";
   message: string;
+}
+
+export interface IgnoreListEntry {
+  text: string;
+  addedAt: string;
 }

@@ -1,4 +1,3 @@
-"use client";
 
 import { useCallback, useRef, forwardRef } from "react";
 import { VirtuosoGrid, GridComponents } from "react-virtuoso";

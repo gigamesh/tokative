@@ -21,8 +21,11 @@ import {
   getScrapingState,
   saveScrapingState,
   clearScrapingState,
+  getIgnoreList,
+  addToIgnoreList,
+  removeFromIgnoreList,
 } from "../storage";
-import { ScrapedComment, ScrapedVideo } from "../../types";
+import { ScrapedComment, ScrapedVideo, IgnoreListEntry } from "../../types";
 
 const mockStorage: Record<string, unknown> = {};
 
@@ -437,6 +440,175 @@ describe("Scraping State Storage", () => {
       const stored = mockStorage["tiktok_buddy_scraping_state"] as Record<string, unknown>;
       expect(stored.isActive).toBe(false);
       expect(stored.commentsFound).toBe(0);
+    });
+  });
+});
+
+describe("Ignore List Storage", () => {
+  beforeEach(() => {
+    Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
+    vi.clearAllMocks();
+  });
+
+  describe("getIgnoreList", () => {
+    it("returns empty array when no ignore list exists", async () => {
+      const ignoreList = await getIgnoreList();
+      expect(ignoreList).toEqual([]);
+    });
+
+    it("returns stored ignore list entries", async () => {
+      const entries: IgnoreListEntry[] = [
+        { text: "spam comment", addedAt: "2024-01-01T00:00:00.000Z" },
+        { text: "another spam", addedAt: "2024-01-02T00:00:00.000Z" },
+      ];
+      mockStorage["tiktok_buddy_ignore_list"] = entries;
+
+      const ignoreList = await getIgnoreList();
+      expect(ignoreList).toEqual(entries);
+    });
+  });
+
+  describe("addToIgnoreList", () => {
+    it("adds new text to empty ignore list", async () => {
+      await addToIgnoreList("spam comment");
+
+      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
+      expect(stored).toHaveLength(1);
+      expect(stored[0].text).toBe("spam comment");
+    });
+
+    it("adds new text to existing ignore list", async () => {
+      mockStorage["tiktok_buddy_ignore_list"] = [
+        { text: "existing spam", addedAt: "2024-01-01T00:00:00.000Z" },
+      ];
+
+      await addToIgnoreList("new spam");
+
+      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
+      expect(stored).toHaveLength(2);
+      expect(stored[1].text).toBe("new spam");
+    });
+
+    it("does not add duplicate text", async () => {
+      mockStorage["tiktok_buddy_ignore_list"] = [
+        { text: "spam comment", addedAt: "2024-01-01T00:00:00.000Z" },
+      ];
+
+      await addToIgnoreList("spam comment");
+
+      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
+      expect(stored).toHaveLength(1);
+    });
+
+    it("stores addedAt timestamp", async () => {
+      const before = new Date().toISOString();
+      await addToIgnoreList("spam comment");
+      const after = new Date().toISOString();
+
+      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
+      expect(stored[0].addedAt).toBeDefined();
+      expect(stored[0].addedAt >= before).toBe(true);
+      expect(stored[0].addedAt <= after).toBe(true);
+    });
+  });
+
+  describe("removeFromIgnoreList", () => {
+    it("removes text from ignore list", async () => {
+      mockStorage["tiktok_buddy_ignore_list"] = [
+        { text: "spam 1", addedAt: "2024-01-01T00:00:00.000Z" },
+        { text: "spam 2", addedAt: "2024-01-02T00:00:00.000Z" },
+      ];
+
+      await removeFromIgnoreList("spam 1");
+
+      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
+      expect(stored).toHaveLength(1);
+      expect(stored[0].text).toBe("spam 2");
+    });
+
+    it("does nothing if text not in list", async () => {
+      mockStorage["tiktok_buddy_ignore_list"] = [
+        { text: "spam 1", addedAt: "2024-01-01T00:00:00.000Z" },
+      ];
+
+      await removeFromIgnoreList("nonexistent");
+
+      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
+      expect(stored).toHaveLength(1);
+    });
+  });
+
+  describe("addScrapedComments with ignore list", () => {
+    it("filters out comments matching ignored text", async () => {
+      mockStorage["tiktok_buddy_ignore_list"] = [
+        { text: "spam comment", addedAt: "2024-01-01T00:00:00.000Z" },
+      ];
+
+      const newComments = [
+        createComment({ id: "1", comment: "spam comment" }),
+        createComment({ id: "2", comment: "good comment" }),
+      ];
+
+      const added = await addScrapedComments(newComments);
+
+      expect(added).toBe(1);
+      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
+      expect(stored).toHaveLength(1);
+      expect(stored[0].comment).toBe("good comment");
+    });
+
+    it("allows comments not in ignore list", async () => {
+      mockStorage["tiktok_buddy_ignore_list"] = [
+        { text: "spam comment", addedAt: "2024-01-01T00:00:00.000Z" },
+      ];
+
+      const newComments = [
+        createComment({ id: "1", comment: "legitimate comment" }),
+      ];
+
+      const added = await addScrapedComments(newComments);
+
+      expect(added).toBe(1);
+    });
+
+    it("filters by exact text match (case-sensitive)", async () => {
+      mockStorage["tiktok_buddy_ignore_list"] = [
+        { text: "Spam Comment", addedAt: "2024-01-01T00:00:00.000Z" },
+      ];
+
+      const newComments = [
+        createComment({ id: "1", comment: "spam comment" }),
+        createComment({ id: "2", comment: "Spam Comment" }),
+      ];
+
+      const added = await addScrapedComments(newComments);
+
+      expect(added).toBe(1);
+      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
+      expect(stored[0].comment).toBe("spam comment");
+    });
+
+    it("still deduplicates by ID and handle:comment after filtering", async () => {
+      mockStorage["tiktok_buddy_ignore_list"] = [
+        { text: "spam", addedAt: "2024-01-01T00:00:00.000Z" },
+      ];
+      mockStorage["tiktok_buddy_scraped_comments"] = [
+        createComment({ id: "existing", handle: "user1", comment: "duplicate" }),
+      ];
+
+      const newComments = [
+        createComment({ id: "1", comment: "spam" }),
+        createComment({ id: "existing", comment: "new text" }),
+        createComment({ id: "2", handle: "user1", comment: "duplicate" }),
+        createComment({ id: "3", comment: "unique" }),
+      ];
+
+      const added = await addScrapedComments(newComments);
+
+      expect(added).toBe(1);
+      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
+      expect(stored).toHaveLength(2);
+      expect(stored[1].comment).toBe("unique");
     });
   });
 });

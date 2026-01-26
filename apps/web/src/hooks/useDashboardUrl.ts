@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
-export type DashboardTab = "posts" | "comments";
+export type DashboardTab = "posts" | "comments" | "settings";
 
 export function useDashboardUrl() {
   const searchParams = useSearchParams();
@@ -12,7 +12,9 @@ export function useDashboardUrl() {
 
   const activeTab = useMemo<DashboardTab>(() => {
     const tab = searchParams.get("tab");
-    return tab === "comments" ? "comments" : "posts";
+    if (tab === "comments") return "comments";
+    if (tab === "settings") return "settings";
+    return "posts";
   }, [searchParams]);
 
   const selectedPostId = useMemo<string | null>(() => {

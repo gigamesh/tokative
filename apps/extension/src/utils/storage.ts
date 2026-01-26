@@ -4,6 +4,7 @@ import {
   StorageData,
   CommentScrapingState,
   DEFAULT_SETTINGS,
+  IgnoreListEntry,
 } from "../types";
 
 const STORAGE_KEYS = {
@@ -14,6 +15,7 @@ const STORAGE_KEYS = {
   COMMENT_LIMIT: "tiktok_buddy_comment_limit",
   POST_LIMIT: "tiktok_buddy_post_limit",
   SCRAPING_STATE: "tiktok_buddy_scraping_state",
+  IGNORE_LIST: "tiktok_buddy_ignore_list",
 } as const;
 
 const DEFAULT_COMMENT_LIMIT = 100;
@@ -30,10 +32,16 @@ export async function saveScrapedComments(comments: ScrapedComment[]): Promise<v
 
 export async function addScrapedComments(newComments: ScrapedComment[]): Promise<number> {
   const existing = await getScrapedComments();
+  const ignoreList = await getIgnoreList();
+  const ignoredTexts = new Set(ignoreList.map((entry) => entry.text));
+
   const existingIds = new Set(existing.map((c) => c.id));
   const existingKeys = new Set(existing.map((c) => `${c.handle}:${c.comment}`));
 
   const uniqueNew = newComments.filter((c) => {
+    if (ignoredTexts.has(c.comment)) {
+      return false;
+    }
     const key = `${c.handle}:${c.comment}`;
     return !existingIds.has(c.id) && !existingKeys.has(key);
   });
@@ -199,5 +207,33 @@ export async function saveScrapingState(state: Partial<CommentScrapingState>): P
 export async function clearScrapingState(): Promise<void> {
   await chrome.storage.local.set({
     [STORAGE_KEYS.SCRAPING_STATE]: DEFAULT_SCRAPING_STATE,
+  });
+}
+
+export async function getIgnoreList(): Promise<IgnoreListEntry[]> {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.IGNORE_LIST);
+  return result[STORAGE_KEYS.IGNORE_LIST] || [];
+}
+
+export async function addToIgnoreList(text: string): Promise<void> {
+  const existing = await getIgnoreList();
+  const alreadyExists = existing.some((entry) => entry.text === text);
+  if (alreadyExists) {
+    return;
+  }
+  const newEntry: IgnoreListEntry = {
+    text,
+    addedAt: new Date().toISOString(),
+  };
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.IGNORE_LIST]: [...existing, newEntry],
+  });
+}
+
+export async function removeFromIgnoreList(text: string): Promise<void> {
+  const existing = await getIgnoreList();
+  const filtered = existing.filter((entry) => entry.text !== text);
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.IGNORE_LIST]: filtered,
   });
 }

@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { bridge } from "@/utils/extension-bridge";

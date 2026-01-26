@@ -1,4 +1,3 @@
-"use client";
 
 import { ScrapedVideo, GetVideoCommentsProgress } from "@/utils/constants";
 

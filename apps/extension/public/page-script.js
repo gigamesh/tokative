@@ -76,6 +76,7 @@
       const comment = findCommentData(fiber);
 
       if (comment?.cid && comment?.create_time) {
+        console.log("[TikTok Buddy] Full comment object:", JSON.stringify(comment, null, 2));
         results.push({
           index,
           cid: comment.cid,

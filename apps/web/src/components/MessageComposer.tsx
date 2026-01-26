@@ -1,4 +1,3 @@
-"use client";
 
 import { ScrapedComment } from "@/utils/constants";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";

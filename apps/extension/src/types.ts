@@ -73,6 +73,11 @@ export enum MessageType {
   VIDEOS_RESPONSE = "VIDEOS_RESPONSE",
   REMOVE_VIDEO = "REMOVE_VIDEO",
   REMOVE_VIDEOS = "REMOVE_VIDEOS",
+
+  // Ignore list
+  GET_IGNORE_LIST = "GET_IGNORE_LIST",
+  ADD_TO_IGNORE_LIST = "ADD_TO_IGNORE_LIST",
+  REMOVE_FROM_IGNORE_LIST = "REMOVE_FROM_IGNORE_LIST",
 }
 
 export interface ScrapedComment {
@@ -158,4 +163,9 @@ export interface CommentScrapingState {
   commentsFound: number;
   status: "loading" | "scraping" | "paused" | "complete" | "error" | "cancelled";
   message: string;
+}
+
+export interface IgnoreListEntry {
+  text: string;
+  addedAt: string;
 }

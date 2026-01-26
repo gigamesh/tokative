@@ -27,6 +27,9 @@ import {
   getScrapingState,
   saveScrapingState,
   clearScrapingState,
+  getIgnoreList,
+  addToIgnoreList,
+  removeFromIgnoreList,
 } from "../utils/storage";
 
 const activePorts = new Map<string, chrome.runtime.Port>();
@@ -224,6 +227,23 @@ async function handleMessage(
     case MessageType.REMOVE_VIDEOS: {
       const { videoIds } = message.payload as { videoIds: string[] };
       await removeVideos(videoIds);
+      return { success: true };
+    }
+
+    case MessageType.GET_IGNORE_LIST: {
+      const ignoreList = await getIgnoreList();
+      return { ignoreList };
+    }
+
+    case MessageType.ADD_TO_IGNORE_LIST: {
+      const { text } = message.payload as { text: string };
+      await addToIgnoreList(text);
+      return { success: true };
+    }
+
+    case MessageType.REMOVE_FROM_IGNORE_LIST: {
+      const { text } = message.payload as { text: string };
+      await removeFromIgnoreList(text);
       return { success: true };
     }
 
