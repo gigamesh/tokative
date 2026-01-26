@@ -1,10 +1,9 @@
 "use client";
 
 import { ScrapedComment } from "@/utils/constants";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
-import { FetchCommentsButton } from "./FetchCommentsButton";
 
 type FilterStatus = "all" | "replied" | "not_replied" | "failed";
 type SortOption = "newest" | "oldest" | "recent_scrape";
@@ -15,7 +14,8 @@ interface CommentTableProps {
   onSelectComment: (commentId: string, selected: boolean) => void;
   onSelectFiltered: (commentIds: string[], selected: boolean) => void;
   onRemoveSelected: () => void;
-  onFetchComments: (videoIds: string[]) => void;
+  onRemoveComment: (commentId: string) => void;
+  onReplyComment: (comment: ScrapedComment) => void;
   videoIdFilter?: string | null;
   videoThumbnails: Map<string, string>;
 }
@@ -26,7 +26,8 @@ export function CommentTable({
   onSelectComment,
   onSelectFiltered,
   onRemoveSelected,
-  onFetchComments,
+  onRemoveComment,
+  onReplyComment,
   videoIdFilter,
   videoThumbnails,
 }: CommentTableProps) {
@@ -85,24 +86,6 @@ export function CommentTable({
   const someFilteredSelected =
     filteredSelectedCount > 0 && filteredSelectedCount < filteredComments.length;
 
-  const handleFetchComments = useCallback(() => {
-    if (videoIdFilter) {
-      onFetchComments([videoIdFilter]);
-    } else {
-      const selectedCommentIds = Array.from(selectedIds);
-      const videoIds = Array.from(
-        new Set(
-          comments
-            .filter((c) => selectedCommentIds.includes(c.id) && c.videoId)
-            .map((c) => c.videoId!),
-        ),
-      );
-      if (videoIds.length > 0) {
-        onFetchComments(videoIds);
-      }
-    }
-  }, [videoIdFilter, selectedIds, comments, onFetchComments]);
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -160,32 +143,26 @@ export function CommentTable({
           </label>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onRemoveSelected}
-            disabled={selectedIds.size === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-gray-400 disabled:border-gray-600 disabled:hover:bg-transparent"
+        <button
+          onClick={onRemoveSelected}
+          disabled={selectedIds.size === 0}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-gray-400 disabled:border-gray-600 disabled:hover:bg-transparent"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
-            </svg>
-            Remove
-          </button>
-          <FetchCommentsButton
-            onClick={handleFetchComments}
-            disabled={!videoIdFilter && selectedIds.size === 0}
-          />
-        </div>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+          Remove
+        </button>
       </div>
 
       {filteredComments.length === 0 ? (
@@ -205,6 +182,8 @@ export function CommentTable({
                 comment={comment}
                 selected={selectedIds.has(comment.id)}
                 onSelect={(selected) => onSelectComment(comment.id, selected)}
+                onRemove={() => onRemoveComment(comment.id)}
+                onReply={() => onReplyComment(comment)}
                 thumbnailUrl={comment.videoId ? videoThumbnails.get(comment.videoId) : undefined}
               />
             </div>

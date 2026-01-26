@@ -158,6 +158,25 @@ function DashboardContent() {
     setSelectedCommentIds(new Set());
   }, [selectedCommentIds, removeComments]);
 
+  const handleRemoveComment = useCallback(
+    (commentId: string) => {
+      removeComments([commentId]);
+      setSelectedCommentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(commentId);
+        return next;
+      });
+    },
+    [removeComments]
+  );
+
+  const handleReplyComment = useCallback(
+    (comment: ScrapedComment) => {
+      setSelectedComment(comment);
+    },
+    []
+  );
+
   const handleClearSelection = useCallback(() => {
     setSelectedComment(null);
   }, []);
@@ -345,7 +364,8 @@ function DashboardContent() {
                     onSelectComment={handleSelectComment}
                     onSelectFiltered={handleSelectFiltered}
                     onRemoveSelected={handleRemoveSelected}
-                    onFetchComments={getCommentsForVideos}
+                    onRemoveComment={handleRemoveComment}
+                    onReplyComment={handleReplyComment}
                     videoIdFilter={selectedPostId}
                     videoThumbnails={videoThumbnailMap}
                   />

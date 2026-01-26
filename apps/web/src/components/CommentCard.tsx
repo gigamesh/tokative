@@ -7,6 +7,8 @@ interface CommentCardProps {
   comment: ScrapedComment;
   selected: boolean;
   onSelect: (selected: boolean) => void;
+  onRemove: () => void;
+  onReply: () => void;
   thumbnailUrl?: string;
 }
 
@@ -29,6 +31,8 @@ export function CommentCard({
   comment,
   selected,
   onSelect,
+  onRemove,
+  onReply,
   thumbnailUrl,
 }: CommentCardProps) {
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
@@ -133,6 +137,35 @@ export function CommentCard({
               Replied {formatRelativeTime(comment.repliedAt)}
             </span>
           )}
+        </div>
+
+        <div className="flex gap-2 flex-shrink-0 self-center">
+          {!comment.replySent && comment.videoUrl && (
+            <button
+              onClick={onReply}
+              className="px-3 py-1.5 text-sm text-blue-400 border border-blue-400/50 bg-blue-500/10 hover:bg-blue-500/20 hover:border-blue-400 rounded-lg transition-colors"
+            >
+              Reply
+            </button>
+          )}
+          <button
+            onClick={onRemove}
+            className="p-1.5 text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
