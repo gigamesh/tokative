@@ -1,5 +1,4 @@
-
-import Link from "next/link";
+import { Link } from "./Link";
 import { Modal } from "./Modal";
 
 interface AddToIgnoreListModalProps {
@@ -48,11 +47,7 @@ export function AddToIgnoreListModal({
       </div>
       <p className="text-sm text-gray-500 mt-4 text-center">
         You can manage your ignore list in the{" "}
-        <Link
-          href="/dashboard?tab=settings"
-          onClick={onClose}
-          className="text-blue-400 hover:text-blue-300 underline"
-        >
+        <Link href="/dashboard?tab=settings" onClick={onClose}>
           settings tab
         </Link>
         .

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "./Link";
 import { Modal } from "./Modal";
 
 interface ScrapeReportModalProps {
@@ -41,11 +41,7 @@ export function ScrapeReportModal({
       <p className="text-gray-500 mb-6">
         Comments are skipped if they are already stored or if they match text in
         your{" "}
-        <Link
-          href="/dashboard?tab=settings"
-          className="text-tiktok-red hover:underline"
-          onClick={onClose}
-        >
+        <Link href="/dashboard?tab=settings" onClick={onClose}>
           ignore list
         </Link>
         .
