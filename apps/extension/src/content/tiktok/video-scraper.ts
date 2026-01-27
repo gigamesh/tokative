@@ -762,6 +762,12 @@ async function scrollToLoadComments(
       onProgress?.(cumulativeStats);
     }
 
+    // Early exit if we found a small batch (< 20 comments) - indicates we're near the end
+    if (newComments.length > 0 && newComments.length < 20) {
+      log(`[TikTok Buddy] Small batch (${newComments.length} < 20), likely reached end of comments`);
+      break;
+    }
+
     // Always try to expand reply threads and save replies incrementally
     // This ensures we capture replies before TikTok recycles DOM elements
     const expandButtons = querySelectorAll<HTMLElement>(VIDEO_SELECTORS.viewRepliesButton);
