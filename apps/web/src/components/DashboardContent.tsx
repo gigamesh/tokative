@@ -10,6 +10,7 @@ import { SelectedPostContext } from "@/components/SelectedPostContext";
 import { SettingsTab } from "@/components/SettingsTab";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
+import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { Toast } from "@/components/Toast";
 import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { useMessaging } from "@/hooks/useMessaging";
@@ -64,6 +65,8 @@ export function DashboardContent() {
     batchProgress,
     isScraping,
     cancelScraping,
+    scrapeReport,
+    closeScrapeReport,
   } = useVideoData();
 
   const {
@@ -563,6 +566,14 @@ export function DashboardContent() {
         onConfirm={handleAddToIgnoreList}
         onSkip={handleSkipIgnoreList}
       />
+
+      {scrapeReport && (
+        <ScrapeReportModal
+          isOpen={true}
+          onClose={closeScrapeReport}
+          stats={scrapeReport.stats}
+        />
+      )}
 
       <Toast
         message={toast.message}

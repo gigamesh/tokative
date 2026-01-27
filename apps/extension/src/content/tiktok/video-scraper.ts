@@ -599,7 +599,7 @@ async function scrollAndWaitForContent(
   const skeletonsAppeared = await waitForSkeletonsToDisappear(scroller, 5000);
 
   // Poll for changes with timeout
-  const maxWaitTime = skeletonsAppeared ? 3000 : 6000; // Shorter wait if we already waited for skeletons
+  const maxWaitTime = skeletonsAppeared ? 2000 : 5000; // Shorter wait if we already waited for skeletons
   const pollInterval = 300;
   let waited = 0;
   let scrollMoved = false;
@@ -800,9 +800,9 @@ async function scrollToLoadComments(
 
     if (!foundNewComments && reachedEnd) {
       stableIterations++;
-      log(`[TikTok Buddy] No new comments and reached end, stableIterations: ${stableIterations}/3`);
-      if (stableIterations >= 3) {
-        log("[TikTok Buddy] Stable for 3 iterations at end, assuming all comments loaded. Breaking loop.");
+      log(`[TikTok Buddy] No new comments and reached end, stableIterations: ${stableIterations}/2`);
+      if (stableIterations >= 2) {
+        log("[TikTok Buddy] Stable for 2 iterations at end, assuming all comments loaded. Breaking loop.");
         break;
       }
     } else {
@@ -821,7 +821,7 @@ async function scrollToLoadComments(
   log(`[TikTok Buddy] Final DOM elements: ${querySelectorAll(VIDEO_SELECTORS.commentItem).length}`);
   log(`[TikTok Buddy] Total unique comments collected: ${allComments.length}`);
   log(`[TikTok Buddy] Final stats: ${JSON.stringify(cumulativeStats)}`);
-  log(`[TikTok Buddy] Exit reason: ${isCancelled ? 'cancelled' : stableIterations >= 3 ? 'stable (no new comments at end)' : `maxComments reached (${maxComments})`}`);
+  log(`[TikTok Buddy] Exit reason: ${isCancelled ? 'cancelled' : stableIterations >= 2 ? 'stable (no new comments at end)' : `maxComments reached (${maxComments})`}`);
 
   // Final pass: expand any remaining visible threads and save
   // (Most expansion happens during scroll, this catches any stragglers)

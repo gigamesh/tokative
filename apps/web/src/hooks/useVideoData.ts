@@ -11,6 +11,17 @@ import {
   ScrapingState,
 } from "@/utils/constants";
 
+interface ScrapeStats {
+  found: number;
+  stored: number;
+  ignored: number;
+  duplicates: number;
+}
+
+interface ScrapeReport {
+  stats: ScrapeStats;
+}
+
 interface VideoDataState {
   videos: ScrapedVideo[];
   loading: boolean;
@@ -19,6 +30,7 @@ interface VideoDataState {
   pendingVideoIds: string[];
   batchProgress: BatchCommentsProgress | null;
   scrapingState: ScrapingState | null;
+  scrapeReport: ScrapeReport | null;
 }
 
 export function useVideoData() {
@@ -30,10 +42,10 @@ export function useVideoData() {
     pendingVideoIds: [],
     batchProgress: null,
     scrapingState: null,
+    scrapeReport: null,
   });
   const isProcessingRef = useRef(false);
   const currentFetchingVideoId = useRef<string | null>(null);
-  const toastedVideoIds = useRef(new Set<string>());
 
   const fetchVideos = useCallback(async () => {
     if (!bridge) return;
@@ -187,21 +199,21 @@ export function useVideoData() {
             const updatedVideos = prev.videos.map((v) =>
               v.videoId === videoId ? { ...v, commentsScraped: true } : v
             );
-            return { ...prev, videos: updatedVideos };
-          });
 
-          setState((prev) => {
-            if (prev.batchProgress) return prev;
-            if (!toastedVideoIds.current.has(videoId)) {
-              toastedVideoIds.current.add(videoId);
-              if (stats) {
-                toast.success(`Found: ${stats.found} · Ignored: ${stats.ignored} · Stored: ${stats.stored}`);
-              } else {
-                toast.success(`Scraped ${comments?.length || 0} comments`);
-              }
-              setTimeout(() => toastedVideoIds.current.delete(videoId), 5000);
+            if (prev.batchProgress) {
+              return { ...prev, videos: updatedVideos, scrapingState: null };
             }
-            return prev;
+
+            if (stats) {
+              return {
+                ...prev,
+                videos: updatedVideos,
+                scrapingState: null,
+                scrapeReport: { stats },
+              };
+            }
+
+            return { ...prev, videos: updatedVideos, scrapingState: null };
           });
         }
       }),
@@ -304,6 +316,10 @@ export function useVideoData() {
     toast.info("Scraping cancelled");
   }, []);
 
+  const closeScrapeReport = useCallback(() => {
+    setState((prev) => ({ ...prev, scrapeReport: null }));
+  }, []);
+
   const isScraping = state.batchProgress !== null || state.getCommentsProgress.size > 0;
 
   return {
@@ -315,5 +331,6 @@ export function useVideoData() {
     removeVideo,
     removeVideos,
     cancelScraping,
+    closeScrapeReport,
   };
 }
