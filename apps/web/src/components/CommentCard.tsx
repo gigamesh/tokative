@@ -9,6 +9,7 @@ interface CommentCardProps {
   onRemove: () => void;
   onReply: () => void;
   thumbnailUrl?: string;
+  depth?: number;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -33,7 +34,9 @@ export function CommentCard({
   onRemove,
   onReply,
   thumbnailUrl,
+  depth = 0,
 }: CommentCardProps) {
+  const isReply = depth > 0;
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -64,7 +67,7 @@ export function CommentCard({
         selected
           ? "border-blue-500 bg-blue-500/10"
           : "border-gray-700 bg-tiktok-gray hover:border-gray-600"
-      }`}
+      } ${isReply ? "ml-10 border-l-2 border-l-gray-600" : ""}`}
     >
       <div className="flex items-start gap-2">
         <input
@@ -94,6 +97,7 @@ export function CommentCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
+            {isReply && <span className="text-gray-500 text-sm">↳</span>}
             <a
               href={comment.profileUrl}
               target="_blank"
@@ -110,6 +114,11 @@ export function CommentCard({
             {replyStatusText && (
               <span className={`text-xs ${replyStatusColor}`}>
                 {replyStatusText}
+              </span>
+            )}
+            {!isReply && comment.replyCount != null && comment.replyCount > 0 && (
+              <span className="text-xs text-gray-500">
+                {comment.replyCount} {comment.replyCount === 1 ? "reply" : "replies"}
               </span>
             )}
           </div>

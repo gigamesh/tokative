@@ -1,9 +1,17 @@
-
 import { ScrapedComment } from "@/utils/constants";
 import { useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { ExpanderRow } from "./ExpanderRow";
+
+interface DisplayComment extends ScrapedComment {
+  depth: number;
+  isExpander?: boolean;
+  expanderCount?: number;
+  parentId?: string;
+  expanded?: boolean;
+}
 
 type FilterStatus = "all" | "replied" | "not_replied" | "failed";
 type SortOption = "newest" | "oldest" | "recent_scrape";
@@ -35,6 +43,18 @@ export function CommentTable({
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [sort, setSort] = useState<SortOption>("newest");
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const toggleThread = (parentId: string) => {
+    setExpandedThreads((prev) => {
+      const next = new Set(prev);
+      if (next.has(parentId)) next.delete(parentId);
+      else next.add(parentId);
+      return next;
+    });
+  };
 
   const filteredComments = useMemo(() => {
     const filtered = comments.filter((comment) => {
@@ -50,7 +70,9 @@ export function CommentTable({
       const matchesFilter =
         filter === "all" ||
         (filter === "replied" && comment.replySent) ||
-        (filter === "not_replied" && !comment.replySent && !comment.replyError) ||
+        (filter === "not_replied" &&
+          !comment.replySent &&
+          !comment.replyError) ||
         (filter === "failed" && comment.replyError);
 
       return matchesSearch && matchesFilter;
@@ -79,13 +101,116 @@ export function CommentTable({
     });
   }, [comments, search, filter, sort, videoIdFilter]);
 
+  const displayComments = useMemo((): DisplayComment[] => {
+    const topLevel = filteredComments.filter((c) => !c.isReply);
+    const repliesMap = new Map<string, ScrapedComment[]>();
+
+    filteredComments
+      .filter((c) => c.isReply && c.parentCommentId)
+      .forEach((reply) => {
+        const parentId = reply.parentCommentId!;
+        if (!repliesMap.has(parentId)) repliesMap.set(parentId, []);
+        repliesMap.get(parentId)!.push(reply);
+      });
+
+    // Debug logging for @greenezr1's comment
+    const debugComment = topLevel.find((c) => c.handle === "greenezr1");
+    if (debugComment) {
+      const replies = repliesMap.get(debugComment.commentId!) || [];
+      console.log("[CommentTable Debug] @greenezr1 comment:", {
+        commentId: debugComment.commentId,
+        replyCount: debugComment.replyCount,
+        scrapedRepliesCount: replies.length,
+        replies: replies.map((r) => ({
+          handle: r.handle,
+          comment: r.comment.slice(0, 50),
+        })),
+      });
+    }
+    // Also log all replies in data
+    const allReplies = filteredComments.filter((c) => c.isReply);
+    console.log(
+      "[CommentTable Debug] Total replies in data:",
+      allReplies.length,
+    );
+    console.log(
+      "[CommentTable Debug] Replies by parent:",
+      Object.fromEntries(repliesMap),
+    );
+
+    repliesMap.forEach((replies) => {
+      replies.sort(
+        (a, b) =>
+          new Date(a.commentTimestamp || 0).getTime() -
+          new Date(b.commentTimestamp || 0).getTime(),
+      );
+    });
+
+    const result: DisplayComment[] = [];
+    const parentIdsInList = new Set(
+      topLevel.map((c) => c.commentId).filter(Boolean),
+    );
+
+    for (const parent of topLevel) {
+      result.push({ ...parent, depth: 0 });
+
+      const replies = repliesMap.get(parent.commentId!) || [];
+
+      if (replies.length > 0) {
+        result.push({ ...replies[0], depth: 1 });
+
+        if (replies.length > 1) {
+          const isExpanded = expandedThreads.has(parent.commentId!);
+          const hiddenScrapedCount = replies.length - 1;
+
+          if (isExpanded) {
+            for (let i = 1; i < replies.length; i++) {
+              result.push({ ...replies[i], depth: 1 });
+            }
+            result.push({
+              id: `expander-${parent.commentId}`,
+              isExpander: true,
+              expanderCount: hiddenScrapedCount,
+              parentId: parent.commentId!,
+              expanded: true,
+              depth: 1,
+            } as DisplayComment);
+          } else {
+            result.push({
+              id: `expander-${parent.commentId}`,
+              isExpander: true,
+              expanderCount: hiddenScrapedCount,
+              parentId: parent.commentId!,
+              expanded: false,
+              depth: 1,
+            } as DisplayComment);
+          }
+        }
+      }
+    }
+
+    const orphanReplies = filteredComments.filter(
+      (c) =>
+        c.isReply &&
+        c.parentCommentId &&
+        !parentIdsInList.has(c.parentCommentId),
+    );
+    for (const orphan of orphanReplies) {
+      result.push({ ...orphan, depth: 1 });
+    }
+
+    return result;
+  }, [filteredComments, expandedThreads]);
+
   const filteredSelectedCount = filteredComments.filter((c) =>
     selectedIds.has(c.id),
   ).length;
   const allFilteredSelected =
-    filteredComments.length > 0 && filteredSelectedCount === filteredComments.length;
+    filteredComments.length > 0 &&
+    filteredSelectedCount === filteredComments.length;
   const someFilteredSelected =
-    filteredSelectedCount > 0 && filteredSelectedCount < filteredComments.length;
+    filteredSelectedCount > 0 &&
+    filteredSelectedCount < filteredComments.length;
 
   return (
     <div className="space-y-4">
@@ -97,7 +222,7 @@ export function CommentTable({
             placeholder="Search comments..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red"
+            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg min-w-80 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red"
           />
 
           <select
@@ -166,7 +291,7 @@ export function CommentTable({
         </button>
       </div>
 
-      {filteredComments.length === 0 ? (
+      {displayComments.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           {comments.length === 0
             ? "No comments scraped yet. Start scraping to see comments here."
@@ -174,19 +299,30 @@ export function CommentTable({
         </div>
       ) : (
         <Virtuoso
-          data={filteredComments}
+          data={displayComments}
           useWindowScroll
           overscan={10}
-          itemContent={(index, comment) => (
+          itemContent={(index, item) => (
             <div className={index > 0 ? "pt-2" : ""}>
-              <CommentCard
-                comment={comment}
-                selected={selectedIds.has(comment.id)}
-                onSelect={(selected) => onSelectComment(comment.id, selected)}
-                onRemove={() => onRemoveComment(comment.id)}
-                onReply={() => onReplyComment(comment)}
-                thumbnailUrl={comment.videoId ? videoThumbnails.get(comment.videoId) : undefined}
-              />
+              {item.isExpander ? (
+                <ExpanderRow
+                  count={item.expanderCount!}
+                  expanded={item.expanded!}
+                  onClick={() => toggleThread(item.parentId!)}
+                />
+              ) : (
+                <CommentCard
+                  comment={item}
+                  selected={selectedIds.has(item.id)}
+                  onSelect={(selected) => onSelectComment(item.id, selected)}
+                  onRemove={() => onRemoveComment(item.id)}
+                  onReply={() => onReplyComment(item)}
+                  thumbnailUrl={
+                    item.videoId ? videoThumbnails.get(item.videoId) : undefined
+                  }
+                  depth={item.depth}
+                />
+              )}
             </div>
           )}
         />
@@ -197,7 +333,7 @@ export function CommentTable({
         onClose={() => setShowBulkDeleteConfirm(false)}
         onConfirm={onRemoveSelected}
         title="Delete selected comments?"
-        message={`Are you sure you want to delete ${selectedIds.size} selected comment${selectedIds.size > 1 ? "s" : ""}? This action cannot be undone.`}
+        message={`Are you sure you want to delete ${selectedIds.size} selected comment${selectedIds.size > 1 ? "s" : ""}? This action cannot be undone (your TikTok account will not be affected).`}
         confirmText="Delete"
         variant="danger"
       />

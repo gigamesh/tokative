@@ -176,7 +176,10 @@ export function useVideoData() {
       }),
 
       bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE, (payload) => {
-        const { comments } = payload as { comments: Array<{ videoId?: string }> };
+        const { comments, stats } = payload as {
+          comments: Array<{ videoId?: string }>;
+          stats?: { found: number; stored: number; duplicates: number; ignored: number };
+        };
         const videoId = comments?.[0]?.videoId || currentFetchingVideoId.current;
 
         if (videoId) {
@@ -191,7 +194,11 @@ export function useVideoData() {
             if (prev.batchProgress) return prev;
             if (!toastedVideoIds.current.has(videoId)) {
               toastedVideoIds.current.add(videoId);
-              toast.success(`Scraped ${comments?.length || 0} comments`);
+              if (stats) {
+                toast.success(`Found: ${stats.found} · Ignored: ${stats.ignored} · Stored: ${stats.stored}`);
+              } else {
+                toast.success(`Scraped ${comments?.length || 0} comments`);
+              }
               setTimeout(() => toastedVideoIds.current.delete(videoId), 5000);
             }
             return prev;

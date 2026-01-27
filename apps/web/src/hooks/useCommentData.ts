@@ -63,7 +63,7 @@ export function useCommentData() {
     }
     refreshTimeoutRef.current = setTimeout(() => {
       fetchData();
-    }, 250);
+    }, 100);
   }, [fetchData]);
 
   useEffect(() => {
@@ -110,6 +110,15 @@ export function useCommentData() {
           clearTimeout(refreshTimeoutRef.current);
         }
         fetchData();
+      }),
+
+      // Listen for storage updates (triggered automatically when comments are saved)
+      bridge.on(MessageType.COMMENTS_UPDATED, (payload) => {
+        const update = payload as { totalCount?: number; addedCount?: number };
+        if (update.totalCount !== undefined && update.totalCount > lastCommentsCountRef.current) {
+          lastCommentsCountRef.current = update.totalCount;
+          debouncedFetchData();
+        }
       }),
     ];
 

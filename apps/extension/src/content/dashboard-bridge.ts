@@ -1,4 +1,4 @@
-import { MessageType, ExtensionMessage } from "../types";
+import { MessageType, ExtensionMessage, EXTENSION_SOURCE } from "../types";
 import { guardExtensionContext } from "../utils/dom";
 
 const BRIDGE_ID = "tiktok-buddy-bridge";
@@ -26,7 +26,7 @@ function initBridge(): void {
     window.postMessage(
       {
         ...message,
-        source: "tiktok-buddy-extension",
+        source: EXTENSION_SOURCE,
       },
       "*"
     );
@@ -45,7 +45,7 @@ function initBridge(): void {
     window.postMessage(
       {
         ...message,
-        source: "tiktok-buddy-extension",
+        source: EXTENSION_SOURCE,
       },
       "*"
     );
@@ -54,7 +54,7 @@ function initBridge(): void {
   window.postMessage(
     {
       type: MessageType.BRIDGE_READY,
-      source: "tiktok-buddy-extension",
+      source: EXTENSION_SOURCE,
     },
     "*"
   );
@@ -73,7 +73,7 @@ function handleWindowMessage(event: MessageEvent): void {
     window.postMessage(
       {
         type: "EXTENSION_CONTEXT_INVALID",
-        source: "tiktok-buddy-extension",
+        source: EXTENSION_SOURCE,
       },
       "*"
     );
@@ -84,7 +84,7 @@ function handleWindowMessage(event: MessageEvent): void {
     window.postMessage(
       {
         type: MessageType.BRIDGE_READY,
-        source: "tiktok-buddy-extension",
+        source: EXTENSION_SOURCE,
       },
       "*"
     );
@@ -96,7 +96,7 @@ function handleWindowMessage(event: MessageEvent): void {
       console.log("[Bridge] Reconnecting port...");
       port = chrome.runtime.connect({ name: "dashboard" });
       port.onMessage.addListener((msg: ExtensionMessage) => {
-        window.postMessage({ ...msg, source: "tiktok-buddy-extension" }, "*");
+        window.postMessage({ ...msg, source: EXTENSION_SOURCE }, "*");
       });
       port.onDisconnect.addListener(() => {
         console.log("[Bridge] Port disconnected, will reconnect on next message");
@@ -112,7 +112,7 @@ function handleWindowMessage(event: MessageEvent): void {
             {
               type: getResponseType(message.type),
               payload: response,
-              source: "tiktok-buddy-extension",
+              source: EXTENSION_SOURCE,
             },
             "*"
           );
@@ -124,7 +124,7 @@ function handleWindowMessage(event: MessageEvent): void {
           {
             type: getResponseType(message.type),
             payload: { error: error.message || "Extension communication error" },
-            source: "tiktok-buddy-extension",
+            source: EXTENSION_SOURCE,
           },
           "*"
         );

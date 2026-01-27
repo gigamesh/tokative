@@ -115,10 +115,42 @@
         font-size: 13px;
         line-height: 1.5;
       }
+      .rate-limit-warning {
+        display: none;
+        margin-bottom: 12px;
+        padding: 10px;
+        border-radius: 6px;
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+      .rate-limit-text {
+        font-size: 12px;
+        color: #ef4444;
+        line-height: 1.4;
+        margin-bottom: 8px;
+      }
+      .btn-dismiss {
+        width: 100%;
+        padding: 6px;
+        border: 1px solid rgba(239, 68, 68, 0.5);
+        border-radius: 4px;
+        font-size: 11px;
+        background: transparent;
+        color: #ef4444;
+        cursor: pointer;
+      }
+      .btn-dismiss:hover {
+        background: rgba(239, 68, 68, 0.1);
+      }
     </style>
   </head>
   <body>
     <h1>TikTok Buddy</h1>
+
+    <div id="rate-limit-warning" class="rate-limit-warning">
+      <div class="rate-limit-text">TikTok rate limit detected. Try waiting a few minutes before scraping again.</div>
+      <button id="rate-limit-dismiss" class="btn-dismiss">Dismiss</button>
+    </div>
 
     <div id="profile-section" class="context-section">
       <button id="scrape-profile" class="btn btn-primary">

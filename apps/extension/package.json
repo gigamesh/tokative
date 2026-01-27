@@ -9,6 +9,9 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "dependencies": {
+    "@tiktok-buddy/shared": "workspace:*"
+  },
   "devDependencies": {
     "@types/chrome": "^0.0.268",
     "chokidar": "^3.6.0",

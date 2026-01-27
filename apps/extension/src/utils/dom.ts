@@ -75,13 +75,34 @@ export function isVisible(element: Element): boolean {
   const rect = element.getBoundingClientRect();
   const style = window.getComputedStyle(element);
 
-  return (
-    rect.width > 0 &&
-    rect.height > 0 &&
-    style.visibility !== "hidden" &&
-    style.display !== "none" &&
-    style.opacity !== "0"
-  );
+  // Basic CSS visibility checks
+  if (
+    rect.width <= 0 ||
+    rect.height <= 0 ||
+    style.visibility === "hidden" ||
+    style.display === "none" ||
+    style.opacity === "0"
+  ) {
+    return false;
+  }
+
+  // Viewport visibility check - element must be at least partially visible
+  // This is crucial for virtualized lists where recycled elements have dimensions
+  // but are positioned off-screen
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+
+  // Element is completely above or below the viewport
+  if (rect.bottom < 0 || rect.top > viewportHeight) {
+    return false;
+  }
+
+  // Element is completely left or right of the viewport
+  if (rect.right < 0 || rect.left > viewportWidth) {
+    return false;
+  }
+
+  return true;
 }
 
 export async function scrollToBottom(
@@ -152,11 +173,11 @@ function clamp(value: number, min: number, max: number): number {
 export type DelayProfile = "micro" | "short" | "medium" | "long" | "typing";
 
 const DELAY_PROFILES: Record<DelayProfile, { mean: number; stdDev: number; min: number; max: number }> = {
-  micro: { mean: 150, stdDev: 50, min: 50, max: 300 },
-  short: { mean: 550, stdDev: 150, min: 300, max: 900 },
-  medium: { mean: 1200, stdDev: 400, min: 600, max: 2200 },
-  long: { mean: 2200, stdDev: 600, min: 1200, max: 4000 },
-  typing: { mean: 65, stdDev: 25, min: 25, max: 140 },
+  micro: { mean: 83, stdDev: 28, min: 28, max: 165 },
+  short: { mean: 303, stdDev: 83, min: 165, max: 495 },
+  medium: { mean: 660, stdDev: 220, min: 330, max: 1210 },
+  long: { mean: 1210, stdDev: 330, min: 660, max: 2200 },
+  typing: { mean: 72, stdDev: 28, min: 28, max: 154 },
 };
 
 export function humanDelay(profile: DelayProfile): Promise<void> {

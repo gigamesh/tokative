@@ -86,13 +86,13 @@ function handleMessage(
           payload: progress,
         });
       })
-        .then((comments) => {
-          console.log("[TikTok] Scraping complete, comments count:", comments.length);
+        .then((result) => {
+          console.log("[TikTok] Scraping complete, comments:", result.comments.length, "stats:", result.stats);
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
-            payload: { comments },
+            payload: { comments: result.comments, stats: result.stats },
           });
-          sendResponse({ success: true, comments });
+          sendResponse({ success: true, comments: result.comments, stats: result.stats });
         })
         .catch((error) => {
           console.error("[TikTok] Scraping error:", error);
@@ -181,11 +181,11 @@ function handlePortMessage(message: ExtensionMessage): void {
             payload: progress,
           });
         })
-          .then((comments) => {
-            console.log("[TikTok] Port: Scraping complete, comments count:", comments.length);
+          .then((result) => {
+            console.log("[TikTok] Port: Scraping complete, comments:", result.comments.length, "stats:", result.stats);
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
-              payload: { comments },
+              payload: { comments: result.comments, stats: result.stats },
             });
           })
           .catch((error) => {

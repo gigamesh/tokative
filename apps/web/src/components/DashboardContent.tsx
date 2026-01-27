@@ -86,6 +86,8 @@ export function DashboardContent() {
   const [postLimitInput, setPostLimitInput] = useState(String(postLimit));
   const [commentLimitInput, setCommentLimitInput] = useState(String(commentLimit));
 
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
+
   const [deleteModal, setDeleteModal] = useState<DeleteModalState>({
     isOpen: false,
     commentId: "",
@@ -117,6 +119,14 @@ export function DashboardContent() {
   useEffect(() => {
     setCommentLimitInput(String(commentLimit));
   }, [commentLimit]);
+
+  // Reset dismissed error when a new error occurs
+  useEffect(() => {
+    const currentError = error || replyError;
+    if (currentError && currentError !== dismissedError) {
+      setDismissedError(null);
+    }
+  }, [error, replyError, dismissedError]);
 
   const handlePostLimitBlur = useCallback(() => {
     const parsed = parseInt(postLimitInput);
@@ -211,7 +221,7 @@ export function DashboardContent() {
       if (!comment) return;
 
       const matchingComments = comments.filter(
-        (c) => c.id !== commentId && c.comment === comment.comment
+        (c) => c.id !== commentId && c.comment.trim() === comment.comment.trim()
       );
 
       if (matchingComments.length > 0) {
@@ -375,9 +385,18 @@ export function DashboardContent() {
           </div>
         )}
 
-        {(error || replyError) && (
-          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400">
-            {error || replyError}
+        {(error || replyError) && (error || replyError) !== dismissedError && (
+          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 flex items-start justify-between gap-3">
+            <span>{error || replyError}</span>
+            <button
+              onClick={() => setDismissedError(error || replyError || null)}
+              className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0"
+              aria-label="Dismiss error"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         )}
 

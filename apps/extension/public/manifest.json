@@ -6,7 +6,8 @@
   "permissions": [
     "storage",
     "tabs",
-    "scripting"
+    "scripting",
+    "webRequest"
   ],
   "host_permissions": [
     "https://www.tiktok.com/*",

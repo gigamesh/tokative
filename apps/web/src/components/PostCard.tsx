@@ -67,9 +67,17 @@ export function PostCard({
 
       {isLoading && (
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
-          <div className="text-center">
+          <div className="text-center px-2">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-white text-xs">{progress?.message || "Loading..."}</p>
+            {progress?.stats ? (
+              <div className="text-white text-xs space-y-0.5">
+                <p>Found: {progress.stats.found}</p>
+                <p>Ignored: {progress.stats.ignored}</p>
+                <p>Stored: {progress.stats.stored}</p>
+              </div>
+            ) : (
+              <p className="text-white text-xs">{progress?.message || "Loading..."}</p>
+            )}
           </div>
         </div>
       )}

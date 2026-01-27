@@ -1,5 +1,5 @@
-import { MessageType, CommentScrapingState } from "../types";
-import { getPostLimit, getCommentLimit, getScrapingState, getVideos } from "../utils/storage";
+import { MessageType, CommentScrapingState, RateLimitState } from "../types";
+import { getPostLimit, getCommentLimit, getScrapingState, getVideos, getRateLimitState } from "../utils/storage";
 
 function updateScrapingStatusUI(
   statusEl: HTMLElement,
@@ -8,17 +8,32 @@ function updateScrapingStatusUI(
 ): void {
   if (state.isPaused) {
     statusEl.className = "scrape-status paused";
-    statusEl.innerHTML = `<span class="paused-text">⏸ Paused (${state.commentsFound} comments) - <a href="#" id="resume-scrape">Click to resume</a></span>`;
-    if (btn) btn.disabled = true;
 
-    const resumeLink = document.getElementById("resume-scrape");
-    if (resumeLink && state.tabId) {
+    // Create elements properly instead of using innerHTML
+    const span = document.createElement("span");
+    span.className = "paused-text";
+    span.textContent = `⏸ Paused (${state.commentsFound} comments) - `;
+
+    const resumeLink = document.createElement("a");
+    resumeLink.href = "#";
+    resumeLink.textContent = "Click to resume";
+
+    if (state.tabId) {
+      const tabId = state.tabId;
       resumeLink.addEventListener("click", async (e) => {
         e.preventDefault();
-        await chrome.tabs.update(state.tabId!, { active: true });
-        window.close();
+        // Activate the tab first, which triggers SCRAPE_RESUME via background script
+        await chrome.tabs.update(tabId, { active: true });
+        // Close popup after a brief delay to ensure tab activation completes
+        setTimeout(() => window.close(), 100);
       });
     }
+
+    span.appendChild(resumeLink);
+    statusEl.innerHTML = "";
+    statusEl.appendChild(span);
+
+    if (btn) btn.disabled = true;
   } else if (state.status === "scraping" || state.status === "loading") {
     statusEl.className = "scrape-status active";
     statusEl.textContent = state.message || `${state.commentsFound} comments found...`;
@@ -49,6 +64,33 @@ function extractVideoId(url: string | undefined): string | null {
 let isProfileScraping = false;
 let isCommentScraping = false;
 
+function showRateLimitWarning(state: RateLimitState): void {
+  const warningEl = document.getElementById("rate-limit-warning");
+  if (!warningEl) return;
+
+  if (state.isRateLimited && state.lastErrorAt) {
+    // Only show if error was in the last 5 minutes
+    const lastErrorTime = new Date(state.lastErrorAt).getTime();
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    if (lastErrorTime > fiveMinutesAgo) {
+      warningEl.style.display = "block";
+      const errorTextEl = warningEl.querySelector(".rate-limit-text");
+      if (errorTextEl) {
+        errorTextEl.textContent = `TikTok rate limit detected (${state.errorCount} errors). Try waiting a few minutes before scraping again.`;
+      }
+      return;
+    }
+  }
+  warningEl.style.display = "none";
+}
+
+function hideRateLimitWarning(): void {
+  const warningEl = document.getElementById("rate-limit-warning");
+  if (warningEl) {
+    warningEl.style.display = "none";
+  }
+}
+
 function updateScrapeButtonState(
   btn: HTMLButtonElement | null,
   isScraping: boolean,
@@ -73,6 +115,17 @@ async function init(): Promise<void> {
   const scrapeStatusEl = document.getElementById("scrape-status");
   const scrapeCommentsBtn = document.getElementById("scrape-comments") as HTMLButtonElement | null;
   const commentScrapeStatusEl = document.getElementById("comment-scrape-status");
+  const rateLimitDismissBtn = document.getElementById("rate-limit-dismiss");
+
+  // Check for rate limit state on init
+  const rateLimitState = await getRateLimitState();
+  showRateLimitWarning(rateLimitState);
+
+  // Rate limit dismiss button handler
+  rateLimitDismissBtn?.addEventListener("click", async () => {
+    await chrome.runtime.sendMessage({ type: MessageType.CLEAR_RATE_LIMIT });
+    hideRateLimitWarning();
+  });
 
   // Determine current page type and show appropriate section
   const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -158,20 +211,30 @@ async function init(): Promise<void> {
 
     // Comment scraping messages
     if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
-      const progress = message.payload;
+      const progress = message.payload as { message?: string; stats?: { found: number; stored: number; ignored: number; duplicates: number } };
       isCommentScraping = true;
       updateScrapeButtonState(scrapeCommentsBtn, true, "Scrape Comments");
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status active";
-        commentScrapeStatusEl.textContent = progress.message || `${progress.commentsFound || 0} comments found...`;
+        if (progress.stats) {
+          const { found, ignored, stored } = progress.stats;
+          commentScrapeStatusEl.textContent = `Found: ${found} · Ignored: ${ignored} · Stored: ${stored}`;
+        } else {
+          commentScrapeStatusEl.textContent = progress.message || "Scraping...";
+        }
       }
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-      const { comments: scrapedComments } = message.payload as { comments: unknown[] };
+      const payload = message.payload as { comments?: unknown[]; stats?: { found: number; stored: number; ignored: number; duplicates: number } };
       isCommentScraping = false;
       updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status success";
-        commentScrapeStatusEl.textContent = `Scraped ${scrapedComments?.length || 0} comments`;
+        if (payload.stats) {
+          const { found, ignored, stored } = payload.stats;
+          commentScrapeStatusEl.textContent = `Found: ${found} · Ignored: ${ignored} · Stored: ${stored}`;
+        } else {
+          commentScrapeStatusEl.textContent = `Scraped ${payload.comments?.length || 0} comments`;
+        }
       }
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
       isCommentScraping = false;
@@ -187,6 +250,12 @@ async function init(): Promise<void> {
       if (state.isActive && commentScrapeStatusEl) {
         updateScrapingStatusUI(commentScrapeStatusEl, state, scrapeCommentsBtn);
       }
+    }
+
+    // Rate limit detection
+    if (message.type === MessageType.RATE_LIMIT_DETECTED) {
+      const state = message.payload as RateLimitState;
+      showRateLimitWarning(state);
     }
   });
 

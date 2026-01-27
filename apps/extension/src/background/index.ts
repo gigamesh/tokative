@@ -30,12 +30,27 @@ import {
   getIgnoreList,
   addToIgnoreList,
   removeFromIgnoreList,
+  getRateLimitState,
+  recordRateLimitError,
+  clearRateLimitState,
 } from "../utils/storage";
 
 const activePorts = new Map<string, chrome.runtime.Port>();
 let activeScrapingTabId: number | null = null;
 let isBatchScraping = false;
 let batchCancelled = false;
+
+async function getDashboardTabIndex(): Promise<number | undefined> {
+  try {
+    const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+    if (tabs.length > 0 && tabs[0].index !== undefined) {
+      return tabs[0].index + 1;
+    }
+  } catch {
+    // Ignore errors
+  }
+  return undefined;
+}
 
 function updateBadge(text: string, color: string): void {
   chrome.action.setBadgeText({ text });
@@ -66,17 +81,30 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 });
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  if (!activeScrapingTabId) return;
+  // Get the scraping tab ID from runtime variable or storage
+  let scrapingTabId = activeScrapingTabId;
 
-  if (activeInfo.tabId !== activeScrapingTabId) {
+  if (!scrapingTabId) {
+    // Service worker may have restarted - check storage for active scraping state
+    const state = await getScrapingState();
+    if (state.isActive && state.tabId) {
+      scrapingTabId = state.tabId;
+      activeScrapingTabId = scrapingTabId; // Restore runtime variable
+      console.log("[Background] Restored activeScrapingTabId from storage:", scrapingTabId);
+    }
+  }
+
+  if (!scrapingTabId) return;
+
+  if (activeInfo.tabId !== scrapingTabId) {
     // Pause scraping when leaving the TikTok tab (for both single and batch scraping)
     console.log("[Background] Scraping tab lost focus, pausing");
-    chrome.tabs.sendMessage(activeScrapingTabId, { type: MessageType.SCRAPE_PAUSE });
+    chrome.tabs.sendMessage(scrapingTabId, { type: MessageType.SCRAPE_PAUSE });
     await saveScrapingState({ isPaused: true, status: "paused", message: "Paused - TikTok tab must be active" });
     broadcastScrapingState();
   } else {
     console.log("[Background] Scraping tab regained focus, resuming");
-    chrome.tabs.sendMessage(activeScrapingTabId, { type: MessageType.SCRAPE_RESUME });
+    chrome.tabs.sendMessage(scrapingTabId, { type: MessageType.SCRAPE_RESUME });
     await saveScrapingState({ isPaused: false, status: "scraping", message: "Scraping comments..." });
     broadcastScrapingState();
   }
@@ -160,6 +188,7 @@ async function handleMessage(
       const tab = await chrome.tabs.create({
         url: "https://www.tiktok.com",
         active: true,
+        index: await getDashboardTabIndex(),
       });
       return { tabId: tab.id };
     }
@@ -309,6 +338,29 @@ async function handleMessage(
       if (activeScrapingTabId) {
         chrome.tabs.sendMessage(activeScrapingTabId, { type: MessageType.SCRAPE_VIDEO_COMMENTS_STOP });
       }
+      // Broadcast cancellation confirmation to dashboard for immediate UI update
+      broadcastToDashboard({
+        type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
+        payload: { comments: [], cancelled: true },
+      });
+      return { success: true };
+    }
+
+    // Storage updates - broadcast to dashboard for real-time UI updates
+    case MessageType.COMMENTS_UPDATED: {
+      broadcastToDashboard(message);
+      return { success: true };
+    }
+
+    // Rate limit handling
+    case MessageType.GET_RATE_LIMIT_STATE: {
+      const state = await getRateLimitState();
+      return { state };
+    }
+
+    case MessageType.CLEAR_RATE_LIMIT: {
+      await clearRateLimitState();
+      updateRateLimitBadge(false);
       return { success: true };
     }
 
@@ -354,6 +406,11 @@ async function handlePortMessage(
       if (activeScrapingTabId) {
         chrome.tabs.sendMessage(activeScrapingTabId, { type: MessageType.SCRAPE_VIDEO_COMMENTS_STOP });
       }
+      // Broadcast cancellation confirmation to dashboard for immediate UI update
+      broadcastToDashboard({
+        type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
+        payload: { comments: [], cancelled: true },
+      });
       break;
     }
 
@@ -456,6 +513,7 @@ async function findOrCreateTikTokTab(handle?: string): Promise<chrome.tabs.Tab |
   const tab = await chrome.tabs.create({
     url: targetUrl,
     active: true,
+    index: await getDashboardTabIndex(),
   });
 
   if (tab.id) {
@@ -539,6 +597,7 @@ async function handleReplyToComment(
     const tab = await chrome.tabs.create({
       url: comment.videoUrl,
       active: false,
+      index: await getDashboardTabIndex(),
     });
 
     if (!tab.id) throw new Error("Failed to create tab");
@@ -637,6 +696,7 @@ async function handleGetVideoComments(
     const tab = await chrome.tabs.create({
       url: video.videoUrl,
       active: true,
+      index: await getDashboardTabIndex(),
     });
 
     if (!tab.id) {
@@ -816,6 +876,7 @@ async function handleGetBatchComments(
         tab = await chrome.tabs.create({
           url: video.videoUrl,
           active: true,
+          index: await getDashboardTabIndex(),
         });
         if (!tab?.id) throw new Error("Failed to create tab");
         chrome.tabs.update(tab.id, { muted: true });
@@ -970,5 +1031,70 @@ function waitForTabLoad(tabId: number): Promise<void> {
     chrome.tabs.onUpdated.addListener(listener);
   });
 }
+
+// Rate limit detection via webRequest
+const TIKTOK_COMMENT_API_PATTERNS = [
+  "*://www.tiktok.com/api/comment/*",
+  "*://www.tiktok.com/api/comment/list/*",
+];
+
+function updateRateLimitBadge(isRateLimited: boolean): void {
+  if (isRateLimited) {
+    chrome.action.setBadgeText({ text: "!" });
+    chrome.action.setBadgeBackgroundColor({ color: "#ef4444" }); // red
+  } else {
+    // Only clear if we're not actively scraping
+    if (!activeScrapingTabId) {
+      clearBadge();
+    }
+  }
+}
+
+chrome.webRequest.onCompleted.addListener(
+  async (details) => {
+    // Check for 5xx errors on TikTok comment APIs
+    if (details.statusCode >= 500 && details.statusCode < 600) {
+      const errorMsg = `TikTok API error ${details.statusCode} on ${new URL(details.url).pathname}`;
+      console.log(`[Background] Rate limit detected: ${errorMsg}`);
+      const state = await recordRateLimitError(errorMsg);
+      updateRateLimitBadge(true);
+
+      // Broadcast to popup/dashboard
+      broadcastToDashboard({
+        type: MessageType.RATE_LIMIT_DETECTED,
+        payload: state,
+      });
+      broadcastToPopup({
+        type: MessageType.RATE_LIMIT_DETECTED,
+        payload: state,
+      });
+    }
+  },
+  { urls: TIKTOK_COMMENT_API_PATTERNS }
+);
+
+// Check rate limit state on startup and update badge
+getRateLimitState().then((state) => {
+  if (state.isRateLimited) {
+    // Check if the last error was within the last 5 minutes
+    const lastErrorTime = state.lastErrorAt ? new Date(state.lastErrorAt).getTime() : 0;
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    if (lastErrorTime > fiveMinutesAgo) {
+      updateRateLimitBadge(true);
+    } else {
+      // Clear stale rate limit state
+      clearRateLimitState();
+    }
+  }
+});
+
+// Restore runtime state from storage on service worker start
+getScrapingState().then((state) => {
+  if (state.isActive && state.tabId) {
+    activeScrapingTabId = state.tabId;
+    isBatchScraping = false; // Conservative - assume single video scrape
+    console.log("[Background] Restored scraping state on startup, tabId:", state.tabId);
+  }
+});
 
 console.log("[Background] TikTok Buddy service worker initialized");

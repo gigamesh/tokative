@@ -5,6 +5,9 @@ import {
   CommentScrapingState,
   DEFAULT_SETTINGS,
   IgnoreListEntry,
+  MessageType,
+  RateLimitState,
+  ScrapeStats,
 } from "../types";
 
 const STORAGE_KEYS = {
@@ -16,7 +19,21 @@ const STORAGE_KEYS = {
   POST_LIMIT: "tiktok_buddy_post_limit",
   SCRAPING_STATE: "tiktok_buddy_scraping_state",
   IGNORE_LIST: "tiktok_buddy_ignore_list",
+  RATE_LIMIT_STATE: "tiktok_buddy_rate_limit_state",
 } as const;
+
+function broadcastCommentsUpdated(totalCount: number, addedCount: number): void {
+  try {
+    chrome.runtime.sendMessage({
+      type: MessageType.COMMENTS_UPDATED,
+      payload: { totalCount, addedCount },
+    }).catch(() => {
+      // Ignore errors (e.g., no listeners)
+    });
+  } catch {
+    // Ignore errors in contexts where chrome.runtime isn't available
+  }
+}
 
 const DEFAULT_COMMENT_LIMIT = 100;
 const DEFAULT_POST_LIMIT = 50;
@@ -30,27 +47,61 @@ export async function saveScrapedComments(comments: ScrapedComment[]): Promise<v
   await chrome.storage.local.set({ [STORAGE_KEYS.SCRAPED_COMMENTS]: comments });
 }
 
-export async function addScrapedComments(newComments: ScrapedComment[]): Promise<number> {
+/**
+ * Adds new comments to storage, deduplicating against existing comments.
+ *
+ * Deduplication strategy:
+ * 1. By ID: Each comment has a unique id (handle-commentId)
+ * 2. By content key: handle + comment text + parentCommentId
+ *
+ * The parentCommentId is included in the content key to allow the same user
+ * to post identical text as replies to different parent comments (common for
+ * things like "thank you" replies).
+ *
+ * Returns the number of new unique comments that were added.
+ */
+export interface AddCommentsResult {
+  stored: number;
+  duplicates: number;
+  ignored: number;
+}
+
+export async function addScrapedComments(newComments: ScrapedComment[]): Promise<AddCommentsResult> {
   const existing = await getScrapedComments();
   const ignoreList = await getIgnoreList();
-  const ignoredTexts = new Set(ignoreList.map((entry) => entry.text));
+  const ignoredTexts = new Set(ignoreList.map((entry) => entry.text.trim()));
 
   const existingIds = new Set(existing.map((c) => c.id));
-  const existingKeys = new Set(existing.map((c) => `${c.handle}:${c.comment}`));
+  // Content key includes videoId so same text on different videos is allowed
+  const existingKeys = new Set(existing.map((c) => {
+    const parentKey = c.parentCommentId ? `:${c.parentCommentId}` : "";
+    return `${c.videoId}:${c.handle}:${c.comment.trim()}${parentKey}`;
+  }));
+
+  let duplicates = 0;
+  let ignored = 0;
 
   const uniqueNew = newComments.filter((c) => {
-    if (ignoredTexts.has(c.comment)) {
+    if (ignoredTexts.has(c.comment.trim())) {
+      ignored++;
       return false;
     }
-    const key = `${c.handle}:${c.comment}`;
-    return !existingIds.has(c.id) && !existingKeys.has(key);
+    const parentKey = c.parentCommentId ? `:${c.parentCommentId}` : "";
+    const key = `${c.videoId}:${c.handle}:${c.comment.trim()}${parentKey}`;
+    if (existingIds.has(c.id) || existingKeys.has(key)) {
+      duplicates++;
+      return false;
+    }
+    return true;
   });
 
   if (uniqueNew.length > 0) {
-    await saveScrapedComments([...existing, ...uniqueNew]);
+    const allComments = [...existing, ...uniqueNew];
+    await saveScrapedComments(allComments);
+    broadcastCommentsUpdated(allComments.length, uniqueNew.length);
   }
 
-  return uniqueNew.length;
+  return { stored: uniqueNew.length, duplicates, ignored };
 }
 
 export async function updateScrapedComment(
@@ -235,5 +286,40 @@ export async function removeFromIgnoreList(text: string): Promise<void> {
   const filtered = existing.filter((entry) => entry.text !== text);
   await chrome.storage.local.set({
     [STORAGE_KEYS.IGNORE_LIST]: filtered,
+  });
+}
+
+const DEFAULT_RATE_LIMIT_STATE: RateLimitState = {
+  isRateLimited: false,
+  lastError: null,
+  errorCount: 0,
+  firstErrorAt: null,
+  lastErrorAt: null,
+};
+
+export async function getRateLimitState(): Promise<RateLimitState> {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.RATE_LIMIT_STATE);
+  return result[STORAGE_KEYS.RATE_LIMIT_STATE] || DEFAULT_RATE_LIMIT_STATE;
+}
+
+export async function recordRateLimitError(errorMessage: string): Promise<RateLimitState> {
+  const current = await getRateLimitState();
+  const now = new Date().toISOString();
+  const newState: RateLimitState = {
+    isRateLimited: true,
+    lastError: errorMessage,
+    errorCount: current.errorCount + 1,
+    firstErrorAt: current.firstErrorAt || now,
+    lastErrorAt: now,
+  };
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.RATE_LIMIT_STATE]: newState,
+  });
+  return newState;
+}
+
+export async function clearRateLimitState(): Promise<void> {
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.RATE_LIMIT_STATE]: DEFAULT_RATE_LIMIT_STATE,
   });
 }
