@@ -113,31 +113,6 @@ export function CommentTable({
         repliesMap.get(parentId)!.push(reply);
       });
 
-    // Debug logging for @greenezr1's comment
-    const debugComment = topLevel.find((c) => c.handle === "greenezr1");
-    if (debugComment) {
-      const replies = repliesMap.get(debugComment.commentId!) || [];
-      console.log("[CommentTable Debug] @greenezr1 comment:", {
-        commentId: debugComment.commentId,
-        replyCount: debugComment.replyCount,
-        scrapedRepliesCount: replies.length,
-        replies: replies.map((r) => ({
-          handle: r.handle,
-          comment: r.comment.slice(0, 50),
-        })),
-      });
-    }
-    // Also log all replies in data
-    const allReplies = filteredComments.filter((c) => c.isReply);
-    console.log(
-      "[CommentTable Debug] Total replies in data:",
-      allReplies.length,
-    );
-    console.log(
-      "[CommentTable Debug] Replies by parent:",
-      Object.fromEntries(repliesMap),
-    );
-
     repliesMap.forEach((replies) => {
       replies.sort(
         (a, b) =>

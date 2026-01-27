@@ -33,14 +33,14 @@ export function ScrapeReportModal({
           <span className="text-green-400 font-medium">{stats.stored}</span>
         </div>
         <div className="flex justify-between items-center py-2 border-b border-gray-700">
-          <span className="text-gray-400">Skipped</span>
+          <span className="text-gray-400">Skipped*</span>
           <span className="text-gray-500 font-medium">{skipped}</span>
         </div>
       </div>
 
       <p className="text-gray-500 mb-6">
-        Comments are skipped if they are already stored or if they match text in
-        your{" "}
+        *Comments are skipped if they are already stored or if they match text
+        in your{" "}
         <Link href="/dashboard?tab=settings" onClick={onClose}>
           ignore list
         </Link>

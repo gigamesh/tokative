@@ -72,17 +72,29 @@ export async function addScrapedComments(newComments: ScrapedComment[]): Promise
   const ignoredTexts = new Set(ignoreList.map((entry) => entry.text.trim()));
 
   const existingIds = new Set(existing.map((c) => c.id));
+  const existingCommentIds = new Set(existing.map((c) => c.commentId).filter(Boolean));
   // Content key includes videoId so same text on different videos is allowed
   const existingKeys = new Set(existing.map((c) => {
     const parentKey = c.parentCommentId ? `:${c.parentCommentId}` : "";
     return `${c.videoId}:${c.handle}:${c.comment.trim()}${parentKey}`;
   }));
 
+  // Build set of all commentIds that will exist (existing + new batch)
+  const allCommentIds = new Set(existingCommentIds);
+  for (const c of newComments) {
+    if (c.commentId) allCommentIds.add(c.commentId);
+  }
+
   let duplicates = 0;
   let ignored = 0;
 
   const uniqueNew = newComments.filter((c) => {
     if (ignoredTexts.has(c.comment.trim())) {
+      ignored++;
+      return false;
+    }
+    // Ignore orphan replies (replies whose parent doesn't exist)
+    if (c.isReply && c.parentCommentId && !allCommentIds.has(c.parentCommentId)) {
       ignored++;
       return false;
     }
