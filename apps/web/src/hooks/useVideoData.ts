@@ -200,10 +200,6 @@ export function useVideoData() {
               v.videoId === videoId ? { ...v, commentsScraped: true } : v
             );
 
-            if (prev.batchProgress) {
-              return { ...prev, videos: updatedVideos, scrapingState: null };
-            }
-
             if (stats) {
               return {
                 ...prev,
@@ -249,18 +245,25 @@ export function useVideoData() {
       }),
 
       bridge.on(MessageType.GET_BATCH_COMMENTS_COMPLETE, (payload) => {
-        const { totalVideos, totalComments, videoIds } = payload as {
+        const { videoIds, stats } = payload as {
           totalVideos: number;
           totalComments: number;
           videoIds: string[];
+          stats?: { found: number; stored: number; duplicates: number; ignored: number };
         };
         setState((prev) => {
           const updatedVideos = prev.videos.map((v) =>
             videoIds.includes(v.videoId) ? { ...v, commentsScraped: true } : v
           );
-          return { ...prev, batchProgress: null, getCommentsProgress: new Map(), videos: updatedVideos, scrapingState: null };
+          return {
+            ...prev,
+            batchProgress: null,
+            getCommentsProgress: new Map(),
+            videos: updatedVideos,
+            scrapingState: null,
+            scrapeReport: stats ? { stats } : null,
+          };
         });
-        toast.success(`Scraped ${totalComments} comments from ${totalVideos} posts`);
       }),
 
       bridge.on(MessageType.GET_BATCH_COMMENTS_ERROR, (payload) => {

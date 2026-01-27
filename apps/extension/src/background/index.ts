@@ -309,12 +309,19 @@ async function handleMessage(
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE: {
       const { comments } = message.payload as { comments: ScrapedComment[] };
+      // Capture batch state BEFORE async ops - the responseHandler in scrapeVideoComments
+      // resolves synchronously, which can set isBatchScraping=false before we finish here
+      const wasBatchScraping = isBatchScraping;
       await addScrapedComments(comments);
       const videoId = comments[0]?.videoId;
       if (videoId) {
         await updateVideo(videoId, { commentsScraped: true });
       }
-      broadcastToDashboard(message);
+      // Only broadcast to dashboard if NOT in batch scraping mode
+      // During batch scraping, GET_BATCH_COMMENTS_COMPLETE will send cumulative stats
+      if (!wasBatchScraping) {
+        broadcastToDashboard(message);
+      }
       return { success: true };
     }
 
@@ -833,6 +840,9 @@ async function handleGetBatchComments(
   let completedVideos = 0;
   let tab: chrome.tabs.Tab | null = null;
 
+  // Cumulative stats across all videos
+  const cumulativeStats = { found: 0, stored: 0, duplicates: 0, ignored: 0 };
+
   // Get the total comment limit for the entire batch
   const totalCommentLimit = await getCommentLimit();
   console.log(`[Background] Starting batch scrape: ${videosToProcess.length} videos, limit: ${totalCommentLimit} comments total`);
@@ -900,11 +910,15 @@ async function handleGetBatchComments(
 
       const videoIndex = i + 1;
       console.log(`[Background] Scraping video ${videoIndex}, remaining budget: ${remainingBudget}`);
-      const commentCount = await scrapeVideoComments(tab!.id!, video.videoId, remainingBudget, (videoId, message) => {
+      const result = await scrapeVideoComments(tab!.id!, video.videoId, remainingBudget, (videoId, message) => {
         sendProgress(videoIndex, videoId, message);
       });
 
-      totalComments += commentCount;
+      totalComments += result.commentCount;
+      cumulativeStats.found += result.stats.found;
+      cumulativeStats.stored += result.stats.stored;
+      cumulativeStats.duplicates += result.stats.duplicates;
+      cumulativeStats.ignored += result.stats.ignored;
       completedVideos++;
       await updateVideo(video.videoId, { commentsScraped: true });
 
@@ -942,6 +956,7 @@ async function handleGetBatchComments(
           totalVideos: videosToProcess.length,
           totalComments,
           videoIds: videosToProcess.map((v) => v.videoId),
+          stats: cumulativeStats,
         },
       });
     }
@@ -972,12 +987,17 @@ async function handleGetBatchComments(
   }
 }
 
+interface VideoScrapeResult {
+  commentCount: number;
+  stats: { found: number; stored: number; duplicates: number; ignored: number };
+}
+
 async function scrapeVideoComments(
   tabId: number,
   videoId: string,
   commentLimit: number,
   onProgress: (videoId: string, message: string) => void
-): Promise<number> {
+): Promise<VideoScrapeResult> {
   console.log("[Background] scrapeVideoComments called for tabId:", tabId, "videoId:", videoId, "limit:", commentLimit);
   return new Promise((resolve, reject) => {
     const responseHandler = (msg: ExtensionMessage) => {
@@ -986,13 +1006,16 @@ async function scrapeVideoComments(
         const payload = msg.payload as { commentsFound?: number; message?: string };
         onProgress(videoId, payload.message || `Found ${payload.commentsFound || 0} comments...`);
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-        const { comments } = msg.payload as { comments: ScrapedComment[] };
-        console.log("[Background] Batch scrape complete, comments:", comments?.length || 0);
-        if (comments && comments.length > 0) {
-          addScrapedComments(comments);
-        }
+        const { comments, stats } = msg.payload as {
+          comments: ScrapedComment[];
+          stats?: { found: number; stored: number; duplicates: number; ignored: number };
+        };
+        console.log("[Background] Batch scrape complete, comments:", comments?.length || 0, "stats:", stats);
         chrome.runtime.onMessage.removeListener(responseHandler);
-        resolve(comments?.length || 0);
+        resolve({
+          commentCount: comments?.length || 0,
+          stats: stats || { found: 0, stored: 0, duplicates: 0, ignored: 0 },
+        });
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
         console.log("[Background] Batch scrape error:", msg.payload);
         chrome.runtime.onMessage.removeListener(responseHandler);
