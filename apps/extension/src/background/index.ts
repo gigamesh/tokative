@@ -52,6 +52,20 @@ async function getDashboardTabIndex(): Promise<number | undefined> {
   return undefined;
 }
 
+async function focusDashboardTab(): Promise<void> {
+  try {
+    const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+    if (tabs.length > 0 && tabs[0].id) {
+      await chrome.tabs.update(tabs[0].id, { active: true });
+      if (tabs[0].windowId) {
+        await chrome.windows.update(tabs[0].windowId, { focused: true });
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+}
+
 function updateBadge(text: string, color: string): void {
   chrome.action.setBadgeText({ text });
   chrome.action.setBadgeBackgroundColor({ color });
@@ -779,6 +793,7 @@ async function handleGetVideoComments(
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
         chrome.tabs.remove(tab.id!);
+        await focusDashboardTab();
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
         console.log("[Background] Scrape error:", msg.payload);
         const errorPayload = (msg.payload || {}) as Record<string, unknown>;
@@ -789,6 +804,7 @@ async function handleGetVideoComments(
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
         chrome.tabs.remove(tab.id!);
+        await focusDashboardTab();
       }
     };
 
@@ -964,6 +980,7 @@ async function handleGetBatchComments(
     if (tab?.id) {
       chrome.tabs.remove(tab.id);
     }
+    await focusDashboardTab();
 
   } catch (error) {
     activeScrapingTabId = null;
@@ -984,6 +1001,7 @@ async function handleGetBatchComments(
     if (tab?.id) {
       chrome.tabs.remove(tab.id).catch(() => {});
     }
+    await focusDashboardTab();
   }
 }
 
