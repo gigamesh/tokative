@@ -1,5 +1,6 @@
 
 import { ScrapedComment } from "@/utils/constants";
+import { getAvatarColor } from "@/utils/avatar";
 import { useEffect, useRef, useState } from "react";
 
 interface CommentCardProps {
@@ -40,6 +41,7 @@ export function CommentCard({
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const commentRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
@@ -98,6 +100,25 @@ export function CommentCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             {isReply && <span className="text-gray-500 text-sm">↳</span>}
+            <a href={comment.profileUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+              {comment.avatarUrl && !avatarFailed ? (
+                <img
+                  src={comment.avatarUrl}
+                  alt={`@${comment.handle}`}
+                  className="w-6 h-6 rounded-full object-cover bg-gray-700"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={() => setAvatarFailed(true)}
+                />
+              ) : (
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white"
+                  style={{ backgroundColor: getAvatarColor(comment.handle) }}
+                >
+                  {comment.handle.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </a>
             <a
               href={comment.profileUrl}
               target="_blank"

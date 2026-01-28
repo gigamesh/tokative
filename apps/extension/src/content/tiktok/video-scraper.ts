@@ -11,6 +11,7 @@ interface RawCommentData {
   comment: string;
   createTime: number;
   videoId: string;
+  avatarUrl?: string;
   parentCommentId?: string | null;
   replyToReplyId?: string | null;
   replyCount?: number;
@@ -70,7 +71,7 @@ interface CommentReactData {
   create_time: number;
   aweme_id: string;
   text?: string;
-  user?: { unique_id: string; nickname?: string };
+  user?: { unique_id: string; nickname?: string; avatar_thumb?: string };
   reply_id?: string;
   reply_to_reply_id?: string;
   reply_comment_total?: number;
@@ -78,7 +79,7 @@ interface CommentReactData {
     cid: string;
     create_time: number;
     text?: string;
-    user?: { unique_id: string; nickname?: string };
+    user?: { unique_id: string; nickname?: string; avatar_thumb?: string };
     reply_id?: string;
     reply_to_reply_id?: string;
   }>;
@@ -261,6 +262,7 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<RawCommentData[]
       createTime: reactData.create_time || Math.floor(Date.now() / 1000),
       // Prefer URL videoId since that's what web app uses for filtering
       videoId: videoId || reactData.aweme_id || "",
+      avatarUrl: reactData.user?.avatar_thumb,
       parentCommentId,
       replyToReplyId: reactData.reply_to_reply_id !== "0" ? reactData.reply_to_reply_id : null,
       replyCount: reactData.reply_comment_total,
@@ -285,6 +287,7 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<RawCommentData[]
           createTime: reply.create_time || Math.floor(Date.now() / 1000),
           // Prefer URL videoId since that's what web app uses for filtering
           videoId: videoId || reactData.aweme_id || "",
+          avatarUrl: reply.user?.avatar_thumb,
           parentCommentId: replyParentId,
           replyToReplyId: reply.reply_to_reply_id !== "0" ? reply.reply_to_reply_id : null,
         });
@@ -329,6 +332,7 @@ function rawCommentToScrapedComment(raw: RawCommentData): ScrapedComment | null 
     comment: raw.comment,
     scrapedAt: new Date().toISOString(),
     profileUrl: `https://www.tiktok.com/@${raw.handle}`,
+    avatarUrl: raw.avatarUrl,
     videoUrl,
     commentTimestamp: new Date(raw.createTime * 1000).toISOString(),
     commentId: raw.commentId,

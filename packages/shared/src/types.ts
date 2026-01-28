@@ -98,6 +98,7 @@ export interface ScrapedComment {
   comment: string;
   scrapedAt: string;
   profileUrl: string;
+  avatarUrl?: string;
   videoUrl?: string;
   replySent?: boolean;
   repliedAt?: string;

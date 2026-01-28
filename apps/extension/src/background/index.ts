@@ -39,6 +39,7 @@ const activePorts = new Map<string, chrome.runtime.Port>();
 let activeScrapingTabId: number | null = null;
 let isBatchScraping = false;
 let batchCancelled = false;
+const closingTabsIntentionally = new Set<number>();
 
 async function getDashboardTabIndex(): Promise<number | undefined> {
   try {
@@ -76,6 +77,19 @@ function clearBadge(): void {
 }
 
 chrome.tabs.onRemoved.addListener(async (tabId) => {
+  // Check if we're closing this tab intentionally (after successful scraping)
+  if (closingTabsIntentionally.has(tabId)) {
+    closingTabsIntentionally.delete(tabId);
+    // Still clean up state but don't broadcast error
+    if (activeScrapingTabId === tabId) {
+      activeScrapingTabId = null;
+      isBatchScraping = false;
+      await clearScrapingState();
+      clearBadge();
+    }
+    return;
+  }
+
   if (activeScrapingTabId && tabId === activeScrapingTabId) {
     console.log("[Background] Scraping tab was closed by user");
     const wasBatchScraping = isBatchScraping;
@@ -792,6 +806,7 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
+        closingTabsIntentionally.add(tab.id!);
         chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
@@ -803,6 +818,7 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
+        closingTabsIntentionally.add(tab.id!);
         chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       }
@@ -978,6 +994,7 @@ async function handleGetBatchComments(
     }
 
     if (tab?.id) {
+      closingTabsIntentionally.add(tab.id);
       chrome.tabs.remove(tab.id);
     }
     await focusDashboardTab();
@@ -999,6 +1016,7 @@ async function handleGetBatchComments(
     });
 
     if (tab?.id) {
+      closingTabsIntentionally.add(tab.id);
       chrome.tabs.remove(tab.id).catch(() => {});
     }
     await focusDashboardTab();

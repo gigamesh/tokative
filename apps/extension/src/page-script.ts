@@ -17,10 +17,17 @@
 
 import { getAllCommentElements, TOP_LEVEL_COMMENT_SELECTOR, REPLY_COMMENT_SELECTOR } from "./content/tiktok/video-selectors";
 
+// TikTok's avatar structure from React fiber
+interface TikTokAvatar {
+  url_list?: string[];
+  uri?: string;
+}
+
 // TikTok's comment user structure from React fiber
 interface TikTokUser {
   unique_id: string;
   nickname?: string;
+  avatar_thumb?: TikTokAvatar;
 }
 
 // TikTok's comment structure from React fiber
@@ -59,7 +66,7 @@ interface ExtractedComment {
   create_time: number;
   aweme_id?: string;
   text?: string;
-  user: { unique_id: string; nickname?: string } | null;
+  user: { unique_id: string; nickname?: string; avatar_thumb?: string } | null;
   reply_id?: string;
   reply_to_reply_id?: string;
   reply_comment_total: number;
@@ -67,7 +74,7 @@ interface ExtractedComment {
     cid: string;
     create_time: number;
     text?: string;
-    user: { unique_id: string; nickname?: string } | null;
+    user: { unique_id: string; nickname?: string; avatar_thumb?: string } | null;
     reply_id?: string;
     reply_to_reply_id?: string;
   }>;
@@ -152,7 +159,7 @@ interface ElementWithFiber extends Element {
           aweme_id: comment.aweme_id,
           text: comment.text,
           user: comment.user
-            ? { unique_id: comment.user.unique_id, nickname: comment.user.nickname }
+            ? { unique_id: comment.user.unique_id, nickname: comment.user.nickname, avatar_thumb: comment.user.avatar_thumb?.url_list?.[0] }
             : null,
           reply_id: comment.reply_id,
           reply_to_reply_id: comment.reply_to_reply_id,
@@ -161,7 +168,7 @@ interface ElementWithFiber extends Element {
             cid: r.cid,
             create_time: r.create_time,
             text: r.text,
-            user: r.user ? { unique_id: r.user.unique_id, nickname: r.user.nickname } : null,
+            user: r.user ? { unique_id: r.user.unique_id, nickname: r.user.nickname, avatar_thumb: r.user.avatar_thumb?.url_list?.[0] } : null,
             reply_id: r.reply_id,
             reply_to_reply_id: r.reply_to_reply_id,
           })),
