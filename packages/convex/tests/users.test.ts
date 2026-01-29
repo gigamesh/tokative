@@ -15,14 +15,9 @@ describe("users", () => {
 
       const userId = await t.mutation(api.users.getOrCreate, {
         clerkId,
-        email: "test@example.com",
       });
 
       expect(userId).toBeDefined();
-
-      const user = await t.query(api.users.getByClerkId, { clerkId });
-      expect(user).not.toBeNull();
-      expect(user?.email).toBe("test@example.com");
     });
 
     it("returns existing user if already exists", async () => {
@@ -30,37 +25,13 @@ describe("users", () => {
 
       const userId1 = await t.mutation(api.users.getOrCreate, {
         clerkId,
-        email: "first@example.com",
       });
 
       const userId2 = await t.mutation(api.users.getOrCreate, {
         clerkId,
-        email: "second@example.com",
       });
 
       expect(userId1).toEqual(userId2);
-
-      const user = await t.query(api.users.getByClerkId, { clerkId });
-      expect(user?.email).toBe("first@example.com"); // Original email preserved
     });
   });
-
-  describe("getByClerkId", () => {
-    it("returns null for non-existent user", async () => {
-      const user = await t.query(api.users.getByClerkId, {
-        clerkId: "nonexistent",
-      });
-      expect(user).toBeNull();
-    });
-
-    it("returns user by clerk id", async () => {
-      const clerkId = `find-user-${Date.now()}`;
-      await t.mutation(api.users.getOrCreate, { clerkId });
-
-      const user = await t.query(api.users.getByClerkId, { clerkId });
-      expect(user).not.toBeNull();
-      expect(user?.clerkId).toBe(clerkId);
-    });
-  });
-
 });

@@ -34,50 +34,6 @@ export const list = query({
       commentId: c.commentId,
       videoId: c.videoId,
       parentCommentId: c.parentCommentId,
-      replyToReplyId: c.replyToReplyId,
-      isReply: c.isReply,
-      replyCount: c.replyCount,
-      _convexId: c._id,
-    }));
-  },
-});
-
-export const listByVideo = query({
-  args: { clerkId: v.string(), videoId: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      return [];
-    }
-
-    const comments = await ctx.db
-      .query("comments")
-      .withIndex("by_user_and_video", (q) =>
-        q.eq("userId", user._id).eq("videoId", args.videoId)
-      )
-      .collect();
-
-    return comments.map((c) => ({
-      id: c.externalId,
-      handle: c.handle,
-      comment: c.comment,
-      scrapedAt: new Date(c.scrapedAt).toISOString(),
-      profileUrl: c.profileUrl,
-      avatarUrl: c.avatarUrl,
-      videoUrl: c.videoUrl,
-      replySent: c.replySent,
-      repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
-      replyError: c.replyError,
-      replyContent: c.replyContent,
-      commentTimestamp: c.commentTimestamp,
-      commentId: c.commentId,
-      videoId: c.videoId,
-      parentCommentId: c.parentCommentId,
-      replyToReplyId: c.replyToReplyId,
       isReply: c.isReply,
       replyCount: c.replyCount,
       _convexId: c._id,
@@ -97,7 +53,6 @@ const commentInput = {
   commentId: v.optional(v.string()),
   videoId: v.optional(v.string()),
   parentCommentId: v.optional(v.string()),
-  replyToReplyId: v.optional(v.string()),
   isReply: v.optional(v.boolean()),
   replyCount: v.optional(v.number()),
 };

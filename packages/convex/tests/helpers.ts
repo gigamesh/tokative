@@ -13,7 +13,6 @@ export async function createTestUser(
   return await t.run(async (ctx) => {
     return await ctx.db.insert("users", {
       clerkId,
-      email: `${clerkId}@test.com`,
       createdAt: Date.now(),
     });
   });
@@ -50,7 +49,6 @@ export function makeVideo(overrides: Partial<{
   profileHandle: string;
   order: number;
   scrapedAt: number;
-  commentsScraped: boolean;
 }> = {}) {
   return {
     videoId: overrides.videoId ?? `video-${Date.now()}`,
@@ -59,7 +57,6 @@ export function makeVideo(overrides: Partial<{
     profileHandle: overrides.profileHandle ?? "testuser",
     order: overrides.order ?? 0,
     scrapedAt: overrides.scrapedAt ?? Date.now(),
-    commentsScraped: overrides.commentsScraped,
   };
 }
 

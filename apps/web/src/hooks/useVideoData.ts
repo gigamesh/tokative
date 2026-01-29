@@ -53,9 +53,7 @@ export function useVideoData() {
     api.videos.list,
     userId ? { clerkId: userId } : "skip"
   );
-  const removeVideoMutation = useMutation(api.videos.remove);
   const removeVideosMutation = useMutation(api.videos.removeBatch);
-  const markCommentsScrapedMutation = useMutation(api.videos.markCommentsScraped);
 
   const videos = (videosQuery ?? []) as ScrapedVideo[];
 
@@ -95,22 +93,6 @@ export function useVideoData() {
       return { ...prev, pendingVideoIds: remainingIds };
     });
   }, [startVideoCommentFetch]);
-
-  const getVideoComments = useCallback(
-    (videoId: string) => {
-      if (!bridge) return;
-
-      if (isProcessingRef.current) {
-        setState((prev) => ({
-          ...prev,
-          pendingVideoIds: [...prev.pendingVideoIds, videoId],
-        }));
-      } else {
-        startVideoCommentFetch(videoId);
-      }
-    },
-    [startVideoCommentFetch]
-  );
 
   const getCommentsForVideos = useCallback(
     (videoIds: string[]) => {
@@ -306,22 +288,6 @@ export function useVideoData() {
     return () => cleanups.forEach((cleanup) => cleanup());
   }, [processNextInQueue]);
 
-  const removeVideo = useCallback(
-    async (videoId: string) => {
-      if (!userId) return;
-
-      await removeVideoMutation({
-        clerkId: userId,
-        videoId,
-      });
-
-      if (bridge) {
-        bridge.send(MessageType.REMOVE_VIDEO, { videoId });
-      }
-    },
-    [userId, removeVideoMutation]
-  );
-
   const removeVideos = useCallback(
     async (videoIds: string[]) => {
       if (!userId) return;
@@ -357,10 +323,6 @@ export function useVideoData() {
     setState((prev) => ({ ...prev, scrapeReport: null }));
   }, []);
 
-  const fetchVideos = useCallback(() => {
-    // No-op: Convex provides real-time reactivity
-  }, []);
-
   const isScraping =
     state.batchProgress !== null || state.getCommentsProgress.size > 0;
 
@@ -374,10 +336,7 @@ export function useVideoData() {
     scrapingState: state.scrapingState,
     scrapeReport: state.scrapeReport,
     isScraping,
-    fetchVideos,
-    getVideoComments,
     getCommentsForVideos,
-    removeVideo,
     removeVideos,
     cancelScraping,
     closeScrapeReport,

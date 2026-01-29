@@ -84,24 +84,6 @@ describe("videos", () => {
     });
   });
 
-  describe("markCommentsScraped", () => {
-    it("marks video as scraped", async () => {
-      await t.mutation(api.videos.addBatch, {
-        clerkId,
-        videos: [makeVideo({ videoId: "mark-test", commentsScraped: false })],
-      });
-
-      await t.mutation(api.videos.markCommentsScraped, {
-        clerkId,
-        videoId: "mark-test",
-        commentsScraped: true,
-      });
-
-      const videos = await t.query(api.videos.list, { clerkId });
-      expect(videos[0].commentsScraped).toBe(true);
-    });
-  });
-
   describe("remove", () => {
     it("removes a single video", async () => {
       await t.mutation(api.videos.addBatch, {

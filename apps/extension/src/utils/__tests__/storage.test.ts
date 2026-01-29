@@ -117,9 +117,9 @@ describe("Comment Storage", () => {
       mockStorage["tiktok_buddy_scraped_comments"] = existing;
 
       const newComments = [createComment({ id: "2", handle: "user2", comment: "Second" })];
-      const added = await addScrapedComments(newComments);
+      const result = await addScrapedComments(newComments);
 
-      expect(added).toBe(1);
+      expect(result.stored).toBe(1);
       expect(mockStorage["tiktok_buddy_scraped_comments"]).toHaveLength(2);
     });
 
@@ -128,9 +128,10 @@ describe("Comment Storage", () => {
       mockStorage["tiktok_buddy_scraped_comments"] = existing;
 
       const newComments = [createComment({ id: "1", handle: "user1", comment: "First" })];
-      const added = await addScrapedComments(newComments);
+      const result = await addScrapedComments(newComments);
 
-      expect(added).toBe(0);
+      expect(result.stored).toBe(0);
+      expect(result.duplicates).toBe(1);
     });
 
     it("deduplicates by handle:comment key", async () => {
@@ -138,9 +139,10 @@ describe("Comment Storage", () => {
       mockStorage["tiktok_buddy_scraped_comments"] = existing;
 
       const newComments = [createComment({ id: "different-id", handle: "user1", comment: "Same comment" })];
-      const added = await addScrapedComments(newComments);
+      const result = await addScrapedComments(newComments);
 
-      expect(added).toBe(0);
+      expect(result.stored).toBe(0);
+      expect(result.duplicates).toBe(1);
     });
 
     it("adds comments with different handle:comment combinations", async () => {
@@ -151,9 +153,9 @@ describe("Comment Storage", () => {
         createComment({ id: "2", handle: "user1", comment: "Comment B" }),
         createComment({ id: "3", handle: "user2", comment: "Comment A" }),
       ];
-      const added = await addScrapedComments(newComments);
+      const result = await addScrapedComments(newComments);
 
-      expect(added).toBe(2);
+      expect(result.stored).toBe(2);
     });
   });
 
@@ -549,9 +551,10 @@ describe("Ignore List Storage", () => {
         createComment({ id: "2", comment: "good comment" }),
       ];
 
-      const added = await addScrapedComments(newComments);
+      const result = await addScrapedComments(newComments);
 
-      expect(added).toBe(1);
+      expect(result.stored).toBe(1);
+      expect(result.ignored).toBe(1);
       const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
       expect(stored).toHaveLength(1);
       expect(stored[0].comment).toBe("good comment");
@@ -566,9 +569,10 @@ describe("Ignore List Storage", () => {
         createComment({ id: "1", comment: "legitimate comment" }),
       ];
 
-      const added = await addScrapedComments(newComments);
+      const result = await addScrapedComments(newComments);
 
-      expect(added).toBe(1);
+      expect(result.stored).toBe(1);
+      expect(result.ignored).toBe(0);
     });
 
     it("filters by exact text match (case-sensitive)", async () => {
@@ -581,9 +585,10 @@ describe("Ignore List Storage", () => {
         createComment({ id: "2", comment: "Spam Comment" }),
       ];
 
-      const added = await addScrapedComments(newComments);
+      const result = await addScrapedComments(newComments);
 
-      expect(added).toBe(1);
+      expect(result.stored).toBe(1);
+      expect(result.ignored).toBe(1);
       const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
       expect(stored[0].comment).toBe("spam comment");
     });
@@ -603,9 +608,11 @@ describe("Ignore List Storage", () => {
         createComment({ id: "3", comment: "unique" }),
       ];
 
-      const added = await addScrapedComments(newComments);
+      const result = await addScrapedComments(newComments);
 
-      expect(added).toBe(1);
+      expect(result.stored).toBe(1);
+      expect(result.duplicates).toBe(2);
+      expect(result.ignored).toBe(1);
       const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
       expect(stored).toHaveLength(2);
       expect(stored[1].comment).toBe("unique");

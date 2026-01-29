@@ -173,17 +173,12 @@ export function useCommentData() {
     [userId, updateCommentMutation]
   );
 
-  const fetchData = useCallback(() => {
-    // No-op: Convex provides real-time reactivity
-  }, []);
-
   return {
     comments: (comments ?? []) as ScrapedComment[],
     commentLimit: state.commentLimit,
     postLimit: state.postLimit,
     loading: state.loading || comments === undefined,
     error: state.error,
-    fetchData,
     removeComment,
     removeComments,
     updateComment,

@@ -186,33 +186,6 @@ http.route({
 });
 
 http.route({
-  path: "/api/videos/mark-scraped",
-  method: "OPTIONS",
-  handler: httpAction(async () => {
-    return new Response(null, { status: 204, headers: corsHeaders() });
-  }),
-});
-
-http.route({
-  path: "/api/videos/mark-scraped",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
-    const auth = await verifyAuth(request);
-    if (!auth) {
-      return errorResponse("Unauthorized", 401);
-    }
-
-    const body = await request.json();
-    await ctx.runMutation(api.videos.markCommentsScraped, {
-      clerkId: auth.clerkId,
-      videoId: body.videoId,
-      commentsScraped: body.commentsScraped,
-    });
-    return jsonResponse({ success: true });
-  }),
-});
-
-http.route({
   path: "/api/videos",
   method: "DELETE",
   handler: httpAction(async (ctx, request) => {
@@ -356,10 +329,8 @@ http.route({
       return errorResponse("Unauthorized", 401);
     }
 
-    const body = await request.json();
     const userId = await ctx.runMutation(api.users.getOrCreate, {
       clerkId: auth.clerkId,
-      email: body.email,
     });
     return jsonResponse({ userId });
   }),

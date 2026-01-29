@@ -42,7 +42,6 @@ export function DashboardContent() {
     removeComments,
     saveCommentLimit,
     savePostLimit,
-    fetchData: fetchComments,
   } = useCommentData();
 
   const {
@@ -351,8 +350,7 @@ export function DashboardContent() {
 
   const handleCancelScraping = useCallback(() => {
     cancelScraping();
-    fetchComments();
-  }, [cancelScraping, fetchComments]);
+  }, [cancelScraping]);
 
   return (
     <div className="min-h-screen bg-tiktok-dark">

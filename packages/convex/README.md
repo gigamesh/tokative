@@ -55,7 +55,6 @@ All data is defined in `/packages/convex/convex/schema.ts`:
 ```typescript
 users: {
   clerkId: string,      // Clerk authentication ID
-  email?: string,
   createdAt: number,    // Unix timestamp
 }
 ```

@@ -28,7 +28,6 @@ export const list = query({
         profileHandle: v.profileHandle,
         order: v.order,
         scrapedAt: new Date(v.scrapedAt).toISOString(),
-        commentsScraped: v.commentsScraped,
         _convexId: v._id,
       }));
   },
@@ -41,7 +40,6 @@ const videoInput = {
   profileHandle: v.string(),
   order: v.number(),
   scrapedAt: v.number(),
-  commentsScraped: v.optional(v.boolean()),
 };
 
 export const addBatch = mutation({
@@ -83,37 +81,6 @@ export const addBatch = mutation({
     }
 
     return { stored, duplicates };
-  },
-});
-
-export const markCommentsScraped = mutation({
-  args: {
-    clerkId: v.string(),
-    videoId: v.string(),
-    commentsScraped: v.boolean(),
-  },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const video = await ctx.db
-      .query("videos")
-      .withIndex("by_user_and_video_id", (q) =>
-        q.eq("userId", user._id).eq("videoId", args.videoId)
-      )
-      .unique();
-
-    if (video) {
-      await ctx.db.patch(video._id, {
-        commentsScraped: args.commentsScraped,
-      });
-    }
   },
 });
 

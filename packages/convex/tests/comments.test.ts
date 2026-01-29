@@ -174,24 +174,4 @@ describe("comments", () => {
     });
   });
 
-  describe("listByVideo", () => {
-    it("returns only comments for specified video", async () => {
-      await t.mutation(api.comments.addBatch, {
-        clerkId,
-        comments: [
-          makeComment({ externalId: "1", videoId: "video-a", comment: "On A" }),
-          makeComment({ externalId: "2", videoId: "video-b", comment: "On B" }),
-          makeComment({ externalId: "3", videoId: "video-a", comment: "Also on A" }),
-        ],
-      });
-
-      const comments = await t.query(api.comments.listByVideo, {
-        clerkId,
-        videoId: "video-a",
-      });
-
-      expect(comments).toHaveLength(2);
-      expect(comments.every((c) => c.videoId === "video-a")).toBe(true);
-    });
-  });
 });

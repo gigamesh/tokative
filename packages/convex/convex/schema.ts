@@ -4,7 +4,6 @@ import { v } from "convex/values";
 export default defineSchema({
   users: defineTable({
     clerkId: v.string(),
-    email: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_clerk_id", ["clerkId"]),
 
@@ -25,7 +24,6 @@ export default defineSchema({
     commentId: v.optional(v.string()),
     videoId: v.optional(v.string()),
     parentCommentId: v.optional(v.string()),
-    replyToReplyId: v.optional(v.string()),
     isReply: v.optional(v.boolean()),
     replyCount: v.optional(v.number()),
   })
@@ -41,7 +39,6 @@ export default defineSchema({
     profileHandle: v.string(),
     order: v.number(),
     scrapedAt: v.number(),
-    commentsScraped: v.optional(v.boolean()),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_video_id", ["userId", "videoId"]),

@@ -52,15 +52,10 @@ export function useIgnoreList() {
     [userId, removeMutation]
   );
 
-  const refetch = useCallback(() => {
-    // No-op: Convex provides real-time reactivity
-  }, []);
-
   return {
     ignoreList,
     loading,
     addToIgnoreList,
     removeFromIgnoreList,
-    refetch,
   };
 }
