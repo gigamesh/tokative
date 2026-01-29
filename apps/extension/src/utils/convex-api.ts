@@ -1,10 +1,12 @@
-import { ScrapedComment, ScrapedVideo, IgnoreListEntry } from "../types";
+import { ScrapedComment, ScrapedVideo, IgnoreListEntry, MessageType } from "../types";
 
 const CONVEX_HTTP_URL = "CONVEX_SITE_URL_PLACEHOLDER";
 
 const STORAGE_KEYS = {
   AUTH_TOKEN: "tiktok_buddy_auth_token",
 } as const;
+
+let tokenRequestInProgress: Promise<string | null> | null = null;
 
 export interface ConvexSyncResult {
   stored: number;
@@ -32,14 +34,73 @@ export async function clearAuthToken(): Promise<void> {
   await chrome.storage.local.remove(STORAGE_KEYS.AUTH_TOKEN);
 }
 
+export async function requestAuthTokenFromWebApp(timeoutMs = 5000): Promise<string | null> {
+  // Prevent concurrent token requests
+  if (tokenRequestInProgress) {
+    return tokenRequestInProgress;
+  }
+
+  tokenRequestInProgress = (async () => {
+    try {
+      // First check if we already have a token
+      const existingToken = await getAuthToken();
+      if (existingToken) {
+        return existingToken;
+      }
+
+      // Request token from web app via background script
+      return new Promise<string | null>((resolve) => {
+        const timeoutId = setTimeout(() => {
+          chrome.runtime.onMessage.removeListener(listener);
+          console.log("[ConvexAPI] Token request timed out");
+          resolve(null);
+        }, timeoutMs);
+
+        const listener = (message: { type: string; payload?: { token?: string | null } }) => {
+          if (message.type === MessageType.AUTH_TOKEN_RESPONSE) {
+            clearTimeout(timeoutId);
+            chrome.runtime.onMessage.removeListener(listener);
+            const token = message.payload?.token || null;
+            if (token) {
+              setAuthToken(token);
+            }
+            resolve(token);
+          }
+        };
+
+        chrome.runtime.onMessage.addListener(listener);
+
+        // Send request to background, which will forward to dashboard tabs
+        chrome.runtime.sendMessage({ type: MessageType.GET_AUTH_TOKEN }).catch(() => {
+          clearTimeout(timeoutId);
+          chrome.runtime.onMessage.removeListener(listener);
+          resolve(null);
+        });
+      });
+    } finally {
+      tokenRequestInProgress = null;
+    }
+  })();
+
+  return tokenRequestInProgress;
+}
+
+async function getOrRequestAuthToken(): Promise<string | null> {
+  const token = await getAuthToken();
+  if (token) {
+    return token;
+  }
+  return requestAuthTokenFromWebApp();
+}
+
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = await getAuthToken();
+  const token = await getOrRequestAuthToken();
 
   if (!token) {
-    throw new Error("Not authenticated");
+    throw new Error("Not authenticated - please sign in to the TikTok Buddy web app");
   }
 
   const response = await fetch(`${CONVEX_HTTP_URL}${endpoint}`, {

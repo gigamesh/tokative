@@ -34,6 +34,7 @@ import {
   recordRateLimitError,
   clearRateLimitState,
 } from "../utils/storage";
+import { setAuthToken } from "../utils/convex-api";
 
 const activePorts = new Map<string, chrome.runtime.Port>();
 let activeScrapingTabId: number | null = null;
@@ -397,6 +398,28 @@ async function handleMessage(
       await clearRateLimitState();
       updateRateLimitBadge(false);
       return { success: true };
+    }
+
+    case MessageType.AUTH_TOKEN_RESPONSE: {
+      const { token } = message.payload as { token: string | null };
+      if (token) {
+        await setAuthToken(token);
+        console.log("[Background] Auth token stored from web app");
+      }
+      return { success: true };
+    }
+
+    case MessageType.GET_AUTH_TOKEN: {
+      // Request token from dashboard - forward to dashboard tabs
+      const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+      for (const tab of tabs) {
+        if (tab.id) {
+          chrome.tabs.sendMessage(tab.id, { type: MessageType.GET_AUTH_TOKEN }).catch(() => {
+            // Dashboard may not have content script ready
+          });
+        }
+      }
+      return { requested: true };
     }
 
     default:

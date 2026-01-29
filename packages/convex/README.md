@@ -333,13 +333,82 @@ for (const comment of comments) {
 
 ## Authentication
 
-Authentication uses Clerk:
+TikTok Buddy uses a **token relay** pattern where the user only needs to sign in once on the web app, and the extension automatically receives the authentication token.
 
-1. **Web App**: Clerk React components handle login/signup
-2. **Convex**: Validates Clerk JWT tokens
-3. **Extension**: Stores auth token and sends with HTTP requests
+### How It Works
 
-The `clerkId` is passed to every Convex function to identify the user.
+```
+┌─────────────────┐     message      ┌─────────────────┐     message      ┌─────────────────┐
+│                 │    passing       │    Dashboard    │    passing       │                 │
+│    Web App      │◄───────────────►│     Bridge      │◄───────────────►│   Background    │
+│   (AuthBridge)  │  window.post    │  (content.js)   │  chrome.runtime  │    Script       │
+│                 │    Message      │                 │    .sendMessage  │                 │
+└─────────────────┘                 └─────────────────┘                  └─────────────────┘
+       │                                                                        │
+       │ Clerk userId                                                           │ Store in
+       │                                                                        │ chrome.storage
+       ▼                                                                        ▼
+   User signs in                                                     Extension has auth
+   to web app                                                        for HTTP requests
+```
+
+### Authentication Flow
+
+1. **User signs in** to the web app using Clerk (or uses dev mode with mock auth)
+
+2. **AuthBridge component** in the web app listens for `GET_AUTH_TOKEN` messages:
+   ```tsx
+   // apps/web/src/components/AuthBridge.tsx
+   window.addEventListener("message", (event) => {
+     if (event.data?.type === "GET_AUTH_TOKEN") {
+       window.postMessage({
+         type: "AUTH_TOKEN_RESPONSE",
+         payload: { token: userId },
+       }, "*");
+     }
+   });
+   ```
+
+3. **Extension requests token** when it needs to make API calls:
+   ```typescript
+   // Extension's convex-api.ts
+   const token = await getOrRequestAuthToken();
+   // If no token stored, requests from web app via message passing
+   ```
+
+4. **Dashboard bridge** (content script on web app page) relays messages between the page and background script
+
+5. **Background script** stores the token in `chrome.storage.local` for future requests
+
+### Local Development (No Clerk)
+
+For local development without setting up Clerk:
+
+1. Leave `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` unset in `.env.local`
+2. The web app uses a mock user ID (`dev-user-local`)
+3. The extension receives this mock ID via the token relay
+4. All data is associated with the dev user
+
+### Production (With Clerk)
+
+For production with real user accounts:
+
+1. Set up Clerk project and add keys to `.env.local`
+2. Users sign in via `/sign-in` page
+3. The real Clerk user ID flows through the token relay
+4. Each user's data is isolated in Convex
+
+### Why Token Relay?
+
+Alternatives considered:
+
+| Approach | Problem |
+|----------|---------|
+| User signs in to extension popup | Poor UX, separate auth flow |
+| Extension uses Clerk directly | Complex, requires popup-based OAuth |
+| Hardcoded token | No multi-user support |
+
+Token relay is simple: sign in once on the web, extension just works.
 
 ## Local Development
 

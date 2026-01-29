@@ -69,6 +69,15 @@ function handleWindowMessage(event: MessageEvent): void {
 
   const message = event.data as ExtensionMessage;
 
+  // Handle auth token response from the web app (source: "dashboard")
+  if (message.type === MessageType.AUTH_TOKEN_RESPONSE && event.data?.source === "dashboard") {
+    console.log("[Bridge] Forwarding auth token to background");
+    chrome.runtime.sendMessage(message).catch((error) => {
+      console.error("[Bridge] Error forwarding auth token:", error);
+    });
+    return;
+  }
+
   if (!guardExtensionContext()) {
     window.postMessage(
       {
