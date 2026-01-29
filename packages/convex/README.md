@@ -56,7 +56,6 @@ All data is defined in `/packages/convex/convex/schema.ts`:
 users: {
   clerkId: string,      // Clerk authentication ID
   email?: string,
-  tiktokHandle?: string,
   createdAt: number,    // Unix timestamp
 }
 ```

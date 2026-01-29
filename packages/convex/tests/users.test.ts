@@ -63,18 +63,4 @@ describe("users", () => {
     });
   });
 
-  describe("updateTiktokHandle", () => {
-    it("updates tiktok handle", async () => {
-      const clerkId = `handle-user-${Date.now()}`;
-      await t.mutation(api.users.getOrCreate, { clerkId });
-
-      await t.mutation(api.users.updateTiktokHandle, {
-        clerkId,
-        tiktokHandle: "coolcreator",
-      });
-
-      const user = await t.query(api.users.getByClerkId, { clerkId });
-      expect(user?.tiktokHandle).toBe("coolcreator");
-    });
-  });
 });

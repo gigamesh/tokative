@@ -34,21 +34,3 @@ export const getOrCreate = mutation({
   },
 });
 
-export const updateTiktokHandle = mutation({
-  args: {
-    clerkId: v.string(),
-    tiktokHandle: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    await ctx.db.patch(user._id, { tiktokHandle: args.tiktokHandle });
-  },
-});
