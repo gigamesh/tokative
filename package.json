@@ -8,6 +8,7 @@
     "dev:convex": "cd packages/convex && npx convex dev",
     "deploy:convex": "cd packages/convex && npx convex deploy",
     "lint": "turbo lint",
+    "test": "turbo test",
     "clean": "turbo clean"
   },
   "devDependencies": {
