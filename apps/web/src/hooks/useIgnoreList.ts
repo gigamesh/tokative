@@ -1,48 +1,59 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { useAuth } from "@/providers/ConvexProvider";
+import { api } from "@tiktok-buddy/convex";
 import { bridge } from "@/utils/extension-bridge";
 import { MessageType, IgnoreListEntry } from "@/utils/constants";
 
 export function useIgnoreList() {
-  const [ignoreList, setIgnoreList] = useState<IgnoreListEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { userId } = useAuth();
 
-  const fetchIgnoreList = useCallback(async () => {
-    if (!bridge) return;
+  const ignoreListQuery = useQuery(
+    api.ignoreList.list,
+    userId ? { clerkId: userId } : "skip"
+  );
+  const addMutation = useMutation(api.ignoreList.add);
+  const removeMutation = useMutation(api.ignoreList.remove);
 
-    try {
-      const response = await bridge.request<{ ignoreList: IgnoreListEntry[] }>(
-        MessageType.GET_IGNORE_LIST
-      );
-      setIgnoreList(response.ignoreList || []);
-    } catch (error) {
-      console.error("Failed to fetch ignore list:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const ignoreList = (ignoreListQuery ?? []) as IgnoreListEntry[];
+  const loading = ignoreListQuery === undefined;
 
-  useEffect(() => {
-    fetchIgnoreList();
-  }, [fetchIgnoreList]);
+  const addToIgnoreList = useCallback(
+    async (text: string) => {
+      if (!userId) return;
 
-  const addToIgnoreList = useCallback(async (text: string) => {
-    if (!bridge) return;
+      await addMutation({
+        clerkId: userId,
+        text,
+      });
 
-    const newEntry: IgnoreListEntry = {
-      text,
-      addedAt: new Date().toISOString(),
-    };
-    setIgnoreList((prev) => [...prev, newEntry]);
-    bridge.send(MessageType.ADD_TO_IGNORE_LIST, { text });
-  }, []);
+      if (bridge) {
+        bridge.send(MessageType.ADD_TO_IGNORE_LIST, { text });
+      }
+    },
+    [userId, addMutation]
+  );
 
-  const removeFromIgnoreList = useCallback(async (text: string) => {
-    if (!bridge) return;
+  const removeFromIgnoreList = useCallback(
+    async (text: string) => {
+      if (!userId) return;
 
-    setIgnoreList((prev) => prev.filter((entry) => entry.text !== text));
-    bridge.send(MessageType.REMOVE_FROM_IGNORE_LIST, { text });
+      await removeMutation({
+        clerkId: userId,
+        text,
+      });
+
+      if (bridge) {
+        bridge.send(MessageType.REMOVE_FROM_IGNORE_LIST, { text });
+      }
+    },
+    [userId, removeMutation]
+  );
+
+  const refetch = useCallback(() => {
+    // No-op: Convex provides real-time reactivity
   }, []);
 
   return {
@@ -50,6 +61,6 @@ export function useIgnoreList() {
     loading,
     addToIgnoreList,
     removeFromIgnoreList,
-    refetch: fetchIgnoreList,
+    refetch,
   };
 }

@@ -3,7 +3,10 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "turbo dev --filter=@tiktok-buddy/web --filter=@tiktok-buddy/convex",
+    "dev:all": "turbo dev",
+    "dev:convex": "cd packages/convex && npx convex dev",
+    "deploy:convex": "cd packages/convex && npx convex deploy",
     "lint": "turbo lint",
     "clean": "turbo clean"
   },

@@ -9,6 +9,7 @@ import {
   RateLimitState,
   ScrapeStats,
 } from "../types";
+import * as convexApi from "./convex-api";
 
 const STORAGE_KEYS = {
   SCRAPED_COMMENTS: "tiktok_buddy_scraped_comments",
@@ -21,6 +22,17 @@ const STORAGE_KEYS = {
   IGNORE_LIST: "tiktok_buddy_ignore_list",
   RATE_LIMIT_STATE: "tiktok_buddy_rate_limit_state",
 } as const;
+
+async function tryConvexSync<T>(fn: () => Promise<T>): Promise<T | null> {
+  try {
+    const isAuth = await convexApi.isAuthenticated();
+    if (!isAuth) return null;
+    return await fn();
+  } catch (error) {
+    console.warn("Convex sync failed:", error);
+    return null;
+  }
+}
 
 function broadcastCommentsUpdated(totalCount: number, addedCount: number): void {
   try {
@@ -111,6 +123,13 @@ export async function addScrapedComments(newComments: ScrapedComment[]): Promise
     const allComments = [...existing, ...uniqueNew];
     await saveScrapedComments(allComments);
     broadcastCommentsUpdated(allComments.length, uniqueNew.length);
+
+    tryConvexSync(() =>
+      convexApi.syncComments(
+        uniqueNew,
+        ignoreList.map((e) => e.text)
+      )
+    );
   }
 
   return { stored: uniqueNew.length, duplicates, ignored };
@@ -126,18 +145,35 @@ export async function updateScrapedComment(
   if (index !== -1) {
     comments[index] = { ...comments[index], ...updates };
     await saveScrapedComments(comments);
+
+    const convexUpdates: {
+      replySent?: boolean;
+      repliedAt?: number;
+      replyError?: string;
+      replyContent?: string;
+    } = {};
+    if (updates.replySent !== undefined) convexUpdates.replySent = updates.replySent;
+    if (updates.repliedAt !== undefined) convexUpdates.repliedAt = new Date(updates.repliedAt).getTime();
+    if (updates.replyError !== undefined) convexUpdates.replyError = updates.replyError;
+    if (updates.replyContent !== undefined) convexUpdates.replyContent = updates.replyContent;
+
+    if (Object.keys(convexUpdates).length > 0) {
+      tryConvexSync(() => convexApi.updateComment(commentId, convexUpdates));
+    }
   }
 }
 
 export async function removeScrapedComment(commentId: string): Promise<void> {
   const comments = await getScrapedComments();
   await saveScrapedComments(comments.filter((c) => c.id !== commentId));
+  tryConvexSync(() => convexApi.deleteComment(commentId));
 }
 
 export async function removeScrapedComments(commentIds: string[]): Promise<void> {
   const comments = await getScrapedComments();
   const idsToRemove = new Set(commentIds);
   await saveScrapedComments(comments.filter((c) => !idsToRemove.has(c.id)));
+  tryConvexSync(() => convexApi.deleteComments(commentIds));
 }
 
 export async function getSettings(): Promise<StorageData["settings"]> {
@@ -212,6 +248,7 @@ export async function addVideos(newVideos: ScrapedVideo[]): Promise<number> {
 
   if (uniqueNew.length > 0) {
     await saveVideos([...existing, ...uniqueNew]);
+    tryConvexSync(() => convexApi.syncVideos(uniqueNew));
   }
 
   return uniqueNew.length;
@@ -227,18 +264,26 @@ export async function updateVideo(
   if (index !== -1) {
     videos[index] = { ...videos[index], ...updates };
     await saveVideos(videos);
+
+    if (updates.commentsScraped !== undefined) {
+      tryConvexSync(() =>
+        convexApi.markVideoCommentsScraped(videoId, updates.commentsScraped!)
+      );
+    }
   }
 }
 
 export async function removeVideo(videoId: string): Promise<void> {
   const videos = await getVideos();
   await saveVideos(videos.filter((v) => v.videoId !== videoId));
+  tryConvexSync(() => convexApi.deleteVideo(videoId));
 }
 
 export async function removeVideos(videoIds: string[]): Promise<void> {
   const videos = await getVideos();
   const idsToRemove = new Set(videoIds);
   await saveVideos(videos.filter((v) => !idsToRemove.has(v.videoId)));
+  tryConvexSync(() => convexApi.deleteVideos(videoIds));
 }
 
 export async function clearVideos(): Promise<void> {
@@ -291,6 +336,7 @@ export async function addToIgnoreList(text: string): Promise<void> {
   await chrome.storage.local.set({
     [STORAGE_KEYS.IGNORE_LIST]: [...existing, newEntry],
   });
+  tryConvexSync(() => convexApi.addToIgnoreListRemote(text));
 }
 
 export async function removeFromIgnoreList(text: string): Promise<void> {
@@ -299,6 +345,7 @@ export async function removeFromIgnoreList(text: string): Promise<void> {
   await chrome.storage.local.set({
     [STORAGE_KEYS.IGNORE_LIST]: filtered,
   });
+  tryConvexSync(() => convexApi.removeFromIgnoreListRemote(text));
 }
 
 const DEFAULT_RATE_LIMIT_STATE: RateLimitState = {
