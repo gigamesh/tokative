@@ -1,27 +1,24 @@
-import { NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const isClerkConfigured = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-export async function middleware(request: NextRequest) {
-  if (!isClerkConfigured) {
-    return NextResponse.next();
-  }
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/api/webhooks(.*)",
+]);
 
-  const { clerkMiddleware, createRouteMatcher } = await import("@clerk/nextjs/server");
-
-  const isPublicRoute = createRouteMatcher([
-    "/sign-in(.*)",
-    "/sign-up(.*)",
-    "/api/webhooks(.*)",
-  ]);
-
-  return clerkMiddleware(async (auth, req) => {
-    if (!isPublicRoute(req)) {
-      await auth.protect();
-    }
-  })(request, {} as any);
-}
+export default isClerkConfigured
+  ? clerkMiddleware(async (auth, req) => {
+      if (!isPublicRoute(req)) {
+        await auth().protect();
+      }
+    })
+  : function middleware(_request: NextRequest) {
+      return NextResponse.next();
+    };
 
 export const config = {
   matcher: [
