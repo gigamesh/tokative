@@ -2,26 +2,34 @@
 
 import { useState, useEffect } from "react";
 import { useExtensionStatus } from "@/hooks/useExtensionStatus";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@tiktok-buddy/convex";
 
 export function SetupBanner() {
   const { setupState, dismissSetup, recheckConnection } = useExtensionStatus();
   const [showSuccess, setShowSuccess] = useState(false);
+  const settings = useQuery(api.settings.getForCurrentUser);
+  const markSetupComplete = useMutation(api.settings.markSetupComplete);
+
+  const isLoading = settings === undefined;
+  const hasCompletedSetup = settings?.hasCompletedSetup ?? false;
 
   useEffect(() => {
-    if (setupState === "connected") {
+    if (!isLoading && setupState === "connected" && !hasCompletedSetup) {
       setShowSuccess(true);
+      markSetupComplete();
       const timer = setTimeout(() => {
         setShowSuccess(false);
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [setupState]);
+  }, [setupState, hasCompletedSetup, isLoading, markSetupComplete]);
 
-  if (setupState === "dismissed") {
+  if (isLoading || setupState === "dismissed") {
     return null;
   }
 
-  if (setupState === "connected" && showSuccess) {
+  if (setupState === "connected" && showSuccess && !hasCompletedSetup) {
     return (
       <div className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg flex items-center justify-between">
         <div className="flex items-center gap-3">

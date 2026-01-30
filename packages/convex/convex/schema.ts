@@ -58,5 +58,6 @@ export default defineSchema({
     commentLimit: v.optional(v.number()),
     postLimit: v.optional(v.number()),
     accountHandle: v.optional(v.string()),
+    hasCompletedSetup: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 });

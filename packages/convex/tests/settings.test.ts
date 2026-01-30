@@ -22,6 +22,7 @@ describe("settings", () => {
         commentLimit: 100,
         postLimit: 50,
         accountHandle: null,
+        hasCompletedSetup: false,
       });
     });
 
