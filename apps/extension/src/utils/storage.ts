@@ -8,8 +8,8 @@ import {
 import * as convexApi from "./convex-api";
 
 const STORAGE_KEYS = {
-  SCRAPING_STATE: "tiktok_buddy_scraping_state",
-  RATE_LIMIT_STATE: "tiktok_buddy_rate_limit_state",
+  SCRAPING_STATE: "tokative_scraping_state",
+  RATE_LIMIT_STATE: "tokative_rate_limit_state",
 } as const;
 
 // ===== CONVEX-FIRST (user data) =====

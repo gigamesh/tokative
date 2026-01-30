@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@/providers/ConvexProvider";
-import { api } from "@tiktok-buddy/convex";
+import { api } from "@tokative/convex";
 import { bridge } from "@/utils/extension-bridge";
 import { MessageType, IgnoreListEntry } from "@/utils/constants";
 

@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@tiktok-buddy/convex", "@tiktok-buddy/shared"],
+  transpilePackages: ["@tokative/convex", "@tokative/shared"],
 };
 
 module.exports = nextConfig;

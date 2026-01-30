@@ -542,7 +542,7 @@ describe("Background Message Handler", () => {
         status: "scraping",
         message: "Scraping...",
       };
-      mockStorage["tiktok_buddy_scraping_state"] = state;
+      mockStorage["tokative_scraping_state"] = state;
 
       const result = await handleMessage(
         { type: MessageType.GET_SCRAPING_STATE },

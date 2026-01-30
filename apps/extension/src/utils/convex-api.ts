@@ -1,10 +1,15 @@
-import { ScrapedComment, ScrapedVideo, IgnoreListEntry, MessageType } from "../types";
+import {
+  IgnoreListEntry,
+  MessageType,
+  ScrapedComment,
+  ScrapedVideo,
+} from "../types";
 
 declare const CONVEX_SITE_URL_PLACEHOLDER: string;
 const CONVEX_HTTP_URL = CONVEX_SITE_URL_PLACEHOLDER;
 
 const STORAGE_KEYS = {
-  AUTH_TOKEN: "tiktok_buddy_auth_token",
+  AUTH_TOKEN: "tokative_auth_token",
 } as const;
 
 let tokenRequestInProgress: Promise<string | null> | null = null;
@@ -36,7 +41,9 @@ export async function clearAuthToken(): Promise<void> {
   await chrome.storage.local.remove(STORAGE_KEYS.AUTH_TOKEN);
 }
 
-export async function requestAuthTokenFromWebApp(timeoutMs = 5000): Promise<string | null> {
+export async function requestAuthTokenFromWebApp(
+  timeoutMs = 5000,
+): Promise<string | null> {
   // Prevent concurrent token requests
   if (tokenRequestInProgress) {
     return tokenRequestInProgress;
@@ -58,7 +65,10 @@ export async function requestAuthTokenFromWebApp(timeoutMs = 5000): Promise<stri
           resolve(null);
         }, timeoutMs);
 
-        const listener = (message: { type: string; payload?: { token?: string | null } }) => {
+        const listener = (message: {
+          type: string;
+          payload?: { token?: string | null };
+        }) => {
           if (message.type === MessageType.AUTH_TOKEN_RESPONSE) {
             clearTimeout(timeoutId);
             chrome.runtime.onMessage.removeListener(listener);
@@ -73,11 +83,13 @@ export async function requestAuthTokenFromWebApp(timeoutMs = 5000): Promise<stri
         chrome.runtime.onMessage.addListener(listener);
 
         // Send request to background, which will forward to dashboard tabs
-        chrome.runtime.sendMessage({ type: MessageType.GET_AUTH_TOKEN }).catch(() => {
-          clearTimeout(timeoutId);
-          chrome.runtime.onMessage.removeListener(listener);
-          resolve(null);
-        });
+        chrome.runtime
+          .sendMessage({ type: MessageType.GET_AUTH_TOKEN })
+          .catch(() => {
+            clearTimeout(timeoutId);
+            chrome.runtime.onMessage.removeListener(listener);
+            resolve(null);
+          });
       });
     } finally {
       tokenRequestInProgress = null;
@@ -97,12 +109,14 @@ async function getOrRequestAuthToken(): Promise<string | null> {
 
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const token = await getOrRequestAuthToken();
 
   if (!token) {
-    throw new Error("Not authenticated - please sign in to the TikTok Buddy web app");
+    throw new Error(
+      "Not authenticated - please sign in to the Tokative web app",
+    );
   }
 
   const response = await fetch(`${CONVEX_HTTP_URL}${endpoint}`, {
@@ -115,7 +129,9 @@ async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Unknown error" }));
     throw new Error(error.error || `HTTP ${response.status}`);
   }
 
@@ -131,7 +147,7 @@ export async function ensureUser(email?: string): Promise<{ userId: string }> {
 
 export async function syncComments(
   comments: ScrapedComment[],
-  ignoreList?: string[]
+  ignoreList?: string[],
 ): Promise<ConvexSyncResult> {
   const convexComments = comments.map((c) => ({
     commentId: c.commentId,
@@ -155,26 +171,28 @@ export async function syncComments(
 }
 
 export async function fetchComments(): Promise<ScrapedComment[]> {
-  const comments = await apiRequest<Array<{
-    id: string;
-    handle: string;
-    comment: string;
-    scrapedAt: string;
-    profileUrl: string;
-    avatarUrl?: string;
-    videoUrl?: string;
-    replySent?: boolean;
-    repliedAt?: string;
-    replyError?: string;
-    replyContent?: string;
-    commentTimestamp?: string;
-    commentId?: string;
-    videoId?: string;
-    parentCommentId?: string;
-    replyToReplyId?: string;
-    isReply?: boolean;
-    replyCount?: number;
-  }>>("/api/comments");
+  const comments = await apiRequest<
+    Array<{
+      id: string;
+      handle: string;
+      comment: string;
+      scrapedAt: string;
+      profileUrl: string;
+      avatarUrl?: string;
+      videoUrl?: string;
+      replySent?: boolean;
+      repliedAt?: string;
+      replyError?: string;
+      replyContent?: string;
+      commentTimestamp?: string;
+      commentId?: string;
+      videoId?: string;
+      parentCommentId?: string;
+      replyToReplyId?: string;
+      isReply?: boolean;
+      replyCount?: number;
+    }>
+  >("/api/comments");
 
   return comments;
 }
@@ -186,7 +204,7 @@ export async function updateComment(
     repliedAt?: number;
     replyError?: string;
     replyContent?: string;
-  }
+  },
 ): Promise<void> {
   await apiRequest("/api/comments", {
     method: "PUT",
@@ -209,7 +227,7 @@ export async function deleteComments(commentIds: string[]): Promise<void> {
 }
 
 export async function syncVideos(
-  videos: ScrapedVideo[]
+  videos: ScrapedVideo[],
 ): Promise<{ stored: number; duplicates: number }> {
   const convexVideos = videos.map((v) => ({
     videoId: v.videoId,
@@ -228,23 +246,25 @@ export async function syncVideos(
 }
 
 export async function fetchVideos(): Promise<ScrapedVideo[]> {
-  const videos = await apiRequest<Array<{
-    id: string;
-    videoId: string;
-    thumbnailUrl: string;
-    videoUrl: string;
-    profileHandle: string;
-    order: number;
-    scrapedAt: string;
-    commentsScraped?: boolean;
-  }>>("/api/videos");
+  const videos = await apiRequest<
+    Array<{
+      id: string;
+      videoId: string;
+      thumbnailUrl: string;
+      videoUrl: string;
+      profileHandle: string;
+      order: number;
+      scrapedAt: string;
+      commentsScraped?: boolean;
+    }>
+  >("/api/videos");
 
   return videos;
 }
 
 export async function updateVideo(
   videoId: string,
-  updates: { commentsScraped?: boolean }
+  updates: { commentsScraped?: boolean },
 ): Promise<void> {
   await apiRequest("/api/videos", {
     method: "PUT",
@@ -289,7 +309,7 @@ export async function fetchSettings(): Promise<ConvexSettings> {
 }
 
 export async function updateSettings(
-  settings: Partial<ConvexSettings>
+  settings: Partial<ConvexSettings>,
 ): Promise<void> {
   await apiRequest("/api/settings", {
     method: "PUT",

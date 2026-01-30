@@ -1,1 +1,1 @@
-export * from "@tiktok-buddy/shared";
+export * from "@tokative/shared";

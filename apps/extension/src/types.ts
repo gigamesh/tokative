@@ -1,6 +1,6 @@
-export * from "@tiktok-buddy/shared";
+export * from "@tokative/shared";
 
-import type { ScrapedComment } from "@tiktok-buddy/shared";
+import type { ScrapedComment } from "@tokative/shared";
 
 export interface StorageData {
   comments: ScrapedComment[];

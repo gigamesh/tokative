@@ -1,6 +1,6 @@
-# TikTok Buddy Data Layer
+# Tokative Data Layer
 
-This document explains how TikTok Buddy stores and syncs data using Convex.
+This document explains how Tokative stores and syncs data using Convex.
 
 ## What is Convex?
 
@@ -220,7 +220,7 @@ Use `useQuery` to subscribe to data. The component re-renders automatically when
 ```tsx
 // hooks/useCommentData.ts
 import { useQuery } from "convex/react";
-import { api } from "@tiktok-buddy/convex";
+import { api } from "@tokative/convex";
 
 function useCommentData() {
   const { userId } = useAuth();
@@ -343,7 +343,7 @@ for (const comment of comments) {
 
 ## Authentication
 
-TikTok Buddy uses a **token relay** pattern where the user only needs to sign in once on the web app, and the extension automatically receives the authentication token.
+Tokative uses a **token relay** pattern where the user only needs to sign in once on the web app, and the extension automatically receives the authentication token.
 
 ### How It Works
 

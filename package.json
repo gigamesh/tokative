@@ -1,9 +1,9 @@
 {
-  "name": "tiktok-buddy",
+  "name": "tokative",
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev --filter=@tiktok-buddy/web --filter=@tiktok-buddy/convex",
+    "dev": "turbo dev --filter=@tokative/web --filter=@tokative/convex",
     "dev:all": "turbo dev",
     "dev:convex": "cd packages/convex && npx convex dev",
     "deploy:convex:dev": "cd packages/convex && npx convex dev --once",

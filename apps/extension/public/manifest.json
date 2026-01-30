@@ -1,18 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "TikTok Buddy",
+  "name": "Tokative",
   "version": "1.0.0",
   "description": "Manage TikTok interactions - scrape comments and send messages",
-  "permissions": [
-    "storage",
-    "tabs",
-    "scripting",
-    "webRequest"
-  ],
-  "host_permissions": [
-    "https://www.tiktok.com/*",
-    "http://localhost:3000/*"
-  ],
+  "permissions": ["storage", "tabs", "scripting", "webRequest"],
+  "host_permissions": ["https://www.tiktok.com/*", "http://localhost:3000/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -31,7 +23,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "TikTok Buddy"
+    "default_title": "Tokative"
   },
   "icons": {
     "16": "icon16.png",

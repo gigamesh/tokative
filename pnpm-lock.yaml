@@ -17,7 +17,7 @@ importers:
 
   apps/extension:
     dependencies:
-      '@tiktok-buddy/shared':
+      '@tokative/shared':
         specifier: workspace:*
         version: link:../../packages/shared
     devDependencies:
@@ -48,10 +48,10 @@ importers:
       '@clerk/nextjs':
         specifier: ^5.0.0
         version: 5.7.5(next@14.2.0)(react-dom@18.3.1)(react@18.3.1)
-      '@tiktok-buddy/convex':
+      '@tokative/convex':
         specifier: workspace:*
         version: link:../../packages/convex
-      '@tiktok-buddy/shared':
+      '@tokative/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       convex:

@@ -1,11 +1,11 @@
+import { AuthBridge } from "@/components/AuthBridge";
+import { ConvexClientProvider } from "@/providers/ConvexProvider";
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
-import { ConvexClientProvider } from "@/providers/ConvexProvider";
-import { AuthBridge } from "@/components/AuthBridge";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TikTok Buddy",
+  title: "Tokative",
   description: "Manage TikTok interactions - scrape comments and send messages",
 };
 

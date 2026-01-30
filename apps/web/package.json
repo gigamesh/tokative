@@ -1,5 +1,5 @@
 {
-  "name": "@tiktok-buddy/web",
+  "name": "@tokative/web",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^5.0.0",
-    "@tiktok-buddy/convex": "workspace:*",
-    "@tiktok-buddy/shared": "workspace:*",
+    "@tokative/convex": "workspace:*",
+    "@tokative/shared": "workspace:*",
     "convex": "^1.17.0",
     "emoji-picker-react": "^4.16.1",
     "next": "14.2.0",

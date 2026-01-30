@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@/providers/ConvexProvider";
 import { toast } from "sonner";
-import { api } from "@tiktok-buddy/convex";
+import { api } from "@tokative/convex";
 import { bridge } from "@/utils/extension-bridge";
 import {
   MessageType,

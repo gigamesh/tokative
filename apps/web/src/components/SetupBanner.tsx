@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useExtensionStatus } from "@/hooks/useExtensionStatus";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "@tiktok-buddy/convex";
+import { api } from "@tokative/convex";
 
 export function SetupBanner() {
   const { setupState, dismissSetup, recheckConnection } = useExtensionStatus();
@@ -84,7 +84,7 @@ export function SetupBanner() {
           <div className="flex-1">
             <h3 className="text-yellow-400 font-medium mb-1">Setup Required</h3>
             <p className="text-yellow-400/80 text-sm mb-3">
-              Install the TikTok Buddy Chrome extension to start scraping.
+              Install the Tokative Chrome extension to start scraping.
             </p>
             <a
               href="#install-extension"
@@ -137,7 +137,7 @@ export function SetupBanner() {
           <div className="flex-1">
             <h3 className="text-blue-400 font-medium mb-1">Almost there!</h3>
             <p className="text-blue-400/80 text-sm mb-3">
-              Open the TikTok Buddy extension and click "Connect to Dashboard"
+              Open the Tokative extension and click "Connect to Dashboard"
             </p>
             <button
               onClick={recheckConnection}

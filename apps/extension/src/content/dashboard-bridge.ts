@@ -1,7 +1,7 @@
 import { MessageType, ExtensionMessage, EXTENSION_SOURCE } from "../types";
 import { guardExtensionContext } from "../utils/dom";
 
-const BRIDGE_ID = "tiktok-buddy-bridge";
+const BRIDGE_ID = "tokative-bridge";
 
 let port: chrome.runtime.Port | null = null;
 
@@ -64,7 +64,7 @@ function initBridge(): void {
 
 function handleWindowMessage(event: MessageEvent): void {
   if (event.source !== window) return;
-  if (event.data?.source === "tiktok-buddy-extension") return;
+  if (event.data?.source === "tokative-extension") return;
   if (!event.data?.type) return;
 
   const message = event.data as ExtensionMessage;

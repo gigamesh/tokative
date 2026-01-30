@@ -15,7 +15,11 @@
  * - reply_comment_total: actual total reply count
  */
 
-import { getAllCommentElements, TOP_LEVEL_COMMENT_SELECTOR, REPLY_COMMENT_SELECTOR } from "./content/tiktok/video-selectors";
+import {
+  getAllCommentElements,
+  REPLY_COMMENT_SELECTOR,
+  TOP_LEVEL_COMMENT_SELECTOR,
+} from "./content/tiktok/video-selectors";
 
 // TikTok's avatar structure from React fiber
 interface TikTokAvatar {
@@ -74,7 +78,11 @@ interface ExtractedComment {
     cid: string;
     create_time: number;
     text?: string;
-    user: { unique_id: string; nickname?: string; avatar_thumb?: string } | null;
+    user: {
+      unique_id: string;
+      nickname?: string;
+      avatar_thumb?: string;
+    } | null;
     reply_id?: string;
     reply_to_reply_id?: string;
   }>;
@@ -92,11 +100,14 @@ interface ElementWithFiber extends Element {
     const all = getAllCommentElements();
 
     // Verbose logging disabled
-    // console.log("[TikTok Buddy page-script] Found", topLevel.length, "top-level and", replies.length, "replies =", all.length, "total");
+    // console.log("[Tokative page-script] Found", topLevel.length, "top-level and", replies.length, "replies =", all.length, "total");
     return all;
   }
 
-  function findCommentData(fiber: ReactFiber | null | undefined, depth = 0): TikTokComment | null {
+  function findCommentData(
+    fiber: ReactFiber | null | undefined,
+    depth = 0,
+  ): TikTokComment | null {
     if (depth > 10) return null;
     if (!fiber) return null;
 
@@ -159,7 +170,11 @@ interface ElementWithFiber extends Element {
           aweme_id: comment.aweme_id,
           text: comment.text,
           user: comment.user
-            ? { unique_id: comment.user.unique_id, nickname: comment.user.nickname, avatar_thumb: comment.user.avatar_thumb?.url_list?.[0] }
+            ? {
+                unique_id: comment.user.unique_id,
+                nickname: comment.user.nickname,
+                avatar_thumb: comment.user.avatar_thumb?.url_list?.[0],
+              }
             : null,
           reply_id: comment.reply_id,
           reply_to_reply_id: comment.reply_to_reply_id,
@@ -168,7 +183,13 @@ interface ElementWithFiber extends Element {
             cid: r.cid,
             create_time: r.create_time,
             text: r.text,
-            user: r.user ? { unique_id: r.user.unique_id, nickname: r.user.nickname, avatar_thumb: r.user.avatar_thumb?.url_list?.[0] } : null,
+            user: r.user
+              ? {
+                  unique_id: r.user.unique_id,
+                  nickname: r.user.nickname,
+                  avatar_thumb: r.user.avatar_thumb?.url_list?.[0],
+                }
+              : null,
             reply_id: r.reply_id,
             reply_to_reply_id: r.reply_to_reply_id,
           })),
@@ -177,16 +198,19 @@ interface ElementWithFiber extends Element {
     });
 
     // Verbose logging disabled
-    // console.log("[TikTok Buddy page-script] Extracted", results.length, "comments with React data");
+    // console.log("[Tokative page-script] Extracted", results.length, "comments with React data");
     return results;
   }
 
   // Listen for extraction requests from content script
-  document.addEventListener("tiktok-buddy-extract", function () {
+  document.addEventListener("tokative-extract", function () {
     const results = extractComments();
-    document.documentElement.setAttribute("data-tiktok-buddy-comments", JSON.stringify(results));
+    document.documentElement.setAttribute(
+      "data-tokative-comments",
+      JSON.stringify(results),
+    );
   });
 
   // Signal that the script is ready
-  document.documentElement.setAttribute("data-tiktok-buddy-ready", "true");
+  document.documentElement.setAttribute("data-tokative-ready", "true");
 })();

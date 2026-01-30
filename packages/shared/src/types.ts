@@ -1,4 +1,4 @@
-export const EXTENSION_SOURCE = "tiktok-buddy-extension";
+export const EXTENSION_SOURCE = "tokative-extension";
 
 export const MessageType = {
   // Bridge communication

@@ -446,7 +446,7 @@ describe("Scraping State Storage (Local)", () => {
         status: "scraping",
         message: "Scraping...",
       };
-      mockStorage["tiktok_buddy_scraping_state"] = storedState;
+      mockStorage["tokative_scraping_state"] = storedState;
 
       const state = await getScrapingState();
       expect(state).toEqual(storedState);
@@ -455,7 +455,7 @@ describe("Scraping State Storage (Local)", () => {
 
   describe("saveScrapingState", () => {
     it("merges partial state with existing state", async () => {
-      mockStorage["tiktok_buddy_scraping_state"] = {
+      mockStorage["tokative_scraping_state"] = {
         isActive: true,
         isPaused: false,
         videoId: "123",
@@ -467,7 +467,7 @@ describe("Scraping State Storage (Local)", () => {
 
       await saveScrapingState({ commentsFound: 100, message: "Almost done" });
 
-      const stored = mockStorage["tiktok_buddy_scraping_state"] as Record<string, unknown>;
+      const stored = mockStorage["tokative_scraping_state"] as Record<string, unknown>;
       expect(stored.commentsFound).toBe(100);
       expect(stored.message).toBe("Almost done");
       expect(stored.isActive).toBe(true);
@@ -477,14 +477,14 @@ describe("Scraping State Storage (Local)", () => {
 
   describe("clearScrapingState", () => {
     it("resets to default state", async () => {
-      mockStorage["tiktok_buddy_scraping_state"] = {
+      mockStorage["tokative_scraping_state"] = {
         isActive: true,
         commentsFound: 100,
       };
 
       await clearScrapingState();
 
-      const stored = mockStorage["tiktok_buddy_scraping_state"] as Record<string, unknown>;
+      const stored = mockStorage["tokative_scraping_state"] as Record<string, unknown>;
       expect(stored.isActive).toBe(false);
       expect(stored.commentsFound).toBe(0);
     });
