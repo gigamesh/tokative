@@ -1,6 +1,7 @@
 const esbuild = require("esbuild");
 const path = require("path");
 const fs = require("fs");
+const env = require("./env");
 
 const isWatch = process.argv.includes("--watch");
 
@@ -25,6 +26,9 @@ const buildOptions = {
   format: "iife",
   sourcemap: isWatch ? "inline" : false,
   minify: !isWatch,
+  define: {
+    "CONVEX_SITE_URL_PLACEHOLDER": JSON.stringify(env.CONVEX_SITE_URL),
+  },
 };
 
 async function copyPublicFiles() {

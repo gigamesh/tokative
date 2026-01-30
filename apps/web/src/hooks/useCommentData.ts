@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { useAuth } from "@/providers/ConvexProvider";
+import { api } from "@tokative/convex";
 import { bridge } from "@/utils/extension-bridge";
-import {
-  MessageType,
-  ScrapedComment,
-} from "@/utils/constants";
+import { MessageType, ScrapedComment } from "@/utils/constants";
 
 interface CommentDataState {
-  comments: ScrapedComment[];
   commentLimit: number;
   postLimit: number;
   loading: boolean;
@@ -16,172 +15,170 @@ interface CommentDataState {
 }
 
 export function useCommentData() {
+  const { userId } = useAuth();
   const [state, setState] = useState<CommentDataState>({
-    comments: [],
     commentLimit: 100,
     postLimit: 50,
     loading: true,
     error: null,
   });
 
-  const fetchData = useCallback(async () => {
-    if (!bridge) return;
+  const comments = useQuery(
+    api.comments.list,
+    userId ? { clerkId: userId } : "skip"
+  );
+  const settings = useQuery(
+    api.settings.get,
+    userId ? { clerkId: userId } : "skip"
+  );
 
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+  const removeCommentMutation = useMutation(api.comments.remove);
+  const removeCommentsMutation = useMutation(api.comments.removeBatch);
+  const updateCommentMutation = useMutation(api.comments.update);
+  const updateSettingsMutation = useMutation(api.settings.update);
 
-    try {
-      const [commentsResponse, commentLimitResponse, postLimitResponse] = await Promise.all([
-        bridge.request<{
-          comments: ScrapedComment[];
-        }>(MessageType.GET_SCRAPED_COMMENTS),
-        bridge.request<{ limit: number }>(MessageType.GET_COMMENT_LIMIT),
-        bridge.request<{ limit: number }>(MessageType.GET_POST_LIMIT),
-      ]);
-
+  useEffect(() => {
+    if (settings) {
       setState((prev) => ({
         ...prev,
-        comments: commentsResponse.comments || [],
-        commentLimit: commentLimitResponse.limit ?? 100,
-        postLimit: postLimitResponse.limit ?? 50,
+        commentLimit: settings.commentLimit ?? 100,
+        postLimit: settings.postLimit ?? 50,
         loading: false,
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : "Failed to fetch data",
       }));
     }
-  }, []);
+  }, [settings]);
 
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (comments !== undefined) {
+      setState((prev) => ({ ...prev, loading: false }));
+    }
+  }, [comments]);
+
   const lastCommentsCountRef = useRef<number>(0);
-
-  const debouncedFetchData = useCallback(() => {
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
-    refreshTimeoutRef.current = setTimeout(() => {
-      fetchData();
-    }, 100);
-  }, [fetchData]);
 
   useEffect(() => {
     if (!bridge) return;
-    fetchData();
 
     const cleanups = [
       bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE, () => {
-        if (refreshTimeoutRef.current) {
-          clearTimeout(refreshTimeoutRef.current);
-        }
-        fetchData();
-      }),
-
-      bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS, (payload) => {
-        const progress = payload as { commentsFound?: number; status?: string };
-        if (progress.status === "scraping" && progress.commentsFound !== undefined) {
-          if (progress.commentsFound > lastCommentsCountRef.current) {
-            lastCommentsCountRef.current = progress.commentsFound;
-            debouncedFetchData();
-          }
-        }
-      }),
-
-      bridge.on(MessageType.GET_VIDEO_COMMENTS_PROGRESS, (payload) => {
-        const progress = payload as { commentsFound?: number; status?: string };
-        if (progress.commentsFound !== undefined && progress.commentsFound > lastCommentsCountRef.current) {
-          lastCommentsCountRef.current = progress.commentsFound;
-          debouncedFetchData();
-        }
-      }),
-
-      bridge.on(MessageType.GET_BATCH_COMMENTS_PROGRESS, (payload) => {
-        const progress = payload as { totalComments?: number };
-        if (progress.totalComments !== undefined && progress.totalComments > lastCommentsCountRef.current) {
-          lastCommentsCountRef.current = progress.totalComments;
-          debouncedFetchData();
-        }
+        lastCommentsCountRef.current = 0;
       }),
 
       bridge.on(MessageType.GET_BATCH_COMMENTS_COMPLETE, () => {
         lastCommentsCountRef.current = 0;
-        if (refreshTimeoutRef.current) {
-          clearTimeout(refreshTimeoutRef.current);
-        }
-        fetchData();
-      }),
-
-      // Listen for storage updates (triggered automatically when comments are saved)
-      bridge.on(MessageType.COMMENTS_UPDATED, (payload) => {
-        const update = payload as { totalCount?: number; addedCount?: number };
-        if (update.totalCount !== undefined && update.totalCount > lastCommentsCountRef.current) {
-          lastCommentsCountRef.current = update.totalCount;
-          debouncedFetchData();
-        }
       }),
     ];
 
     return () => {
       cleanups.forEach((cleanup) => cleanup());
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
     };
-  }, [fetchData, debouncedFetchData]);
-
-  const saveCommentLimit = useCallback(async (limit: number) => {
-    if (!bridge) return;
-
-    setState((prev) => ({ ...prev, commentLimit: limit }));
-    bridge.send(MessageType.SAVE_COMMENT_LIMIT, { limit });
   }, []);
 
-  const savePostLimit = useCallback(async (limit: number) => {
-    if (!bridge) return;
+  const saveCommentLimit = useCallback(
+    async (limit: number) => {
+      if (!userId) return;
 
-    setState((prev) => ({ ...prev, postLimit: limit }));
-    bridge.send(MessageType.SAVE_POST_LIMIT, { limit });
-  }, []);
+      setState((prev) => ({ ...prev, commentLimit: limit }));
+      await updateSettingsMutation({
+        clerkId: userId,
+        settings: { commentLimit: limit },
+      });
 
-  const removeComment = useCallback(async (commentId: string) => {
-    if (!bridge) return;
+      if (bridge) {
+        bridge.send(MessageType.SAVE_COMMENT_LIMIT, { limit });
+      }
+    },
+    [userId, updateSettingsMutation]
+  );
 
-    bridge.send(MessageType.REMOVE_SCRAPED_COMMENT, { commentId });
-    setState((prev) => ({
-      ...prev,
-      comments: prev.comments.filter((c) => c.id !== commentId),
-    }));
-  }, []);
+  const savePostLimit = useCallback(
+    async (limit: number) => {
+      if (!userId) return;
 
-  const removeComments = useCallback(async (commentIds: string[]) => {
-    if (!bridge) return;
+      setState((prev) => ({ ...prev, postLimit: limit }));
+      await updateSettingsMutation({
+        clerkId: userId,
+        settings: { postLimit: limit },
+      });
 
-    bridge.send(MessageType.REMOVE_SCRAPED_COMMENTS, { commentIds });
-    setState((prev) => ({
-      ...prev,
-      comments: prev.comments.filter((c) => !commentIds.includes(c.id)),
-    }));
-  }, []);
+      if (bridge) {
+        bridge.send(MessageType.SAVE_POST_LIMIT, { limit });
+      }
+    },
+    [userId, updateSettingsMutation]
+  );
+
+  const removeComment = useCallback(
+    async (commentId: string) => {
+      if (!userId) return;
+
+      await removeCommentMutation({
+        clerkId: userId,
+        commentId,
+      });
+
+      if (bridge) {
+        bridge.send(MessageType.REMOVE_SCRAPED_COMMENT, { commentId });
+      }
+    },
+    [userId, removeCommentMutation]
+  );
+
+  const removeComments = useCallback(
+    async (commentIds: string[]) => {
+      if (!userId) return;
+
+      await removeCommentsMutation({
+        clerkId: userId,
+        commentIds,
+      });
+
+      if (bridge) {
+        bridge.send(MessageType.REMOVE_SCRAPED_COMMENTS, { commentIds });
+      }
+    },
+    [userId, removeCommentsMutation]
+  );
 
   const updateComment = useCallback(
     async (commentId: string, updates: Partial<ScrapedComment>) => {
-      if (!bridge) return;
+      if (!userId) return;
 
-      bridge.send(MessageType.UPDATE_SCRAPED_COMMENT, { commentId, updates });
-      setState((prev) => ({
-        ...prev,
-        comments: prev.comments.map((c) =>
-          c.id === commentId ? { ...c, ...updates } : c
-        ),
-      }));
+      const convexUpdates: {
+        replySent?: boolean;
+        repliedAt?: number;
+        replyError?: string;
+        replyContent?: string;
+      } = {};
+
+      if (updates.replySent !== undefined)
+        convexUpdates.replySent = updates.replySent;
+      if (updates.repliedAt !== undefined)
+        convexUpdates.repliedAt = new Date(updates.repliedAt).getTime();
+      if (updates.replyError !== undefined)
+        convexUpdates.replyError = updates.replyError;
+      if (updates.replyContent !== undefined)
+        convexUpdates.replyContent = updates.replyContent;
+
+      await updateCommentMutation({
+        clerkId: userId,
+        commentId,
+        updates: convexUpdates,
+      });
+
+      if (bridge) {
+        bridge.send(MessageType.UPDATE_SCRAPED_COMMENT, { commentId, updates });
+      }
     },
-    []
+    [userId, updateCommentMutation]
   );
 
   return {
-    ...state,
-    fetchData,
+    comments: (comments ?? []) as ScrapedComment[],
+    commentLimit: state.commentLimit,
+    postLimit: state.postLimit,
+    loading: state.loading || comments === undefined,
+    error: state.error,
     removeComment,
     removeComments,
     updateComment,

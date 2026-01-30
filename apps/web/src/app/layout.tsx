@@ -1,9 +1,11 @@
+import { AuthBridge } from "@/components/AuthBridge";
+import { ConvexClientProvider } from "@/providers/ConvexProvider";
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TikTok Buddy",
+  title: "Tokative",
   description: "Manage TikTok interactions - scrape comments and send messages",
 };
 
@@ -15,7 +17,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        {children}
+        <ConvexClientProvider>
+          <AuthBridge />
+          {children}
+        </ConvexClientProvider>
         <Toaster theme="dark" position="bottom-right" duration={6000} />
       </body>
     </html>

@@ -1,4 +1,4 @@
-# Language Translation Feature for TikTok Buddy
+# Language Translation Feature for Tokative
 
 ## Feature Overview
 

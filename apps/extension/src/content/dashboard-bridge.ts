@@ -1,7 +1,7 @@
 import { MessageType, ExtensionMessage, EXTENSION_SOURCE } from "../types";
 import { guardExtensionContext } from "../utils/dom";
 
-const BRIDGE_ID = "tiktok-buddy-bridge";
+const BRIDGE_ID = "tokative-bridge";
 
 let port: chrome.runtime.Port | null = null;
 
@@ -64,10 +64,19 @@ function initBridge(): void {
 
 function handleWindowMessage(event: MessageEvent): void {
   if (event.source !== window) return;
-  if (event.data?.source === "tiktok-buddy-extension") return;
+  if (event.data?.source === "tokative-extension") return;
   if (!event.data?.type) return;
 
   const message = event.data as ExtensionMessage;
+
+  // Handle auth token response from the web app (source: "dashboard")
+  if (message.type === MessageType.AUTH_TOKEN_RESPONSE && event.data?.source === "dashboard") {
+    console.log("[Bridge] Forwarding auth token to background");
+    chrome.runtime.sendMessage(message).catch((error) => {
+      console.error("[Bridge] Error forwarding auth token:", error);
+    });
+    return;
+  }
 
   if (!guardExtensionContext()) {
     window.postMessage(

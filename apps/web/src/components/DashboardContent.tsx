@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CommentTable } from "@/components/CommentTable";
-import { ConnectionStatus } from "@/components/ConnectionStatus";
+import { Header } from "@/components/Header";
 import { ReplyComposer } from "@/components/MessageComposer";
 import { PostsGrid } from "@/components/PostsGrid";
 import { TabNavigation } from "@/components/TabNavigation";
@@ -12,6 +12,7 @@ import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { Toast } from "@/components/Toast";
+import { SetupBanner } from "@/components/SetupBanner";
 import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { useMessaging } from "@/hooks/useMessaging";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
@@ -42,7 +43,6 @@ export function DashboardContent() {
     removeComments,
     saveCommentLimit,
     savePostLimit,
-    fetchData: fetchComments,
   } = useCommentData();
 
   const {
@@ -351,19 +351,15 @@ export function DashboardContent() {
 
   const handleCancelScraping = useCallback(() => {
     cancelScraping();
-    fetchComments();
-  }, [cancelScraping, fetchComments]);
+  }, [cancelScraping]);
 
   return (
     <div className="min-h-screen bg-tiktok-dark">
-      <header className="border-b border-gray-800 bg-tiktok-gray/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-white">TikTok Buddy</h1>
-          <ConnectionStatus />
-        </div>
-      </header>
+      <Header showConnectionStatus />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
+        <SetupBanner />
+
         {scrapingState?.isPaused && (
           <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
             <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,5 +1,5 @@
 {
-  "name": "@tiktok-buddy/extension",
+  "name": "@tokative/extension",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@tiktok-buddy/shared": "workspace:*"
+    "@tokative/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.268",

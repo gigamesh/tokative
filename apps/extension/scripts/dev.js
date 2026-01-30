@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const chokidar = require("chokidar");
 const { WebSocketServer } = require("ws");
+const env = require("./env");
 
 const wss = new WebSocketServer({ port: 8080 });
 console.log("Hot reload server started on ws://localhost:8080");
@@ -38,7 +39,7 @@ function copyPublicFiles() {
       const manifest = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
       const tiktokScript = manifest.content_scripts.find(
-        (cs) => cs.matches && cs.matches.includes("https://www.tiktok.com/*")
+        (cs) => cs.matches && cs.matches.includes("https://www.tiktok.com/*"),
       );
 
       if (tiktokScript) {
@@ -46,7 +47,7 @@ function copyPublicFiles() {
       }
 
       const dashboardScript = manifest.content_scripts.find(
-        (cs) => cs.matches && cs.matches.includes("http://localhost:3000/*")
+        (cs) => cs.matches && cs.matches.includes("http://localhost:3000/*"),
       );
 
       if (dashboardScript) {
@@ -73,33 +74,33 @@ function createHotReloadScript() {
       const ws = new WebSocket('ws://localhost:8080');
 
       ws.onopen = () => {
-        console.log('[TikTok Buddy] Hot reload connected');
+        console.log('[Tokative] Hot reload connected');
         retryCount = 0;
       };
 
       ws.onmessage = (event) => {
         if (event.data === 'reload') {
-          console.log('[TikTok Buddy] Reloading...');
+          console.log('[Tokative] Reloading...');
           chrome.runtime.sendMessage({ type: 'HOT_RELOAD' });
           window.location.reload();
         }
       };
 
       ws.onerror = () => {
-        console.log('[TikTok Buddy] Hot reload connection error');
+        console.log('[Tokative] Hot reload connection error');
       };
 
       ws.onclose = () => {
         if (retryCount < maxRetries) {
           retryCount++;
-          console.log('[TikTok Buddy] Hot reload disconnected, retrying (' + retryCount + '/' + maxRetries + ')...');
+          console.log('[Tokative] Hot reload disconnected, retrying (' + retryCount + '/' + maxRetries + ')...');
           setTimeout(connectWebSocket, Math.min(1000 * retryCount, 5000));
         } else {
-          console.log('[TikTok Buddy] Hot reload disabled');
+          console.log('[Tokative] Hot reload disabled');
         }
       };
     } catch (e) {
-      console.log('[TikTok Buddy] Hot reload not available');
+      console.log('[Tokative] Hot reload not available');
     }
   }
 
@@ -109,7 +110,10 @@ function createHotReloadScript() {
 })();
 `;
 
-  fs.writeFileSync(path.join(__dirname, "../dist/hot-reload.js"), hotReloadScript);
+  fs.writeFileSync(
+    path.join(__dirname, "../dist/hot-reload.js"),
+    hotReloadScript,
+  );
 }
 
 const buildOptions = {
@@ -127,6 +131,7 @@ const buildOptions = {
   sourcemap: "inline",
   define: {
     "process.env.NODE_ENV": '"development"',
+    CONVEX_SITE_URL_PLACEHOLDER: JSON.stringify(env.CONVEX_SITE_URL),
   },
 };
 

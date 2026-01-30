@@ -1,6 +1,28 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageType, ScrapedComment, ScrapedVideo } from "../../types";
 
+vi.mock("../../utils/convex-api", () => ({
+  fetchComments: vi.fn(),
+  syncComments: vi.fn(),
+  updateComment: vi.fn(),
+  deleteComment: vi.fn(),
+  deleteComments: vi.fn(),
+  fetchVideos: vi.fn(),
+  syncVideos: vi.fn(),
+  updateVideo: vi.fn(),
+  deleteVideo: vi.fn(),
+  deleteVideos: vi.fn(),
+  fetchIgnoreList: vi.fn(),
+  addToIgnoreListRemote: vi.fn(),
+  removeFromIgnoreListRemote: vi.fn(),
+  fetchSettings: vi.fn(),
+  updateSettings: vi.fn(),
+}));
+
+import * as convexApi from "../../utils/convex-api";
+
+const mockedConvexApi = vi.mocked(convexApi);
+
 const mockStorage: Record<string, unknown> = {};
 
 const mockChromeStorage = {
@@ -220,28 +242,40 @@ function createVideo(overrides: Partial<ScrapedVideo> = {}): ScrapedVideo {
   };
 }
 
+const defaultSettings = {
+  messageDelay: 2000,
+  scrollDelay: 1000,
+  commentLimit: 100,
+  postLimit: 50,
+  accountHandle: null as string | null,
+};
+
 describe("Background Message Handler", () => {
   const mockSender: MessageSender = { tab: { id: 1 } } as MessageSender;
 
   beforeEach(() => {
     Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
     vi.clearAllMocks();
+    mockedConvexApi.fetchSettings.mockResolvedValue({ ...defaultSettings });
   });
 
   describe("Comment Operations", () => {
     it("GET_SCRAPED_COMMENTS returns stored comments", async () => {
       const comments = [createComment({ id: "1" }), createComment({ id: "2" })];
-      mockStorage["tiktok_buddy_scraped_comments"] = comments;
+      mockedConvexApi.fetchComments.mockResolvedValue(comments);
 
       const result = await handleMessage(
         { type: MessageType.GET_SCRAPED_COMMENTS },
         mockSender
       );
 
+      expect(mockedConvexApi.fetchComments).toHaveBeenCalled();
       expect(result).toEqual({ comments });
     });
 
     it("GET_SCRAPED_COMMENTS returns empty array when no comments", async () => {
+      mockedConvexApi.fetchComments.mockResolvedValue([]);
+
       const result = await handleMessage(
         { type: MessageType.GET_SCRAPED_COMMENTS },
         mockSender
@@ -251,10 +285,7 @@ describe("Background Message Handler", () => {
     });
 
     it("REMOVE_SCRAPED_COMMENT removes a single comment", async () => {
-      mockStorage["tiktok_buddy_scraped_comments"] = [
-        createComment({ id: "1" }),
-        createComment({ id: "2" }),
-      ];
+      mockedConvexApi.deleteComment.mockResolvedValue(undefined);
 
       const result = await handleMessage(
         { type: MessageType.REMOVE_SCRAPED_COMMENT, payload: { commentId: "1" } },
@@ -262,17 +293,11 @@ describe("Background Message Handler", () => {
       );
 
       expect(result).toEqual({ success: true });
-      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].id).toBe("2");
+      expect(mockedConvexApi.deleteComment).toHaveBeenCalledWith("1");
     });
 
     it("REMOVE_SCRAPED_COMMENTS removes multiple comments", async () => {
-      mockStorage["tiktok_buddy_scraped_comments"] = [
-        createComment({ id: "1" }),
-        createComment({ id: "2" }),
-        createComment({ id: "3" }),
-      ];
+      mockedConvexApi.deleteComments.mockResolvedValue(undefined);
 
       const result = await handleMessage(
         { type: MessageType.REMOVE_SCRAPED_COMMENTS, payload: { commentIds: ["1", "3"] } },
@@ -280,15 +305,11 @@ describe("Background Message Handler", () => {
       );
 
       expect(result).toEqual({ success: true });
-      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].id).toBe("2");
+      expect(mockedConvexApi.deleteComments).toHaveBeenCalledWith(["1", "3"]);
     });
 
     it("UPDATE_SCRAPED_COMMENT updates comment fields", async () => {
-      mockStorage["tiktok_buddy_scraped_comments"] = [
-        createComment({ id: "1", replySent: false }),
-      ];
+      mockedConvexApi.updateComment.mockResolvedValue(undefined);
 
       const result = await handleMessage(
         {
@@ -299,9 +320,10 @@ describe("Background Message Handler", () => {
       );
 
       expect(result).toEqual({ success: true });
-      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
-      expect(stored[0].replySent).toBe(true);
-      expect(stored[0].repliedAt).toBe("2024-01-01");
+      expect(mockedConvexApi.updateComment).toHaveBeenCalledWith("1", {
+        replySent: true,
+        repliedAt: expect.any(Number),
+      });
     });
   });
 
@@ -359,7 +381,10 @@ describe("Background Message Handler", () => {
 
   describe("Account Handle Operations", () => {
     it("GET_ACCOUNT_HANDLE returns stored handle", async () => {
-      mockStorage["tiktok_buddy_account_handle"] = "myhandle";
+      mockedConvexApi.fetchSettings.mockResolvedValue({
+        ...defaultSettings,
+        accountHandle: "myhandle",
+      });
 
       const result = await handleMessage(
         { type: MessageType.GET_ACCOUNT_HANDLE },
@@ -370,6 +395,11 @@ describe("Background Message Handler", () => {
     });
 
     it("GET_ACCOUNT_HANDLE returns null when no handle set", async () => {
+      mockedConvexApi.fetchSettings.mockResolvedValue({
+        ...defaultSettings,
+        accountHandle: null,
+      });
+
       const result = await handleMessage(
         { type: MessageType.GET_ACCOUNT_HANDLE },
         mockSender
@@ -379,19 +409,26 @@ describe("Background Message Handler", () => {
     });
 
     it("SAVE_ACCOUNT_HANDLE saves the handle", async () => {
+      mockedConvexApi.updateSettings.mockResolvedValue(undefined);
+
       const result = await handleMessage(
         { type: MessageType.SAVE_ACCOUNT_HANDLE, payload: { handle: "@newhandle" } },
         mockSender
       );
 
       expect(result).toEqual({ success: true });
-      expect(mockStorage["tiktok_buddy_account_handle"]).toBe("newhandle");
+      expect(mockedConvexApi.updateSettings).toHaveBeenCalledWith({
+        accountHandle: "newhandle",
+      });
     });
   });
 
   describe("Limit Operations", () => {
     it("GET_COMMENT_LIMIT returns stored limit", async () => {
-      mockStorage["tiktok_buddy_comment_limit"] = 200;
+      mockedConvexApi.fetchSettings.mockResolvedValue({
+        ...defaultSettings,
+        commentLimit: 200,
+      });
 
       const result = await handleMessage(
         { type: MessageType.GET_COMMENT_LIMIT },
@@ -402,6 +439,8 @@ describe("Background Message Handler", () => {
     });
 
     it("GET_COMMENT_LIMIT returns default when not set", async () => {
+      mockedConvexApi.fetchSettings.mockResolvedValue(defaultSettings);
+
       const result = await handleMessage(
         { type: MessageType.GET_COMMENT_LIMIT },
         mockSender
@@ -411,17 +450,24 @@ describe("Background Message Handler", () => {
     });
 
     it("SAVE_COMMENT_LIMIT saves the limit", async () => {
+      mockedConvexApi.updateSettings.mockResolvedValue(undefined);
+
       const result = await handleMessage(
         { type: MessageType.SAVE_COMMENT_LIMIT, payload: { limit: 500 } },
         mockSender
       );
 
       expect(result).toEqual({ success: true });
-      expect(mockStorage["tiktok_buddy_comment_limit"]).toBe(500);
+      expect(mockedConvexApi.updateSettings).toHaveBeenCalledWith({
+        commentLimit: 500,
+      });
     });
 
     it("GET_POST_LIMIT returns stored limit", async () => {
-      mockStorage["tiktok_buddy_post_limit"] = 25;
+      mockedConvexApi.fetchSettings.mockResolvedValue({
+        ...defaultSettings,
+        postLimit: 25,
+      });
 
       const result = await handleMessage(
         { type: MessageType.GET_POST_LIMIT },
@@ -432,34 +478,36 @@ describe("Background Message Handler", () => {
     });
 
     it("SAVE_POST_LIMIT saves the limit", async () => {
+      mockedConvexApi.updateSettings.mockResolvedValue(undefined);
+
       const result = await handleMessage(
         { type: MessageType.SAVE_POST_LIMIT, payload: { limit: 75 } },
         mockSender
       );
 
       expect(result).toEqual({ success: true });
-      expect(mockStorage["tiktok_buddy_post_limit"]).toBe(75);
+      expect(mockedConvexApi.updateSettings).toHaveBeenCalledWith({
+        postLimit: 75,
+      });
     });
   });
 
   describe("Video Operations", () => {
     it("GET_STORED_VIDEOS returns stored videos", async () => {
       const videos = [createVideo({ videoId: "123" })];
-      mockStorage["tiktok_buddy_videos"] = videos;
+      mockedConvexApi.fetchVideos.mockResolvedValue(videos);
 
       const result = await handleMessage(
         { type: MessageType.GET_STORED_VIDEOS },
         mockSender
       );
 
+      expect(mockedConvexApi.fetchVideos).toHaveBeenCalled();
       expect(result).toEqual({ videos });
     });
 
     it("REMOVE_VIDEO removes a single video", async () => {
-      mockStorage["tiktok_buddy_videos"] = [
-        createVideo({ videoId: "123" }),
-        createVideo({ videoId: "456" }),
-      ];
+      mockedConvexApi.deleteVideo.mockResolvedValue(undefined);
 
       const result = await handleMessage(
         { type: MessageType.REMOVE_VIDEO, payload: { videoId: "123" } },
@@ -467,17 +515,11 @@ describe("Background Message Handler", () => {
       );
 
       expect(result).toEqual({ success: true });
-      const stored = mockStorage["tiktok_buddy_videos"] as ScrapedVideo[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].videoId).toBe("456");
+      expect(mockedConvexApi.deleteVideo).toHaveBeenCalledWith("123");
     });
 
     it("REMOVE_VIDEOS removes multiple videos", async () => {
-      mockStorage["tiktok_buddy_videos"] = [
-        createVideo({ videoId: "1" }),
-        createVideo({ videoId: "2" }),
-        createVideo({ videoId: "3" }),
-      ];
+      mockedConvexApi.deleteVideos.mockResolvedValue(undefined);
 
       const result = await handleMessage(
         { type: MessageType.REMOVE_VIDEOS, payload: { videoIds: ["1", "3"] } },
@@ -485,9 +527,7 @@ describe("Background Message Handler", () => {
       );
 
       expect(result).toEqual({ success: true });
-      const stored = mockStorage["tiktok_buddy_videos"] as ScrapedVideo[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].videoId).toBe("2");
+      expect(mockedConvexApi.deleteVideos).toHaveBeenCalledWith(["1", "3"]);
     });
   });
 
@@ -502,7 +542,7 @@ describe("Background Message Handler", () => {
         status: "scraping",
         message: "Scraping...",
       };
-      mockStorage["tiktok_buddy_scraping_state"] = state;
+      mockStorage["tokative_scraping_state"] = state;
 
       const result = await handleMessage(
         { type: MessageType.GET_SCRAPING_STATE },

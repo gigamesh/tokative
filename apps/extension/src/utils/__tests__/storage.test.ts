@@ -1,31 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  getScrapedComments,
-  saveScrapedComments,
-  addScrapedComments,
-  updateScrapedComment,
-  removeScrapedComment,
-  removeScrapedComments,
-  getVideos,
-  saveVideos,
-  addVideos,
-  updateVideo,
-  removeVideo,
-  removeVideos,
-  getAccountHandle,
-  saveAccountHandle,
-  getCommentLimit,
-  saveCommentLimit,
-  getPostLimit,
-  savePostLimit,
-  getScrapingState,
-  saveScrapingState,
-  clearScrapingState,
-  getIgnoreList,
-  addToIgnoreList,
-  removeFromIgnoreList,
-} from "../storage";
 import { ScrapedComment, ScrapedVideo, IgnoreListEntry } from "../../types";
+
+vi.mock("../convex-api", () => ({
+  fetchComments: vi.fn(),
+  syncComments: vi.fn(),
+  updateComment: vi.fn(),
+  deleteComment: vi.fn(),
+  deleteComments: vi.fn(),
+  fetchVideos: vi.fn(),
+  syncVideos: vi.fn(),
+  updateVideo: vi.fn(),
+  deleteVideo: vi.fn(),
+  deleteVideos: vi.fn(),
+  fetchIgnoreList: vi.fn(),
+  addToIgnoreListRemote: vi.fn(),
+  removeFromIgnoreListRemote: vi.fn(),
+  fetchSettings: vi.fn(),
+  updateSettings: vi.fn(),
+}));
+
+import * as convexApi from "../convex-api";
 
 const mockStorage: Record<string, unknown> = {};
 
@@ -55,6 +49,33 @@ const mockChromeStorage = {
 
 vi.stubGlobal("chrome", { storage: mockChromeStorage });
 
+import {
+  getScrapedComments,
+  addScrapedComments,
+  updateScrapedComment,
+  removeScrapedComment,
+  removeScrapedComments,
+  getVideos,
+  addVideos,
+  updateVideo,
+  removeVideo,
+  removeVideos,
+  getAccountHandle,
+  saveAccountHandle,
+  getCommentLimit,
+  saveCommentLimit,
+  getPostLimit,
+  savePostLimit,
+  getScrapingState,
+  saveScrapingState,
+  clearScrapingState,
+  getIgnoreList,
+  addToIgnoreList,
+  removeFromIgnoreList,
+} from "../storage";
+
+const mockedConvexApi = vi.mocked(convexApi);
+
 function createComment(overrides: Partial<ScrapedComment> = {}): ScrapedComment {
   return {
     id: `comment-${Date.now()}-${Math.random()}`,
@@ -79,297 +100,323 @@ function createVideo(overrides: Partial<ScrapedVideo> = {}): ScrapedVideo {
   };
 }
 
-describe("Comment Storage", () => {
+describe("Comment Storage (Convex-backed)", () => {
   beforeEach(() => {
-    Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
     vi.clearAllMocks();
   });
 
   describe("getScrapedComments", () => {
-    it("returns empty array when no comments exist", async () => {
+    it("fetches comments from Convex", async () => {
+      const mockComments = [createComment({ id: "1" }), createComment({ id: "2" })];
+      mockedConvexApi.fetchComments.mockResolvedValue(mockComments);
+
       const comments = await getScrapedComments();
+
+      expect(mockedConvexApi.fetchComments).toHaveBeenCalled();
+      expect(comments).toEqual(mockComments);
+    });
+
+    it("returns empty array when no comments", async () => {
+      mockedConvexApi.fetchComments.mockResolvedValue([]);
+
+      const comments = await getScrapedComments();
+
       expect(comments).toEqual([]);
-    });
-
-    it("returns stored comments", async () => {
-      const testComments = [createComment({ id: "1" }), createComment({ id: "2" })];
-      mockStorage["tiktok_buddy_scraped_comments"] = testComments;
-
-      const comments = await getScrapedComments();
-      expect(comments).toEqual(testComments);
-    });
-  });
-
-  describe("saveScrapedComments", () => {
-    it("saves comments to storage", async () => {
-      const testComments = [createComment({ id: "1" })];
-      await saveScrapedComments(testComments);
-
-      expect(mockChromeStorage.local.set).toHaveBeenCalledWith({
-        tiktok_buddy_scraped_comments: testComments,
-      });
     });
   });
 
   describe("addScrapedComments", () => {
-    it("adds new comments to existing ones", async () => {
-      const existing = [createComment({ id: "1", handle: "user1", comment: "First" })];
-      mockStorage["tiktok_buddy_scraped_comments"] = existing;
-
-      const newComments = [createComment({ id: "2", handle: "user2", comment: "Second" })];
-      const added = await addScrapedComments(newComments);
-
-      expect(added).toBe(1);
-      expect(mockStorage["tiktok_buddy_scraped_comments"]).toHaveLength(2);
-    });
-
-    it("deduplicates by comment ID", async () => {
-      const existing = [createComment({ id: "1", handle: "user1", comment: "First" })];
-      mockStorage["tiktok_buddy_scraped_comments"] = existing;
-
-      const newComments = [createComment({ id: "1", handle: "user1", comment: "First" })];
-      const added = await addScrapedComments(newComments);
-
-      expect(added).toBe(0);
-    });
-
-    it("deduplicates by handle:comment key", async () => {
-      const existing = [createComment({ id: "1", handle: "user1", comment: "Same comment" })];
-      mockStorage["tiktok_buddy_scraped_comments"] = existing;
-
-      const newComments = [createComment({ id: "different-id", handle: "user1", comment: "Same comment" })];
-      const added = await addScrapedComments(newComments);
-
-      expect(added).toBe(0);
-    });
-
-    it("adds comments with different handle:comment combinations", async () => {
-      const existing = [createComment({ id: "1", handle: "user1", comment: "Comment A" })];
-      mockStorage["tiktok_buddy_scraped_comments"] = existing;
-
-      const newComments = [
-        createComment({ id: "2", handle: "user1", comment: "Comment B" }),
-        createComment({ id: "3", handle: "user2", comment: "Comment A" }),
+    it("syncs comments to Convex with ignore list", async () => {
+      const ignoreList: IgnoreListEntry[] = [
+        { text: "spam", addedAt: "2024-01-01T00:00:00.000Z" },
       ];
-      const added = await addScrapedComments(newComments);
+      mockedConvexApi.fetchIgnoreList.mockResolvedValue(ignoreList);
+      mockedConvexApi.syncComments.mockResolvedValue({
+        stored: 2,
+        duplicates: 0,
+        ignored: 1,
+      });
 
-      expect(added).toBe(2);
+      const newComments = [createComment({ id: "1" }), createComment({ id: "2" })];
+      const result = await addScrapedComments(newComments);
+
+      expect(mockedConvexApi.fetchIgnoreList).toHaveBeenCalled();
+      expect(mockedConvexApi.syncComments).toHaveBeenCalledWith(newComments, ["spam"]);
+      expect(result).toEqual({ stored: 2, duplicates: 0, ignored: 1 });
     });
   });
 
   describe("updateScrapedComment", () => {
-    it("updates an existing comment", async () => {
-      const comments = [createComment({ id: "1", replySent: false })];
-      mockStorage["tiktok_buddy_scraped_comments"] = comments;
+    it("updates comment in Convex", async () => {
+      mockedConvexApi.updateComment.mockResolvedValue(undefined);
 
-      await updateScrapedComment("1", { replySent: true, repliedAt: "2024-01-01" });
+      await updateScrapedComment("comment-1", { replySent: true, repliedAt: "2024-01-01" });
 
-      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
-      expect(stored[0].replySent).toBe(true);
-      expect(stored[0].repliedAt).toBe("2024-01-01");
+      expect(mockedConvexApi.updateComment).toHaveBeenCalledWith("comment-1", {
+        replySent: true,
+        repliedAt: expect.any(Number),
+      });
     });
 
-    it("does nothing if comment not found", async () => {
-      const comments = [createComment({ id: "1" })];
-      mockStorage["tiktok_buddy_scraped_comments"] = comments;
+    it("does not call Convex when no updates provided", async () => {
+      await updateScrapedComment("comment-1", {});
 
-      await updateScrapedComment("nonexistent", { replySent: true });
-
-      expect(mockChromeStorage.local.set).not.toHaveBeenCalled();
+      expect(mockedConvexApi.updateComment).not.toHaveBeenCalled();
     });
   });
 
   describe("removeScrapedComment", () => {
-    it("removes a single comment by ID", async () => {
-      const comments = [createComment({ id: "1" }), createComment({ id: "2" })];
-      mockStorage["tiktok_buddy_scraped_comments"] = comments;
+    it("deletes comment from Convex", async () => {
+      mockedConvexApi.deleteComment.mockResolvedValue(undefined);
 
-      await removeScrapedComment("1");
+      await removeScrapedComment("comment-1");
 
-      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].id).toBe("2");
+      expect(mockedConvexApi.deleteComment).toHaveBeenCalledWith("comment-1");
     });
   });
 
   describe("removeScrapedComments", () => {
-    it("removes multiple comments by IDs", async () => {
-      const comments = [
-        createComment({ id: "1" }),
-        createComment({ id: "2" }),
-        createComment({ id: "3" }),
-      ];
-      mockStorage["tiktok_buddy_scraped_comments"] = comments;
+    it("deletes multiple comments from Convex", async () => {
+      mockedConvexApi.deleteComments.mockResolvedValue(undefined);
 
-      await removeScrapedComments(["1", "3"]);
+      await removeScrapedComments(["1", "2", "3"]);
 
-      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].id).toBe("2");
+      expect(mockedConvexApi.deleteComments).toHaveBeenCalledWith(["1", "2", "3"]);
     });
   });
 });
 
-describe("Video Storage", () => {
+describe("Video Storage (Convex-backed)", () => {
   beforeEach(() => {
-    Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
     vi.clearAllMocks();
   });
 
   describe("getVideos", () => {
-    it("returns empty array when no videos exist", async () => {
-      const videos = await getVideos();
-      expect(videos).toEqual([]);
-    });
-
-    it("returns stored videos", async () => {
-      const testVideos = [createVideo({ videoId: "123" })];
-      mockStorage["tiktok_buddy_videos"] = testVideos;
+    it("fetches videos from Convex", async () => {
+      const mockVideos = [createVideo({ videoId: "123" })];
+      mockedConvexApi.fetchVideos.mockResolvedValue(mockVideos);
 
       const videos = await getVideos();
-      expect(videos).toEqual(testVideos);
+
+      expect(mockedConvexApi.fetchVideos).toHaveBeenCalled();
+      expect(videos).toEqual(mockVideos);
     });
   });
 
   describe("addVideos", () => {
-    it("adds new videos and deduplicates by videoId", async () => {
-      const existing = [createVideo({ videoId: "123" })];
-      mockStorage["tiktok_buddy_videos"] = existing;
+    it("syncs videos to Convex and returns stored count", async () => {
+      mockedConvexApi.syncVideos.mockResolvedValue({ stored: 2, duplicates: 1 });
 
-      const newVideos = [
-        createVideo({ videoId: "123" }),
-        createVideo({ videoId: "456" }),
-      ];
+      const newVideos = [createVideo({ videoId: "1" }), createVideo({ videoId: "2" })];
       const added = await addVideos(newVideos);
 
-      expect(added).toBe(1);
-      expect(mockStorage["tiktok_buddy_videos"]).toHaveLength(2);
+      expect(mockedConvexApi.syncVideos).toHaveBeenCalledWith(newVideos);
+      expect(added).toBe(2);
     });
   });
 
   describe("updateVideo", () => {
-    it("updates an existing video", async () => {
-      const videos = [createVideo({ videoId: "123", commentsScraped: false })];
-      mockStorage["tiktok_buddy_videos"] = videos;
+    it("updates video commentsScraped in Convex", async () => {
+      mockedConvexApi.updateVideo.mockResolvedValue(undefined);
 
-      await updateVideo("123", { commentsScraped: true });
+      await updateVideo("video-123", { commentsScraped: true });
 
-      const stored = mockStorage["tiktok_buddy_videos"] as ScrapedVideo[];
-      expect(stored[0].commentsScraped).toBe(true);
+      expect(mockedConvexApi.updateVideo).toHaveBeenCalledWith("video-123", {
+        commentsScraped: true,
+      });
+    });
+
+    it("does not call Convex when commentsScraped not provided", async () => {
+      await updateVideo("video-123", { order: 5 });
+
+      expect(mockedConvexApi.updateVideo).not.toHaveBeenCalled();
     });
   });
 
   describe("removeVideo", () => {
-    it("removes a single video by ID", async () => {
-      const videos = [createVideo({ videoId: "123" }), createVideo({ videoId: "456" })];
-      mockStorage["tiktok_buddy_videos"] = videos;
+    it("deletes video from Convex", async () => {
+      mockedConvexApi.deleteVideo.mockResolvedValue(undefined);
 
-      await removeVideo("123");
+      await removeVideo("video-123");
 
-      const stored = mockStorage["tiktok_buddy_videos"] as ScrapedVideo[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].videoId).toBe("456");
+      expect(mockedConvexApi.deleteVideo).toHaveBeenCalledWith("video-123");
     });
   });
 
   describe("removeVideos", () => {
-    it("removes multiple videos by IDs", async () => {
-      const videos = [
-        createVideo({ videoId: "1" }),
-        createVideo({ videoId: "2" }),
-        createVideo({ videoId: "3" }),
-      ];
-      mockStorage["tiktok_buddy_videos"] = videos;
+    it("deletes multiple videos from Convex", async () => {
+      mockedConvexApi.deleteVideos.mockResolvedValue(undefined);
 
-      await removeVideos(["1", "3"]);
+      await removeVideos(["1", "2", "3"]);
 
-      const stored = mockStorage["tiktok_buddy_videos"] as ScrapedVideo[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].videoId).toBe("2");
+      expect(mockedConvexApi.deleteVideos).toHaveBeenCalledWith(["1", "2", "3"]);
     });
   });
 });
 
-describe("Account Handle Storage", () => {
+describe("Account Handle Storage (Convex-backed)", () => {
   beforeEach(() => {
-    Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
     vi.clearAllMocks();
   });
 
   describe("getAccountHandle", () => {
-    it("returns null when no handle is set", async () => {
+    it("fetches account handle from Convex settings", async () => {
+      mockedConvexApi.fetchSettings.mockResolvedValue({
+        messageDelay: 2000,
+        scrollDelay: 1000,
+        commentLimit: 100,
+        postLimit: 50,
+        accountHandle: "myhandle",
+      });
+
       const handle = await getAccountHandle();
-      expect(handle).toBeNull();
+
+      expect(mockedConvexApi.fetchSettings).toHaveBeenCalled();
+      expect(handle).toBe("myhandle");
     });
 
-    it("returns stored handle", async () => {
-      mockStorage["tiktok_buddy_account_handle"] = "myhandle";
+    it("returns null when no handle set", async () => {
+      mockedConvexApi.fetchSettings.mockResolvedValue({
+        messageDelay: 2000,
+        scrollDelay: 1000,
+        commentLimit: 100,
+        postLimit: 50,
+        accountHandle: null,
+      });
+
       const handle = await getAccountHandle();
-      expect(handle).toBe("myhandle");
+
+      expect(handle).toBeNull();
     });
   });
 
   describe("saveAccountHandle", () => {
-    it("saves handle without @ prefix", async () => {
+    it("saves handle to Convex settings", async () => {
+      mockedConvexApi.updateSettings.mockResolvedValue(undefined);
+
       await saveAccountHandle("myhandle");
-      expect(mockStorage["tiktok_buddy_account_handle"]).toBe("myhandle");
+
+      expect(mockedConvexApi.updateSettings).toHaveBeenCalledWith({
+        accountHandle: "myhandle",
+      });
     });
 
     it("strips @ prefix from handle", async () => {
+      mockedConvexApi.updateSettings.mockResolvedValue(undefined);
+
       await saveAccountHandle("@myhandle");
-      expect(mockStorage["tiktok_buddy_account_handle"]).toBe("myhandle");
+
+      expect(mockedConvexApi.updateSettings).toHaveBeenCalledWith({
+        accountHandle: "myhandle",
+      });
     });
   });
 });
 
-describe("Limit Storage", () => {
+describe("Limit Storage (Convex-backed)", () => {
   beforeEach(() => {
-    Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
     vi.clearAllMocks();
   });
 
   describe("getCommentLimit", () => {
-    it("returns default value when not set", async () => {
-      const limit = await getCommentLimit();
-      expect(limit).toBe(100);
-    });
+    it("fetches comment limit from Convex settings", async () => {
+      mockedConvexApi.fetchSettings.mockResolvedValue({
+        messageDelay: 2000,
+        scrollDelay: 1000,
+        commentLimit: 200,
+        postLimit: 50,
+        accountHandle: null,
+      });
 
-    it("returns stored limit", async () => {
-      mockStorage["tiktok_buddy_comment_limit"] = 50;
       const limit = await getCommentLimit();
-      expect(limit).toBe(50);
+
+      expect(mockedConvexApi.fetchSettings).toHaveBeenCalled();
+      expect(limit).toBe(200);
     });
   });
 
   describe("saveCommentLimit", () => {
-    it("saves comment limit", async () => {
-      await saveCommentLimit(200);
-      expect(mockStorage["tiktok_buddy_comment_limit"]).toBe(200);
+    it("saves comment limit to Convex settings", async () => {
+      mockedConvexApi.updateSettings.mockResolvedValue(undefined);
+
+      await saveCommentLimit(300);
+
+      expect(mockedConvexApi.updateSettings).toHaveBeenCalledWith({
+        commentLimit: 300,
+      });
     });
   });
 
   describe("getPostLimit", () => {
-    it("returns default value when not set", async () => {
-      const limit = await getPostLimit();
-      expect(limit).toBe(50);
-    });
+    it("fetches post limit from Convex settings", async () => {
+      mockedConvexApi.fetchSettings.mockResolvedValue({
+        messageDelay: 2000,
+        scrollDelay: 1000,
+        commentLimit: 100,
+        postLimit: 75,
+        accountHandle: null,
+      });
 
-    it("returns stored limit", async () => {
-      mockStorage["tiktok_buddy_post_limit"] = 25;
       const limit = await getPostLimit();
-      expect(limit).toBe(25);
+
+      expect(limit).toBe(75);
     });
   });
 
   describe("savePostLimit", () => {
-    it("saves post limit", async () => {
+    it("saves post limit to Convex settings", async () => {
+      mockedConvexApi.updateSettings.mockResolvedValue(undefined);
+
       await savePostLimit(100);
-      expect(mockStorage["tiktok_buddy_post_limit"]).toBe(100);
+
+      expect(mockedConvexApi.updateSettings).toHaveBeenCalledWith({
+        postLimit: 100,
+      });
     });
   });
 });
 
-describe("Scraping State Storage", () => {
+describe("Ignore List Storage (Convex-backed)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("getIgnoreList", () => {
+    it("fetches ignore list from Convex", async () => {
+      const entries: IgnoreListEntry[] = [
+        { text: "spam comment", addedAt: "2024-01-01T00:00:00.000Z" },
+      ];
+      mockedConvexApi.fetchIgnoreList.mockResolvedValue(entries);
+
+      const ignoreList = await getIgnoreList();
+
+      expect(mockedConvexApi.fetchIgnoreList).toHaveBeenCalled();
+      expect(ignoreList).toEqual(entries);
+    });
+  });
+
+  describe("addToIgnoreList", () => {
+    it("adds text to Convex ignore list", async () => {
+      mockedConvexApi.addToIgnoreListRemote.mockResolvedValue(undefined);
+
+      await addToIgnoreList("spam comment");
+
+      expect(mockedConvexApi.addToIgnoreListRemote).toHaveBeenCalledWith("spam comment");
+    });
+  });
+
+  describe("removeFromIgnoreList", () => {
+    it("removes text from Convex ignore list", async () => {
+      mockedConvexApi.removeFromIgnoreListRemote.mockResolvedValue(undefined);
+
+      await removeFromIgnoreList("spam comment");
+
+      expect(mockedConvexApi.removeFromIgnoreListRemote).toHaveBeenCalledWith("spam comment");
+    });
+  });
+});
+
+describe("Scraping State Storage (Local)", () => {
   beforeEach(() => {
     Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
     vi.clearAllMocks();
@@ -399,7 +446,7 @@ describe("Scraping State Storage", () => {
         status: "scraping",
         message: "Scraping...",
       };
-      mockStorage["tiktok_buddy_scraping_state"] = storedState;
+      mockStorage["tokative_scraping_state"] = storedState;
 
       const state = await getScrapingState();
       expect(state).toEqual(storedState);
@@ -408,7 +455,7 @@ describe("Scraping State Storage", () => {
 
   describe("saveScrapingState", () => {
     it("merges partial state with existing state", async () => {
-      mockStorage["tiktok_buddy_scraping_state"] = {
+      mockStorage["tokative_scraping_state"] = {
         isActive: true,
         isPaused: false,
         videoId: "123",
@@ -420,7 +467,7 @@ describe("Scraping State Storage", () => {
 
       await saveScrapingState({ commentsFound: 100, message: "Almost done" });
 
-      const stored = mockStorage["tiktok_buddy_scraping_state"] as Record<string, unknown>;
+      const stored = mockStorage["tokative_scraping_state"] as Record<string, unknown>;
       expect(stored.commentsFound).toBe(100);
       expect(stored.message).toBe("Almost done");
       expect(stored.isActive).toBe(true);
@@ -430,185 +477,16 @@ describe("Scraping State Storage", () => {
 
   describe("clearScrapingState", () => {
     it("resets to default state", async () => {
-      mockStorage["tiktok_buddy_scraping_state"] = {
+      mockStorage["tokative_scraping_state"] = {
         isActive: true,
         commentsFound: 100,
       };
 
       await clearScrapingState();
 
-      const stored = mockStorage["tiktok_buddy_scraping_state"] as Record<string, unknown>;
+      const stored = mockStorage["tokative_scraping_state"] as Record<string, unknown>;
       expect(stored.isActive).toBe(false);
       expect(stored.commentsFound).toBe(0);
-    });
-  });
-});
-
-describe("Ignore List Storage", () => {
-  beforeEach(() => {
-    Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
-    vi.clearAllMocks();
-  });
-
-  describe("getIgnoreList", () => {
-    it("returns empty array when no ignore list exists", async () => {
-      const ignoreList = await getIgnoreList();
-      expect(ignoreList).toEqual([]);
-    });
-
-    it("returns stored ignore list entries", async () => {
-      const entries: IgnoreListEntry[] = [
-        { text: "spam comment", addedAt: "2024-01-01T00:00:00.000Z" },
-        { text: "another spam", addedAt: "2024-01-02T00:00:00.000Z" },
-      ];
-      mockStorage["tiktok_buddy_ignore_list"] = entries;
-
-      const ignoreList = await getIgnoreList();
-      expect(ignoreList).toEqual(entries);
-    });
-  });
-
-  describe("addToIgnoreList", () => {
-    it("adds new text to empty ignore list", async () => {
-      await addToIgnoreList("spam comment");
-
-      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].text).toBe("spam comment");
-    });
-
-    it("adds new text to existing ignore list", async () => {
-      mockStorage["tiktok_buddy_ignore_list"] = [
-        { text: "existing spam", addedAt: "2024-01-01T00:00:00.000Z" },
-      ];
-
-      await addToIgnoreList("new spam");
-
-      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
-      expect(stored).toHaveLength(2);
-      expect(stored[1].text).toBe("new spam");
-    });
-
-    it("does not add duplicate text", async () => {
-      mockStorage["tiktok_buddy_ignore_list"] = [
-        { text: "spam comment", addedAt: "2024-01-01T00:00:00.000Z" },
-      ];
-
-      await addToIgnoreList("spam comment");
-
-      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
-      expect(stored).toHaveLength(1);
-    });
-
-    it("stores addedAt timestamp", async () => {
-      const before = new Date().toISOString();
-      await addToIgnoreList("spam comment");
-      const after = new Date().toISOString();
-
-      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
-      expect(stored[0].addedAt).toBeDefined();
-      expect(stored[0].addedAt >= before).toBe(true);
-      expect(stored[0].addedAt <= after).toBe(true);
-    });
-  });
-
-  describe("removeFromIgnoreList", () => {
-    it("removes text from ignore list", async () => {
-      mockStorage["tiktok_buddy_ignore_list"] = [
-        { text: "spam 1", addedAt: "2024-01-01T00:00:00.000Z" },
-        { text: "spam 2", addedAt: "2024-01-02T00:00:00.000Z" },
-      ];
-
-      await removeFromIgnoreList("spam 1");
-
-      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].text).toBe("spam 2");
-    });
-
-    it("does nothing if text not in list", async () => {
-      mockStorage["tiktok_buddy_ignore_list"] = [
-        { text: "spam 1", addedAt: "2024-01-01T00:00:00.000Z" },
-      ];
-
-      await removeFromIgnoreList("nonexistent");
-
-      const stored = mockStorage["tiktok_buddy_ignore_list"] as IgnoreListEntry[];
-      expect(stored).toHaveLength(1);
-    });
-  });
-
-  describe("addScrapedComments with ignore list", () => {
-    it("filters out comments matching ignored text", async () => {
-      mockStorage["tiktok_buddy_ignore_list"] = [
-        { text: "spam comment", addedAt: "2024-01-01T00:00:00.000Z" },
-      ];
-
-      const newComments = [
-        createComment({ id: "1", comment: "spam comment" }),
-        createComment({ id: "2", comment: "good comment" }),
-      ];
-
-      const added = await addScrapedComments(newComments);
-
-      expect(added).toBe(1);
-      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
-      expect(stored).toHaveLength(1);
-      expect(stored[0].comment).toBe("good comment");
-    });
-
-    it("allows comments not in ignore list", async () => {
-      mockStorage["tiktok_buddy_ignore_list"] = [
-        { text: "spam comment", addedAt: "2024-01-01T00:00:00.000Z" },
-      ];
-
-      const newComments = [
-        createComment({ id: "1", comment: "legitimate comment" }),
-      ];
-
-      const added = await addScrapedComments(newComments);
-
-      expect(added).toBe(1);
-    });
-
-    it("filters by exact text match (case-sensitive)", async () => {
-      mockStorage["tiktok_buddy_ignore_list"] = [
-        { text: "Spam Comment", addedAt: "2024-01-01T00:00:00.000Z" },
-      ];
-
-      const newComments = [
-        createComment({ id: "1", comment: "spam comment" }),
-        createComment({ id: "2", comment: "Spam Comment" }),
-      ];
-
-      const added = await addScrapedComments(newComments);
-
-      expect(added).toBe(1);
-      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
-      expect(stored[0].comment).toBe("spam comment");
-    });
-
-    it("still deduplicates by ID and handle:comment after filtering", async () => {
-      mockStorage["tiktok_buddy_ignore_list"] = [
-        { text: "spam", addedAt: "2024-01-01T00:00:00.000Z" },
-      ];
-      mockStorage["tiktok_buddy_scraped_comments"] = [
-        createComment({ id: "existing", handle: "user1", comment: "duplicate" }),
-      ];
-
-      const newComments = [
-        createComment({ id: "1", comment: "spam" }),
-        createComment({ id: "existing", comment: "new text" }),
-        createComment({ id: "2", handle: "user1", comment: "duplicate" }),
-        createComment({ id: "3", comment: "unique" }),
-      ];
-
-      const added = await addScrapedComments(newComments);
-
-      expect(added).toBe(1);
-      const stored = mockStorage["tiktok_buddy_scraped_comments"] as ScrapedComment[];
-      expect(stored).toHaveLength(2);
-      expect(stored[1].comment).toBe("unique");
     });
   });
 });

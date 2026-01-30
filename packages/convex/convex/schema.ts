@@ -1,0 +1,63 @@
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  users: defineTable({
+    clerkId: v.string(),
+    createdAt: v.number(),
+  }).index("by_clerk_id", ["clerkId"]),
+
+  comments: defineTable({
+    userId: v.id("users"),
+    commentId: v.string(),
+    handle: v.string(),
+    comment: v.string(),
+    scrapedAt: v.number(),
+    profileUrl: v.string(),
+    avatarUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
+    replySent: v.optional(v.boolean()),
+    repliedAt: v.optional(v.number()),
+    replyError: v.optional(v.string()),
+    replyContent: v.optional(v.string()),
+    commentTimestamp: v.optional(v.string()),
+    videoId: v.optional(v.string()),
+    parentCommentId: v.optional(v.string()),
+    isReply: v.optional(v.boolean()),
+    replyCount: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_video", ["userId", "videoId"])
+    .index("by_user_and_comment_id", ["userId", "commentId"]),
+
+  videos: defineTable({
+    userId: v.id("users"),
+    videoId: v.string(),
+    thumbnailUrl: v.string(),
+    videoUrl: v.string(),
+    profileHandle: v.string(),
+    order: v.number(),
+    scrapedAt: v.number(),
+    commentsScraped: v.optional(v.boolean()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_video_id", ["userId", "videoId"]),
+
+  ignoreList: defineTable({
+    userId: v.id("users"),
+    text: v.string(),
+    addedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_text", ["userId", "text"]),
+
+  settings: defineTable({
+    userId: v.id("users"),
+    messageDelay: v.number(),
+    scrollDelay: v.number(),
+    commentLimit: v.optional(v.number()),
+    postLimit: v.optional(v.number()),
+    accountHandle: v.optional(v.string()),
+    hasCompletedSetup: v.optional(v.boolean()),
+  }).index("by_user", ["userId"]),
+});

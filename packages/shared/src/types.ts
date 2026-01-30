@@ -1,9 +1,13 @@
-export const EXTENSION_SOURCE = "tiktok-buddy-extension";
+export const EXTENSION_SOURCE = "tokative-extension";
 
 export const MessageType = {
   // Bridge communication
   BRIDGE_READY: "BRIDGE_READY",
   CHECK_BRIDGE: "CHECK_BRIDGE",
+
+  // Auth token relay (web app → extension)
+  GET_AUTH_TOKEN: "GET_AUTH_TOKEN",
+  AUTH_TOKEN_RESPONSE: "AUTH_TOKEN_RESPONSE",
 
   // Scraped comments data
   GET_SCRAPED_COMMENTS: "GET_SCRAPED_COMMENTS",
@@ -14,7 +18,12 @@ export const MessageType = {
 
   // Tab management
   OPEN_TIKTOK_TAB: "OPEN_TIKTOK_TAB",
+  OPEN_DASHBOARD_TAB: "OPEN_DASHBOARD_TAB",
   GET_TIKTOK_TAB: "GET_TIKTOK_TAB",
+
+  // Extension detection
+  CHECK_EXTENSION: "CHECK_EXTENSION",
+  EXTENSION_STATUS: "EXTENSION_STATUS",
 
   // Account
   GET_ACCOUNT_HANDLE: "GET_ACCOUNT_HANDLE",

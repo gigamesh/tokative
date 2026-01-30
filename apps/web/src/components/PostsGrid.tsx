@@ -211,8 +211,10 @@ export function PostsGrid({
           <p className="text-sm text-gray-600">
             To scrape posts, navigate to a TikTok profile and click
             <br />
-            <span className="text-tiktok-red">Scrape Profile</span> in the
-            extension popup.
+            <span className="font-semibold text-gray-500">
+              Scrape Profile
+            </span>{" "}
+            in the extension popup.
           </p>
         </div>
       ) : (
