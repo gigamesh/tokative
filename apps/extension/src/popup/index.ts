@@ -1,5 +1,15 @@
 import { MessageType, CommentScrapingState, RateLimitState } from "../types";
 import { getPostLimit, getCommentLimit, getScrapingState, getVideos, getRateLimitState } from "../utils/storage";
+import { getAuthToken, clearAuthToken, requestAuthTokenFromWebApp } from "../utils/convex-api";
+
+type AuthState =
+  | { status: "not_authenticated" }
+  | { status: "connecting" }
+  | { status: "authenticated"; userId: string }
+  | { status: "needs_sign_in" }
+  | { status: "error"; message: string };
+
+let authState: AuthState = { status: "not_authenticated" };
 
 function updateScrapingStatusUI(
   statusEl: HTMLElement,
@@ -104,7 +114,120 @@ function updateScrapeButtonState(
   } else {
     btn.textContent = defaultText;
     btn.className = "btn btn-primary";
+    // Disable if not authenticated
+    if (authState.status !== "authenticated") {
+      btn.disabled = true;
+    }
   }
+}
+
+function renderAuthSection(): void {
+  const section = document.getElementById("auth-section");
+  const icon = document.getElementById("auth-status-icon");
+  const text = document.getElementById("auth-status-text");
+  const btn = document.getElementById("auth-connect-btn") as HTMLButtonElement | null;
+  const helper = document.getElementById("auth-helper-text");
+
+  if (!section || !icon || !text || !btn || !helper) return;
+
+  section.className = "auth-section";
+
+  switch (authState.status) {
+    case "not_authenticated":
+    case "needs_sign_in":
+      section.classList.add("not-connected");
+      icon.textContent = "⚠️";
+      text.textContent = authState.status === "needs_sign_in" ? "Sign in required" : "Not connected";
+      text.className = "auth-status-text yellow";
+      btn.textContent = "Connect to Dashboard";
+      btn.style.display = "block";
+      btn.disabled = false;
+      helper.textContent = "Opens web app for authentication";
+      helper.style.display = "block";
+      break;
+
+    case "connecting":
+      section.classList.add("connecting");
+      icon.innerHTML = '<span class="spinner"></span>';
+      text.textContent = "Connecting...";
+      text.className = "auth-status-text blue";
+      btn.style.display = "none";
+      helper.style.display = "none";
+      break;
+
+    case "authenticated":
+      section.classList.add("connected");
+      icon.textContent = "✓";
+      text.innerHTML = `Connected <a id="disconnect-link" class="disconnect-link" href="#">Disconnect</a>`;
+      text.className = "auth-status-text green";
+      btn.style.display = "none";
+      helper.style.display = "none";
+
+      const disconnectLink = document.getElementById("disconnect-link");
+      disconnectLink?.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await handleDisconnect();
+      });
+      break;
+
+    case "error":
+      section.classList.add("error");
+      icon.textContent = "✕";
+      text.textContent = authState.message || "Connection failed";
+      text.className = "auth-status-text red";
+      btn.textContent = "Retry";
+      btn.style.display = "block";
+      btn.disabled = false;
+      helper.textContent = "Click to try again";
+      helper.style.display = "block";
+      break;
+  }
+}
+
+function updateScrapeButtonsForAuth(): void {
+  const isAuthed = authState.status === "authenticated";
+  const scrapeProfileBtn = document.getElementById("scrape-profile") as HTMLButtonElement | null;
+  const scrapeCommentsBtn = document.getElementById("scrape-comments") as HTMLButtonElement | null;
+  const authHintProfile = document.getElementById("auth-not-connected-hint-profile");
+  const authHintVideo = document.getElementById("auth-not-connected-hint-video");
+
+  if (scrapeProfileBtn && !isProfileScraping) {
+    scrapeProfileBtn.disabled = !isAuthed;
+  }
+  if (scrapeCommentsBtn && !isCommentScraping) {
+    scrapeCommentsBtn.disabled = !isAuthed;
+  }
+}
+
+async function initAuth(): Promise<void> {
+  const token = await getAuthToken();
+  authState = token
+    ? { status: "authenticated", userId: token }
+    : { status: "not_authenticated" };
+  renderAuthSection();
+  updateScrapeButtonsForAuth();
+}
+
+async function handleConnect(): Promise<void> {
+  authState = { status: "connecting" };
+  renderAuthSection();
+
+  const token = await requestAuthTokenFromWebApp(3000);
+  if (token) {
+    authState = { status: "authenticated", userId: token };
+  } else {
+    chrome.runtime.sendMessage({ type: MessageType.OPEN_DASHBOARD_TAB });
+    authState = { status: "not_authenticated" };
+  }
+  renderAuthSection();
+  updateScrapeButtonsForAuth();
+}
+
+async function handleDisconnect(): Promise<void> {
+  await clearAuthToken();
+  authState = { status: "not_authenticated" };
+  renderAuthSection();
+  updateScrapeButtonsForAuth();
 }
 
 async function init(): Promise<void> {
@@ -116,6 +239,13 @@ async function init(): Promise<void> {
   const scrapeCommentsBtn = document.getElementById("scrape-comments") as HTMLButtonElement | null;
   const commentScrapeStatusEl = document.getElementById("comment-scrape-status");
   const rateLimitDismissBtn = document.getElementById("rate-limit-dismiss");
+  const authConnectBtn = document.getElementById("auth-connect-btn") as HTMLButtonElement | null;
+
+  // Initialize auth state
+  await initAuth();
+
+  // Auth connect button handler
+  authConnectBtn?.addEventListener("click", handleConnect);
 
   // Check for rate limit state on init
   const rateLimitState = await getRateLimitState();
@@ -256,6 +386,16 @@ async function init(): Promise<void> {
     if (message.type === MessageType.RATE_LIMIT_DETECTED) {
       const state = message.payload as RateLimitState;
       showRateLimitWarning(state);
+    }
+
+    // Auth token updates - when user signs in via web app
+    if (message.type === MessageType.AUTH_TOKEN_RESPONSE) {
+      const token = (message.payload as { token?: string })?.token;
+      if (token) {
+        authState = { status: "authenticated", userId: token };
+        renderAuthSection();
+        updateScrapeButtonsForAuth();
+      }
     }
   });
 

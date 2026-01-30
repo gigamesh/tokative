@@ -1,11 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/providers/ConvexProvider";
 import { MessageType } from "@/utils/constants";
 
 export function AuthBridge() {
-  const { userId } = useAuth();
+  const { userId, isLoaded } = useAuth();
+  const previousUserId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (isLoaded && userId && previousUserId.current !== userId) {
+      previousUserId.current = userId;
+      window.postMessage(
+        {
+          type: MessageType.AUTH_TOKEN_RESPONSE,
+          source: "dashboard",
+          payload: { token: userId },
+        },
+        "*"
+      );
+    }
+  }, [userId, isLoaded]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {

@@ -405,6 +405,8 @@ async function handleMessage(
       if (token) {
         await setAuthToken(token);
         console.log("[Background] Auth token stored from web app");
+        // Notify popup about the new token
+        broadcastToPopup(message);
       }
       return { success: true };
     }
@@ -420,6 +422,23 @@ async function handleMessage(
         }
       }
       return { requested: true };
+    }
+
+    case MessageType.OPEN_DASHBOARD_TAB: {
+      const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+      if (tabs.length > 0 && tabs[0].id) {
+        await chrome.tabs.update(tabs[0].id, { active: true });
+        if (tabs[0].windowId) {
+          await chrome.windows.update(tabs[0].windowId, { focused: true });
+        }
+      } else {
+        await chrome.tabs.create({ url: "http://localhost:3000", active: true });
+      }
+      return { success: true };
+    }
+
+    case MessageType.CHECK_EXTENSION: {
+      return { installed: true };
     }
 
     default:

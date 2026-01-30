@@ -2,21 +2,31 @@
 
 import { ReactNode, createContext, useContext } from "react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ClerkProvider, useAuth as useClerkAuth } from "@clerk/nextjs";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 
 const convex = new ConvexReactClient(
   process.env.NEXT_PUBLIC_CONVEX_URL as string
 );
 
 const DEV_USER_ID = "dev-user-local";
+const isClerkConfigured = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 const AuthContext = createContext<{ userId: string | null; isLoaded: boolean }>({
   userId: null,
   isLoaded: false,
 });
 
-export function useAuth() {
+function useDevAuth() {
   return useContext(AuthContext);
 }
+
+function useClerkAuthWrapper() {
+  const { userId, isLoaded } = useClerkAuth();
+  return { userId: userId ?? null, isLoaded };
+}
+
+export const useAuth = isClerkConfigured ? useClerkAuthWrapper : useDevAuth;
 
 function DevAuthProvider({ children }: { children: ReactNode }) {
   return (
@@ -34,31 +44,10 @@ function DevConvexProvider({ children }: { children: ReactNode }) {
   );
 }
 
-async function ClerkConvexProvider({ children }: { children: ReactNode }) {
-  const { ClerkProvider, useAuth: useClerkAuth } = await import("@clerk/nextjs");
-  const { ConvexProviderWithClerk } = await import("convex/react-clerk");
-
-  return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY as string}
-    >
-      <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
-        {children}
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
-  );
-}
-
-const isClerkConfigured = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
   if (!isClerkConfigured) {
     return <DevConvexProvider>{children}</DevConvexProvider>;
   }
-
-  // Dynamic import for Clerk when configured
-  const { ClerkProvider, useAuth: useClerkAuth } = require("@clerk/nextjs");
-  const { ConvexProviderWithClerk } = require("convex/react-clerk");
 
   return (
     <ClerkProvider
