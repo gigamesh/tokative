@@ -196,17 +196,11 @@ http.route({
 
 ### Provider Setup
 
-The app uses a conditional provider that supports both development (no Clerk) and production (with Clerk) modes:
+The app uses Clerk for authentication:
 
 ```tsx
 // providers/ConvexProvider.tsx
 export function ConvexClientProvider({ children }) {
-  // Dev mode: uses mock user "dev-user-local"
-  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    return <DevConvexProvider>{children}</DevConvexProvider>;
-  }
-
-  // Production mode: uses Clerk authentication
   return (
     <ClerkProvider publishableKey={...}>
       <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
@@ -217,7 +211,7 @@ export function ConvexClientProvider({ children }) {
 }
 ```
 
-The `useAuth()` hook exported from this provider returns `{ userId, isLoaded }` in both modes.
+The `useAuth()` hook exported from this provider returns `{ userId, isLoaded }`.
 
 ### Reading Data (Queries)
 
@@ -370,7 +364,7 @@ TikTok Buddy uses a **token relay** pattern where the user only needs to sign in
 
 ### Authentication Flow
 
-1. **User signs in** to the web app using Clerk (or uses dev mode with mock auth)
+1. **User signs in** to the web app using Clerk
 
 2. **AuthBridge component** in the web app does two things:
    - Proactively broadcasts the token when user signs in
@@ -409,36 +403,6 @@ TikTok Buddy uses a **token relay** pattern where the user only needs to sign in
 
 5. **Background script** stores the token in `chrome.storage.local` for future requests
 
-### Local Development (No Clerk)
-
-For local development without setting up Clerk:
-
-1. Leave `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` unset in `.env.local`
-2. The web app uses a mock user ID (`dev-user-local`)
-3. The extension receives this mock ID via the token relay
-4. All data is associated with the dev user
-
-### Production (With Clerk)
-
-For production with real user accounts:
-
-1. Set up Clerk project and add keys to `.env.local`
-2. Users sign in via `/sign-in` page
-3. The real Clerk user ID flows through the token relay
-4. Each user's data is isolated in Convex
-
-### Why Token Relay?
-
-Alternatives considered:
-
-| Approach | Problem |
-|----------|---------|
-| User signs in to extension popup | Poor UX, separate auth flow |
-| Extension uses Clerk directly | Complex, requires popup-based OAuth |
-| Hardcoded token | No multi-user support |
-
-Token relay is simple: sign in once on the web, extension just works.
-
 ## Local Development
 
 ### 1. Install Dependencies
@@ -469,12 +433,11 @@ This:
 # Required - Get from `npx convex dev` output
 NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
 
-# Optional - Only needed for production auth
-# Leave empty for local dev (uses mock user "dev-user-local")
+# Required - Get from Clerk dashboard (https://dashboard.clerk.com)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 
-# Clerk redirect URLs (only needed if using Clerk)
+# Clerk redirect URLs
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
