@@ -9,7 +9,7 @@ export default defineSchema({
 
   comments: defineTable({
     userId: v.id("users"),
-    externalId: v.string(),
+    commentId: v.string(),
     handle: v.string(),
     comment: v.string(),
     scrapedAt: v.number(),
@@ -21,7 +21,6 @@ export default defineSchema({
     replyError: v.optional(v.string()),
     replyContent: v.optional(v.string()),
     commentTimestamp: v.optional(v.string()),
-    commentId: v.optional(v.string()),
     videoId: v.optional(v.string()),
     parentCommentId: v.optional(v.string()),
     isReply: v.optional(v.boolean()),
@@ -29,7 +28,7 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_and_video", ["userId", "videoId"])
-    .index("by_user_and_external_id", ["userId", "externalId"]),
+    .index("by_user_and_comment_id", ["userId", "commentId"]),
 
   videos: defineTable({
     userId: v.id("users"),

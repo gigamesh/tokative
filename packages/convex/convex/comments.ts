@@ -19,7 +19,7 @@ export const list = query({
       .collect();
 
     return comments.map((c) => ({
-      id: c.externalId,
+      id: c.commentId,
       handle: c.handle,
       comment: c.comment,
       scrapedAt: new Date(c.scrapedAt).toISOString(),
@@ -42,7 +42,7 @@ export const list = query({
 });
 
 const commentInput = {
-  externalId: v.string(),
+  commentId: v.string(),
   handle: v.string(),
   comment: v.string(),
   scrapedAt: v.number(),
@@ -50,7 +50,6 @@ const commentInput = {
   avatarUrl: v.optional(v.string()),
   videoUrl: v.optional(v.string()),
   commentTimestamp: v.optional(v.string()),
-  commentId: v.optional(v.string()),
   videoId: v.optional(v.string()),
   parentCommentId: v.optional(v.string()),
   isReply: v.optional(v.boolean()),
@@ -90,8 +89,8 @@ export const addBatch = mutation({
 
       const existing = await ctx.db
         .query("comments")
-        .withIndex("by_user_and_external_id", (q) =>
-          q.eq("userId", user._id).eq("externalId", comment.externalId)
+        .withIndex("by_user_and_comment_id", (q) =>
+          q.eq("userId", user._id).eq("commentId", comment.commentId)
         )
         .unique();
 
@@ -114,7 +113,7 @@ export const addBatch = mutation({
 export const update = mutation({
   args: {
     clerkId: v.string(),
-    externalId: v.string(),
+    commentId: v.string(),
     updates: v.object({
       replySent: v.optional(v.boolean()),
       repliedAt: v.optional(v.number()),
@@ -134,8 +133,8 @@ export const update = mutation({
 
     const comment = await ctx.db
       .query("comments")
-      .withIndex("by_user_and_external_id", (q) =>
-        q.eq("userId", user._id).eq("externalId", args.externalId)
+      .withIndex("by_user_and_comment_id", (q) =>
+        q.eq("userId", user._id).eq("commentId", args.commentId)
       )
       .unique();
 
@@ -150,7 +149,7 @@ export const update = mutation({
 export const remove = mutation({
   args: {
     clerkId: v.string(),
-    externalId: v.string(),
+    commentId: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -164,8 +163,8 @@ export const remove = mutation({
 
     const comment = await ctx.db
       .query("comments")
-      .withIndex("by_user_and_external_id", (q) =>
-        q.eq("userId", user._id).eq("externalId", args.externalId)
+      .withIndex("by_user_and_comment_id", (q) =>
+        q.eq("userId", user._id).eq("commentId", args.commentId)
       )
       .unique();
 
@@ -178,7 +177,7 @@ export const remove = mutation({
 export const removeBatch = mutation({
   args: {
     clerkId: v.string(),
-    externalIds: v.array(v.string()),
+    commentIds: v.array(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -190,11 +189,11 @@ export const removeBatch = mutation({
       throw new Error("User not found");
     }
 
-    for (const externalId of args.externalIds) {
+    for (const commentId of args.commentIds) {
       const comment = await ctx.db
         .query("comments")
-        .withIndex("by_user_and_external_id", (q) =>
-          q.eq("userId", user._id).eq("externalId", externalId)
+        .withIndex("by_user_and_comment_id", (q) =>
+          q.eq("userId", user._id).eq("commentId", commentId)
         )
         .unique();
 

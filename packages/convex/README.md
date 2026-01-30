@@ -66,7 +66,7 @@ Every other table references users via `userId` to keep data isolated per user.
 ```typescript
 comments: {
   userId: Id<"users">,
-  externalId: string,   // Original ID for deduplication (handle-commentId)
+  commentId: string,    // TikTok's unique comment ID (used for deduplication)
   handle: string,       // TikTok username
   comment: string,      // Comment text
   scrapedAt: number,
@@ -99,9 +99,10 @@ videos: {
   profileHandle: string,
   order: number,         // Display order
   scrapedAt: number,
-  commentsScraped?: boolean,
 }
 ```
+
+Note: `commentsScraped` is tracked in Chrome's local storage, not in Convex.
 
 ### Ignore List
 
@@ -196,16 +197,28 @@ http.route({
 
 ### Provider Setup
 
-The app is wrapped with Convex and Clerk providers:
+The app uses a conditional provider that supports both development (no Clerk) and production (with Clerk) modes:
 
 ```tsx
-// app/layout.tsx
-<ClerkProvider>
-  <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-    {children}
-  </ConvexProviderWithClerk>
-</ClerkProvider>
+// providers/ConvexProvider.tsx
+export function ConvexClientProvider({ children }) {
+  // Dev mode: uses mock user "dev-user-local"
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return <DevConvexProvider>{children}</DevConvexProvider>;
+  }
+
+  // Production mode: uses Clerk authentication
+  return (
+    <ClerkProvider publishableKey={...}>
+      <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
+        {children}
+      </ConvexProviderWithClerk>
+    </ClerkProvider>
+  );
+}
 ```
+
+The `useAuth()` hook exported from this provider returns `{ userId, isLoaded }` in both modes.
 
 ### Reading Data (Queries)
 
@@ -244,7 +257,7 @@ function CommentActions() {
   const handleDelete = async (commentId: string) => {
     await removeComment({
       clerkId: userId,
-      externalId: commentId
+      commentId
     });
     // No need to refetch - UI updates automatically!
   };
@@ -295,7 +308,7 @@ This means:
 
 ## Deduplication
 
-Comments are deduplicated by `externalId` (a composite of handle + commentId). This prevents:
+Comments are deduplicated by `commentId` (TikTok's unique comment identifier). This prevents:
 
 - Re-scraping the same video from creating duplicates
 - Multiple devices scraping the same content
@@ -303,8 +316,8 @@ Comments are deduplicated by `externalId` (a composite of handle + commentId). T
 ```typescript
 // In addBatch mutation
 const existing = await ctx.db.query("comments")
-  .withIndex("by_user_and_external_id", q =>
-    q.eq("userId", user._id).eq("externalId", comment.externalId)
+  .withIndex("by_user_and_comment_id", q =>
+    q.eq("userId", user._id).eq("commentId", comment.commentId)
   )
   .unique();
 
@@ -356,9 +369,22 @@ TikTok Buddy uses a **token relay** pattern where the user only needs to sign in
 
 1. **User signs in** to the web app using Clerk (or uses dev mode with mock auth)
 
-2. **AuthBridge component** in the web app listens for `GET_AUTH_TOKEN` messages:
+2. **AuthBridge component** in the web app does two things:
+   - Proactively broadcasts the token when user signs in
+   - Responds to `GET_AUTH_TOKEN` requests from the extension
    ```tsx
    // apps/web/src/components/AuthBridge.tsx
+   // Proactive broadcast on sign-in
+   useEffect(() => {
+     if (isLoaded && userId && previousUserId.current !== userId) {
+       window.postMessage({
+         type: "AUTH_TOKEN_RESPONSE",
+         payload: { token: userId },
+       }, "*");
+     }
+   }, [userId, isLoaded]);
+
+   // Also responds to explicit requests
    window.addEventListener("message", (event) => {
      if (event.data?.type === "GET_AUTH_TOKEN") {
        window.postMessage({
@@ -435,19 +461,24 @@ This:
 
 ### 3. Environment Variables
 
-Create `.env.local` files:
-
-**packages/convex/.env.local:**
-```
-CONVEX_DEPLOYMENT=dev:your-project-name
-```
-
 **apps/web/.env.local:**
 ```
-NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
+# Required - Get from `npx convex dev` output
+NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
+
+# Optional - Only needed for production auth
+# Leave empty for local dev (uses mock user "dev-user-local")
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+
+# Clerk redirect URLs (only needed if using Clerk)
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
 ```
+
+The Convex package itself doesn't require environment variables for local development.
 
 ### 4. Run the Web App
 
@@ -466,52 +497,20 @@ pnpm test        # Watch mode
 pnpm test:run    # Single run
 ```
 
-### Writing Tests
-
-```typescript
-import { convexTest } from "convex-test";
-import { api } from "../_generated/api";
-import schema from "../schema";
-
-const t = convexTest(schema, modules);
-
-it("stores new comments", async () => {
-  // Create a test user
-  const clerkId = "test-user";
-  await t.run(ctx => ctx.db.insert("users", {
-    clerkId,
-    createdAt: Date.now()
-  }));
-
-  // Call the mutation
-  const result = await t.mutation(api.comments.addBatch, {
-    clerkId,
-    comments: [{ externalId: "1", handle: "user", comment: "Hello" }],
-  });
-
-  expect(result.stored).toBe(1);
-
-  // Verify with query
-  const comments = await t.query(api.comments.list, { clerkId });
-  expect(comments).toHaveLength(1);
-});
-```
-
 ## File Structure
 
 ```
 packages/convex/
 ├── convex/
 │   ├── _generated/      # Auto-generated types (don't edit)
-│   ├── tests/           # Integration tests
 │   ├── schema.ts        # Database schema
 │   ├── users.ts         # User management
 │   ├── comments.ts      # Comments CRUD
 │   ├── videos.ts        # Videos CRUD
 │   ├── ignoreList.ts    # Ignore list operations
 │   ├── settings.ts      # User settings
-│   ├── http.ts          # HTTP endpoints for extension
-│   └── auth.config.ts   # Clerk auth configuration
+│   └── http.ts          # HTTP endpoints for extension
+├── tests/               # Integration tests
 ├── index.ts             # Package exports
 ├── package.json
 ├── tsconfig.json

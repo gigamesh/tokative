@@ -48,8 +48,8 @@ describe("comments", () => {
       const result = await t.mutation(api.comments.addBatch, {
         clerkId,
         comments: [
-          makeComment({ externalId: "1", comment: "First" }),
-          makeComment({ externalId: "2", comment: "Second" }),
+          makeComment({ commentId: "1", comment: "First" }),
+          makeComment({ commentId: "2", comment: "Second" }),
         ],
       });
 
@@ -58,15 +58,15 @@ describe("comments", () => {
       expect(result.ignored).toBe(0);
     });
 
-    it("deduplicates by externalId", async () => {
+    it("deduplicates by commentId", async () => {
       await t.mutation(api.comments.addBatch, {
         clerkId,
-        comments: [makeComment({ externalId: "dup-1", comment: "First" })],
+        comments: [makeComment({ commentId: "dup-1", comment: "First" })],
       });
 
       const result = await t.mutation(api.comments.addBatch, {
         clerkId,
-        comments: [makeComment({ externalId: "dup-1", comment: "Duplicate" })],
+        comments: [makeComment({ commentId: "dup-1", comment: "Duplicate" })],
       });
 
       expect(result.stored).toBe(0);
@@ -81,9 +81,9 @@ describe("comments", () => {
       const result = await t.mutation(api.comments.addBatch, {
         clerkId,
         comments: [
-          makeComment({ externalId: "1", comment: "Hello world" }),
-          makeComment({ externalId: "2", comment: "Buy my stuff" }),
-          makeComment({ externalId: "3", comment: "Nice video" }),
+          makeComment({ commentId: "1", comment: "Hello world" }),
+          makeComment({ commentId: "2", comment: "Buy my stuff" }),
+          makeComment({ commentId: "3", comment: "Nice video" }),
         ],
         ignoreList: ["buy my"],
       });
@@ -99,7 +99,7 @@ describe("comments", () => {
     it("ignore list is case-insensitive", async () => {
       const result = await t.mutation(api.comments.addBatch, {
         clerkId,
-        comments: [makeComment({ externalId: "1", comment: "BUY MY STUFF" })],
+        comments: [makeComment({ commentId: "1", comment: "BUY MY STUFF" })],
         ignoreList: ["buy my"],
       });
 
@@ -112,12 +112,12 @@ describe("comments", () => {
     it("updates reply status fields", async () => {
       await t.mutation(api.comments.addBatch, {
         clerkId,
-        comments: [makeComment({ externalId: "update-test" })],
+        comments: [makeComment({ commentId: "update-test" })],
       });
 
       await t.mutation(api.comments.update, {
         clerkId,
-        externalId: "update-test",
+        commentId: "update-test",
         updates: {
           replySent: true,
           repliedAt: Date.now(),
@@ -136,19 +136,19 @@ describe("comments", () => {
       await t.mutation(api.comments.addBatch, {
         clerkId,
         comments: [
-          makeComment({ externalId: "keep" }),
-          makeComment({ externalId: "remove" }),
+          makeComment({ commentId: "keep" }),
+          makeComment({ commentId: "remove" }),
         ],
       });
 
       await t.mutation(api.comments.remove, {
         clerkId,
-        externalId: "remove",
+        commentId: "remove",
       });
 
       const comments = await t.query(api.comments.list, { clerkId });
       expect(comments).toHaveLength(1);
-      expect(comments[0].id).toBe("keep");
+      expect(comments[0].commentId).toBe("keep");
     });
   });
 
@@ -157,20 +157,20 @@ describe("comments", () => {
       await t.mutation(api.comments.addBatch, {
         clerkId,
         comments: [
-          makeComment({ externalId: "keep" }),
-          makeComment({ externalId: "remove1" }),
-          makeComment({ externalId: "remove2" }),
+          makeComment({ commentId: "keep" }),
+          makeComment({ commentId: "remove1" }),
+          makeComment({ commentId: "remove2" }),
         ],
       });
 
       await t.mutation(api.comments.removeBatch, {
         clerkId,
-        externalIds: ["remove1", "remove2"],
+        commentIds: ["remove1", "remove2"],
       });
 
       const comments = await t.query(api.comments.list, { clerkId });
       expect(comments).toHaveLength(1);
-      expect(comments[0].id).toBe("keep");
+      expect(comments[0].commentId).toBe("keep");
     });
   });
 

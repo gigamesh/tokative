@@ -103,7 +103,7 @@ http.route({
     const body = await request.json();
     await ctx.runMutation(api.comments.update, {
       clerkId: auth.clerkId,
-      externalId: body.externalId,
+      commentId: body.commentId,
       updates: body.updates,
     });
     return jsonResponse({ success: true });
@@ -120,15 +120,15 @@ http.route({
     }
 
     const body = await request.json();
-    if (body.externalIds) {
+    if (body.commentIds) {
       await ctx.runMutation(api.comments.removeBatch, {
         clerkId: auth.clerkId,
-        externalIds: body.externalIds,
+        commentIds: body.commentIds,
       });
-    } else if (body.externalId) {
+    } else if (body.commentId) {
       await ctx.runMutation(api.comments.remove, {
         clerkId: auth.clerkId,
-        externalId: body.externalId,
+        commentId: body.commentId,
       });
     }
     return jsonResponse({ success: true });

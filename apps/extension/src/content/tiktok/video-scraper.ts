@@ -327,7 +327,7 @@ function rawCommentToScrapedComment(raw: RawCommentData): ScrapedComment | null 
     : undefined;
 
   return {
-    id: `${raw.handle}-${raw.commentId}`,
+    id: raw.commentId,
     handle: raw.handle,
     comment: raw.comment,
     scrapedAt: new Date().toISOString(),
@@ -634,7 +634,7 @@ async function scrollAndWaitForContent(
     const reactDataAfter = await extractAllReactData();
 
     for (const [, data] of reactDataAfter) {
-      if (data.cid && !reactIdsBefore.has(data.cid) && !knownCommentIds.has(`${data.user?.unique_id}-${data.cid}`)) {
+      if (data.cid && !reactIdsBefore.has(data.cid) && !knownCommentIds.has(data.cid)) {
         foundNewReactData = true;
         break;
       }

@@ -19,24 +19,22 @@ export async function createTestUser(
 }
 
 export function makeComment(overrides: Partial<{
-  externalId: string;
+  commentId: string;
   handle: string;
   comment: string;
   scrapedAt: number;
   profileUrl: string;
   videoId: string;
-  commentId: string;
   parentCommentId: string;
   isReply: boolean;
 }> = {}) {
   return {
-    externalId: overrides.externalId ?? `comment-${Date.now()}-${Math.random()}`,
+    commentId: overrides.commentId ?? `comment-${Date.now()}-${Math.random()}`,
     handle: overrides.handle ?? "testuser",
     comment: overrides.comment ?? "Test comment",
     scrapedAt: overrides.scrapedAt ?? Date.now(),
     profileUrl: overrides.profileUrl ?? "https://tiktok.com/@testuser",
-    videoId: overrides.videoId ?? "video123",
-    commentId: overrides.commentId,
+    videoId: overrides.videoId,
     parentCommentId: overrides.parentCommentId,
     isReply: overrides.isReply,
   };

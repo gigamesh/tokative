@@ -132,7 +132,7 @@ export async function syncComments(
   ignoreList?: string[]
 ): Promise<ConvexSyncResult> {
   const convexComments = comments.map((c) => ({
-    externalId: c.id,
+    commentId: c.commentId,
     handle: c.handle,
     comment: c.comment,
     scrapedAt: new Date(c.scrapedAt).getTime(),
@@ -140,10 +140,8 @@ export async function syncComments(
     avatarUrl: c.avatarUrl,
     videoUrl: c.videoUrl,
     commentTimestamp: c.commentTimestamp,
-    commentId: c.commentId,
     videoId: c.videoId,
     parentCommentId: c.parentCommentId ?? undefined,
-    replyToReplyId: c.replyToReplyId ?? undefined,
     isReply: c.isReply,
     replyCount: c.replyCount,
   }));
@@ -180,7 +178,7 @@ export async function fetchComments(): Promise<ScrapedComment[]> {
 }
 
 export async function updateComment(
-  externalId: string,
+  commentId: string,
   updates: {
     replySent?: boolean;
     repliedAt?: number;
@@ -190,21 +188,21 @@ export async function updateComment(
 ): Promise<void> {
   await apiRequest("/api/comments", {
     method: "PUT",
-    body: JSON.stringify({ externalId, updates }),
+    body: JSON.stringify({ commentId, updates }),
   });
 }
 
-export async function deleteComment(externalId: string): Promise<void> {
+export async function deleteComment(commentId: string): Promise<void> {
   await apiRequest("/api/comments", {
     method: "DELETE",
-    body: JSON.stringify({ externalId }),
+    body: JSON.stringify({ commentId }),
   });
 }
 
-export async function deleteComments(externalIds: string[]): Promise<void> {
+export async function deleteComments(commentIds: string[]): Promise<void> {
   await apiRequest("/api/comments", {
     method: "DELETE",
-    body: JSON.stringify({ externalIds }),
+    body: JSON.stringify({ commentIds }),
   });
 }
 

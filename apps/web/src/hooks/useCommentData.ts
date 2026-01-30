@@ -114,7 +114,7 @@ export function useCommentData() {
 
       await removeCommentMutation({
         clerkId: userId,
-        externalId: commentId,
+        commentId,
       });
 
       if (bridge) {
@@ -130,7 +130,7 @@ export function useCommentData() {
 
       await removeCommentsMutation({
         clerkId: userId,
-        externalIds: commentIds,
+        commentIds,
       });
 
       if (bridge) {
@@ -162,7 +162,7 @@ export function useCommentData() {
 
       await updateCommentMutation({
         clerkId: userId,
-        externalId: commentId,
+        commentId,
         updates: convexUpdates,
       });
 
