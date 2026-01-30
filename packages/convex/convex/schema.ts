@@ -38,6 +38,7 @@ export default defineSchema({
     profileHandle: v.string(),
     order: v.number(),
     scrapedAt: v.number(),
+    commentsScraped: v.optional(v.boolean()),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_video_id", ["userId", "videoId"]),
@@ -56,5 +57,6 @@ export default defineSchema({
     scrollDelay: v.number(),
     commentLimit: v.optional(v.number()),
     postLimit: v.optional(v.number()),
+    accountHandle: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 });

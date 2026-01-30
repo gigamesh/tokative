@@ -13,38 +13,37 @@ Convex is a backend-as-a-service that provides:
 
 Think of it as Firebase/Supabase but with full TypeScript support and automatic real-time updates.
 
-## Why Convex?
-
-Before Convex, TikTok Buddy stored all data in Chrome's local storage (`chrome.storage.local`). This had limitations:
-
-| Problem | Solution with Convex |
-|---------|---------------------|
-| Data trapped on one device | Cloud storage accessible from anywhere |
-| No sync between browsers | Real-time sync across all connected clients |
-| Manual refresh to see updates | Automatic UI updates when data changes |
-| No user accounts | Authentication via Clerk |
-
 ## Architecture Overview
 
 ```
-┌─────────────────┐     WebSocket      ┌─────────────────┐
-│                 │◄──────────────────►│                 │
-│    Web App      │   (real-time)      │     Convex      │
-│   (Next.js)     │                    │    Backend      │
-│                 │                    │                 │
-└─────────────────┘                    └─────────────────┘
-                                              ▲
-┌─────────────────┐     HTTP API              │
-│                 │◄──────────────────────────┘
-│   Chrome        │   (REST-like)
-│   Extension     │
-│                 │
-└─────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                     Convex Backend                              │
+│                 (Source of Truth for user data)                 │
+│  - Comments, Videos, Ignore List, Settings                      │
+└─────────────────────────────────────────────────────────────────┘
+                              ▲
+          WebSocket           │           HTTP API
+     ┌────────────────────────┴───────────────────────────┐
+     │                                                    │
+     ▼                                                    ▼
+┌─────────────────┐                            ┌─────────────────┐
+│    Web App      │                            │   Chrome        │
+│   (Next.js)     │                            │   Extension     │
+│                 │                            │                 │
+└─────────────────┘                            └─────────────────┘
+                                                       │
+                                              Local Storage
+                                              (ephemeral only)
+                                              - Scraping state
+                                              - Rate limit state
+                                              - Auth token
 ```
+
+**Convex Backend**: The authoritative source of truth for all user data. Comments, videos, ignore list, and settings are stored here and synced across all devices.
 
 **Web App**: Uses Convex React hooks with WebSocket connection for real-time updates. When data changes anywhere, the UI updates instantly without polling or manual refresh.
 
-**Chrome Extension**: Uses HTTP endpoints since extensions can't maintain persistent WebSocket connections. The extension syncs data to Convex whenever it scrapes comments or videos.
+**Chrome Extension**: Uses HTTP endpoints since extensions can't maintain persistent WebSocket connections. All data operations (read/write) go directly to Convex. Local storage is only used for ephemeral session state (scraping progress, rate limit tracking, auth token).
 
 ## Data Models
 
@@ -97,12 +96,11 @@ videos: {
   thumbnailUrl: string,
   videoUrl: string,
   profileHandle: string,
-  order: number,         // Display order
+  order: number,            // Display order
   scrapedAt: number,
+  commentsScraped?: boolean, // Whether comments have been scraped
 }
 ```
-
-Note: `commentsScraped` is tracked in Chrome's local storage, not in Convex.
 
 ### Ignore List
 
@@ -119,10 +117,11 @@ ignoreList: {
 ```typescript
 settings: {
   userId: Id<"users">,
-  messageDelay: number,  // ms between messages
-  scrollDelay: number,   // ms between scroll actions
-  commentLimit?: number, // Max comments per video
-  postLimit?: number,    // Max posts to scrape
+  messageDelay: number,    // ms between messages
+  scrollDelay: number,     // ms between scroll actions
+  commentLimit?: number,   // Max comments per video
+  postLimit?: number,      // Max posts to scrape
+  accountHandle?: string,  // TikTok profile handle to scrape
 }
 ```
 
@@ -286,25 +285,29 @@ export async function syncComments(comments: ScrapedComment[]) {
 }
 ```
 
-### Automatic Sync
+### Convex-First Storage
 
-The extension's storage layer automatically syncs to Convex:
+The extension's storage layer uses Convex as the source of truth for all user data:
 
 ```typescript
 // extension/src/utils/storage.ts
 export async function addScrapedComments(newComments) {
-  // 1. Save to local storage (fast, works offline)
-  await saveToLocalStorage(newComments);
+  // Directly sync to Convex (source of truth)
+  const ignoreList = await convexApi.fetchIgnoreList();
+  return convexApi.syncComments(newComments, ignoreList.map(e => e.text));
+}
 
-  // 2. Sync to Convex in background (doesn't block)
-  tryConvexSync(() => convexApi.syncComments(newComments));
+export async function getScrapedComments() {
+  // Fetch directly from Convex
+  return convexApi.fetchComments();
 }
 ```
 
 This means:
-- Local storage is the source of truth for the extension
-- Convex sync happens in the background
-- If sync fails, data is still saved locally
+- Convex is the single source of truth for user data
+- All data operations (read/write) go directly to Convex
+- Data syncs across all devices automatically
+- Only ephemeral state (scraping progress, rate limits) stays in local storage
 
 ## Deduplication
 

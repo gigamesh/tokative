@@ -187,6 +187,25 @@ http.route({
 
 http.route({
   path: "/api/videos",
+  method: "PUT",
+  handler: httpAction(async (ctx, request) => {
+    const auth = await verifyAuth(request);
+    if (!auth) {
+      return errorResponse("Unauthorized", 401);
+    }
+
+    const body = await request.json();
+    await ctx.runMutation(api.videos.update, {
+      clerkId: auth.clerkId,
+      videoId: body.videoId,
+      updates: body.updates,
+    });
+    return jsonResponse({ success: true });
+  }),
+});
+
+http.route({
+  path: "/api/videos",
   method: "DELETE",
   handler: httpAction(async (ctx, request) => {
     const auth = await verifyAuth(request);
@@ -309,6 +328,37 @@ http.route({
       settings: body,
     });
     return jsonResponse({ success: true });
+  }),
+});
+
+http.route({
+  path: "/api/scraping/context",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, { status: 204, headers: corsHeaders() });
+  }),
+});
+
+http.route({
+  path: "/api/scraping/context",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const auth = await verifyAuth(request);
+    if (!auth) {
+      return errorResponse("Unauthorized", 401);
+    }
+
+    const ignoreList = await ctx.runQuery(api.ignoreList.list, {
+      clerkId: auth.clerkId,
+    });
+    const comments = await ctx.runQuery(api.comments.list, {
+      clerkId: auth.clerkId,
+    });
+
+    return jsonResponse({
+      ignoreList: ignoreList.map((e) => e.text),
+      existingCommentIds: comments.map((c) => c.commentId).filter(Boolean),
+    });
   }),
 });
 

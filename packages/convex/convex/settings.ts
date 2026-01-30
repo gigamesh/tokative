@@ -6,6 +6,7 @@ const DEFAULT_SETTINGS = {
   scrollDelay: 1000,
   commentLimit: 100,
   postLimit: 50,
+  accountHandle: null as string | null,
 };
 
 export const get = query({
@@ -34,6 +35,7 @@ export const get = query({
       scrollDelay: settings.scrollDelay,
       commentLimit: settings.commentLimit ?? DEFAULT_SETTINGS.commentLimit,
       postLimit: settings.postLimit ?? DEFAULT_SETTINGS.postLimit,
+      accountHandle: settings.accountHandle ?? DEFAULT_SETTINGS.accountHandle,
     };
   },
 });
@@ -46,6 +48,7 @@ export const update = mutation({
       scrollDelay: v.optional(v.number()),
       commentLimit: v.optional(v.number()),
       postLimit: v.optional(v.number()),
+      accountHandle: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {

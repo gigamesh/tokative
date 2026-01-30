@@ -125,4 +125,33 @@ describe("videos", () => {
       expect(videos).toHaveLength(1);
     });
   });
+
+  describe("update", () => {
+    it("marks video as comments scraped", async () => {
+      await t.mutation(api.videos.addBatch, {
+        clerkId,
+        videos: [makeVideo({ videoId: "update-test" })],
+      });
+
+      await t.mutation(api.videos.update, {
+        clerkId,
+        videoId: "update-test",
+        updates: { commentsScraped: true },
+      });
+
+      const videos = await t.query(api.videos.list, { clerkId });
+      expect(videos[0].commentsScraped).toBe(true);
+    });
+
+    it("does nothing for non-existent video", async () => {
+      await t.mutation(api.videos.update, {
+        clerkId,
+        videoId: "does-not-exist",
+        updates: { commentsScraped: true },
+      });
+
+      const videos = await t.query(api.videos.list, { clerkId });
+      expect(videos).toHaveLength(0);
+    });
+  });
 });

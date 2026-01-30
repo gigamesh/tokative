@@ -21,6 +21,7 @@ describe("settings", () => {
         scrollDelay: 1000,
         commentLimit: 100,
         postLimit: 50,
+        accountHandle: null,
       });
     });
 

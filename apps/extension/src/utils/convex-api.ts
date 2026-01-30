@@ -19,6 +19,7 @@ export interface ConvexSettings {
   scrollDelay: number;
   commentLimit: number;
   postLimit: number;
+  accountHandle: string | null;
 }
 
 export async function getAuthToken(): Promise<string | null> {
@@ -240,13 +241,13 @@ export async function fetchVideos(): Promise<ScrapedVideo[]> {
   return videos;
 }
 
-export async function markVideoCommentsScraped(
+export async function updateVideo(
   videoId: string,
-  commentsScraped: boolean
+  updates: { commentsScraped?: boolean }
 ): Promise<void> {
-  await apiRequest("/api/videos/mark-scraped", {
-    method: "POST",
-    body: JSON.stringify({ videoId, commentsScraped }),
+  await apiRequest("/api/videos", {
+    method: "PUT",
+    body: JSON.stringify({ videoId, updates }),
   });
 }
 
@@ -297,4 +298,13 @@ export async function updateSettings(
 
 export function isAuthenticated(): Promise<boolean> {
   return getAuthToken().then((token) => !!token);
+}
+
+export interface ScrapingContext {
+  ignoreList: string[];
+  existingCommentIds: string[];
+}
+
+export async function fetchScrapingContext(): Promise<ScrapingContext> {
+  return apiRequest("/api/scraping/context");
 }
