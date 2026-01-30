@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const chokidar = require("chokidar");
 const { WebSocketServer } = require("ws");
+const env = require("./env");
 
 const wss = new WebSocketServer({ port: 8080 });
 console.log("Hot reload server started on ws://localhost:8080");
@@ -127,6 +128,7 @@ const buildOptions = {
   sourcemap: "inline",
   define: {
     "process.env.NODE_ENV": '"development"',
+    "CONVEX_SITE_URL_PLACEHOLDER": JSON.stringify(env.CONVEX_SITE_URL),
   },
 };
 

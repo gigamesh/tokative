@@ -1,45 +1,45 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useAuth } from "@/providers/ConvexProvider";
+import { useEffect, useRef, useCallback } from "react";
+import { useAuth as useClerkAuth } from "@clerk/nextjs";
 import { MessageType } from "@/utils/constants";
 
 export function AuthBridge() {
-  const { userId, isLoaded } = useAuth();
+  const { userId, isLoaded, getToken } = useClerkAuth();
   const previousUserId = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (isLoaded && userId && previousUserId.current !== userId) {
-      previousUserId.current = userId;
+  const sendToken = useCallback(async () => {
+    if (!userId) return;
+    const token = await getToken({ template: "convex" });
+    if (token) {
       window.postMessage(
         {
           type: MessageType.AUTH_TOKEN_RESPONSE,
           source: "dashboard",
-          payload: { token: userId },
+          payload: { token },
         },
         "*"
       );
     }
-  }, [userId, isLoaded]);
+  }, [userId, getToken]);
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    if (isLoaded && userId && previousUserId.current !== userId) {
+      previousUserId.current = userId;
+      sendToken();
+    }
+  }, [userId, isLoaded, sendToken]);
+
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
       if (event.source !== window) return;
       if (event.data?.type !== MessageType.GET_AUTH_TOKEN) return;
-
-      window.postMessage(
-        {
-          type: MessageType.AUTH_TOKEN_RESPONSE,
-          source: "dashboard",
-          payload: { token: userId },
-        },
-        "*"
-      );
+      await sendToken();
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [userId]);
+  }, [sendToken]);
 
   return null;
 }

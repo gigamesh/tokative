@@ -1,6 +1,7 @@
 import { ScrapedComment, ScrapedVideo, IgnoreListEntry, MessageType } from "../types";
 
-const CONVEX_HTTP_URL = "CONVEX_SITE_URL_PLACEHOLDER";
+declare const CONVEX_SITE_URL_PLACEHOLDER: string;
+const CONVEX_HTTP_URL = CONVEX_SITE_URL_PLACEHOLDER;
 
 const STORAGE_KEYS = {
   AUTH_TOKEN: "tiktok_buddy_auth_token",

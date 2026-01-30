@@ -4,6 +4,32 @@ import { api } from "./_generated/api";
 
 const http = httpRouter();
 
+function base64UrlDecode(str: string): string {
+  // Convert base64url to base64
+  let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+  // Add padding if needed
+  while (base64.length % 4) {
+    base64 += "=";
+  }
+  return atob(base64);
+}
+
+function parseJwt(token: string): { sub: string } | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) {
+      return null;
+    }
+    const payload = JSON.parse(base64UrlDecode(parts[1]));
+    if (!payload.sub || typeof payload.sub !== "string") {
+      return null;
+    }
+    return { sub: payload.sub };
+  } catch {
+    return null;
+  }
+}
+
 async function verifyAuth(
   request: Request
 ): Promise<{ clerkId: string } | null> {
@@ -15,7 +41,19 @@ async function verifyAuth(
   if (!token) {
     return null;
   }
-  return { clerkId: token };
+
+  const parsed = parseJwt(token);
+  if (!parsed) {
+    return null;
+  }
+  return { clerkId: parsed.sub };
+}
+
+async function ensureUserExists(
+  ctx: { runMutation: typeof import("./_generated/server").ActionCtx["runMutation"] },
+  clerkId: string
+): Promise<void> {
+  await ctx.runMutation(api.users.getOrCreate, { clerkId });
 }
 
 function corsHeaders() {
@@ -80,6 +118,8 @@ http.route({
     if (!auth) {
       return errorResponse("Unauthorized", 401);
     }
+
+    await ensureUserExists(ctx, auth.clerkId);
 
     const body = await request.json();
     const result = await ctx.runMutation(api.comments.addBatch, {
@@ -175,6 +215,8 @@ http.route({
     if (!auth) {
       return errorResponse("Unauthorized", 401);
     }
+
+    await ensureUserExists(ctx, auth.clerkId);
 
     const body = await request.json();
     const result = await ctx.runMutation(api.videos.addBatch, {

@@ -9,7 +9,8 @@
   },
   "scripts": {
     "dev": "convex dev",
-    "deploy": "convex deploy",
+    "deploy:dev": "convex dev --once",
+    "deploy:prod": "convex deploy",
     "logs": "convex logs",
     "test": "vitest run",
     "test:watch": "vitest",
