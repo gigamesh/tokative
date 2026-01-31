@@ -43,7 +43,7 @@ export default defineSchema({
   videos: defineTable({
     userId: v.id("users"),
     videoId: v.string(),
-    thumbnailUrl: v.string(),
+    thumbnailUrl: v.optional(v.string()),
     videoUrl: v.string(),
     profileHandle: v.string(),
     order: v.number(),

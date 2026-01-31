@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 import { getOrCreate as getOrCreateProfile } from "./tiktokProfiles";
 
 export const list = query({
@@ -92,9 +94,9 @@ export const addBatch = mutation({
     let skipped = 0;
 
     const profileCache = new Map<string, Awaited<ReturnType<typeof getOrCreateProfile>>>();
+    const avatarsToStore: Array<{ profileId: Id<"tiktokProfiles">; tiktokUserId: string; tiktokAvatarUrl: string }> = [];
 
     for (const comment of args.comments) {
-      // Skip comments missing required tiktokUserId
       if (!comment.tiktokUserId) {
         skipped++;
         continue;
@@ -121,20 +123,28 @@ export const addBatch = mutation({
         continue;
       }
 
-      let tiktokProfileId = profileCache.get(comment.tiktokUserId);
-      if (!tiktokProfileId) {
-        tiktokProfileId = await getOrCreateProfile(ctx, user._id, {
+      let profileResult = profileCache.get(comment.tiktokUserId);
+      if (!profileResult) {
+        profileResult = await getOrCreateProfile(ctx, user._id, {
           tiktokUserId: comment.tiktokUserId,
           handle: comment.handle,
           profileUrl: comment.profileUrl,
           avatarUrl: comment.avatarUrl,
         });
-        profileCache.set(comment.tiktokUserId, tiktokProfileId);
+        profileCache.set(comment.tiktokUserId, profileResult);
+
+        if (profileResult.shouldStoreAvatar && profileResult.tiktokAvatarUrl) {
+          avatarsToStore.push({
+            profileId: profileResult.profileId,
+            tiktokUserId: profileResult.tiktokUserId,
+            tiktokAvatarUrl: profileResult.tiktokAvatarUrl,
+          });
+        }
       }
 
       await ctx.db.insert("comments", {
         userId: user._id,
-        tiktokProfileId,
+        tiktokProfileId: profileResult.profileId,
         commentId: comment.commentId,
         comment: comment.comment,
         scrapedAt: comment.scrapedAt,
@@ -146,6 +156,14 @@ export const addBatch = mutation({
         replyCount: comment.replyCount,
       });
       stored++;
+    }
+
+    for (const avatar of avatarsToStore) {
+      await ctx.scheduler.runAfter(0, internal.imageStorage.storeAvatar, {
+        profileId: avatar.profileId,
+        tiktokUserId: avatar.tiktokUserId,
+        tiktokUrl: avatar.tiktokAvatarUrl,
+      });
     }
 
     return { stored, duplicates, ignored, skipped };

@@ -50,7 +50,7 @@ async function verifyAuth(
 }
 
 async function ensureUserExists(
-  ctx: { runMutation: typeof import("./_generated/server").ActionCtx["runMutation"] },
+  ctx: { runMutation: (fn: typeof api.users.getOrCreate, args: { clerkId: string }) => Promise<unknown> },
   clerkId: string
 ): Promise<void> {
   await ctx.runMutation(api.users.getOrCreate, { clerkId });

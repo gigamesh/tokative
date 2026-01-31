@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 
 export const list = query({
   args: { clerkId: v.string() },
@@ -60,6 +62,7 @@ export const addBatch = mutation({
 
     let stored = 0;
     let duplicates = 0;
+    const thumbnailsToStore: Array<{ videoDbId: Id<"videos">; videoId: string; tiktokUrl: string }> = [];
 
     for (const video of args.videos) {
       const existing = await ctx.db
@@ -74,11 +77,32 @@ export const addBatch = mutation({
         continue;
       }
 
-      await ctx.db.insert("videos", {
+      const videoDbId = await ctx.db.insert("videos", {
         userId: user._id,
-        ...video,
+        videoId: video.videoId,
+        videoUrl: video.videoUrl,
+        profileHandle: video.profileHandle,
+        order: video.order,
+        scrapedAt: video.scrapedAt,
       });
+
+      if (video.thumbnailUrl) {
+        thumbnailsToStore.push({
+          videoDbId,
+          videoId: video.videoId,
+          tiktokUrl: video.thumbnailUrl,
+        });
+      }
+
       stored++;
+    }
+
+    for (const thumbnail of thumbnailsToStore) {
+      await ctx.scheduler.runAfter(0, internal.imageStorage.storeThumbnail, {
+        videoDbId: thumbnail.videoDbId,
+        videoId: thumbnail.videoId,
+        tiktokUrl: thumbnail.tiktokUrl,
+      });
     }
 
     return { stored, duplicates };

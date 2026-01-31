@@ -11,6 +11,8 @@
 import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as ignoreList from "../ignoreList.js";
+import type * as imageStorage from "../imageStorage.js";
+import type * as lib_r2 from "../lib/r2.js";
 import type * as settings from "../settings.js";
 import type * as tiktokProfiles from "../tiktokProfiles.js";
 import type * as users from "../users.js";
@@ -26,6 +28,8 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   http: typeof http;
   ignoreList: typeof ignoreList;
+  imageStorage: typeof imageStorage;
+  "lib/r2": typeof lib_r2;
   settings: typeof settings;
   tiktokProfiles: typeof tiktokProfiles;
   users: typeof users;
