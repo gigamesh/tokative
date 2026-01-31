@@ -79,7 +79,7 @@ export function CommentCard({
           className="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
         />
 
-        {thumbnailUrl && (
+        {thumbnailUrl && !isReply && (
           <a
             href={comment.videoUrl}
             target="_blank"
