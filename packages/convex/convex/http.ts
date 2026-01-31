@@ -119,15 +119,21 @@ http.route({
       return errorResponse("Unauthorized", 401);
     }
 
-    await ensureUserExists(ctx, auth.clerkId);
+    try {
+      await ensureUserExists(ctx, auth.clerkId);
 
-    const body = await request.json();
-    const result = await ctx.runMutation(api.comments.addBatch, {
-      clerkId: auth.clerkId,
-      comments: body.comments,
-      ignoreList: body.ignoreList,
-    });
-    return jsonResponse(result);
+      const body = await request.json();
+      const result = await ctx.runMutation(api.comments.addBatch, {
+        clerkId: auth.clerkId,
+        comments: body.comments,
+        ignoreList: body.ignoreList,
+      });
+      return jsonResponse(result);
+    } catch (error) {
+      console.error("Error in /api/comments/batch:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(message, 500);
+    }
   }),
 });
 

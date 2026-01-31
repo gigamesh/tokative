@@ -176,7 +176,8 @@ export function useVideoData() {
             scrapingState: null,
           };
         });
-        toast.error(`Failed to scrape comments: ${error}`);
+        console.error("Failed to scrape comments:", error);
+        toast.error("Failed to scrape comments. Check console for details.");
         if (videoId) {
           processNextInQueue();
         }
@@ -275,12 +276,13 @@ export function useVideoData() {
           error,
           scrapingState: null,
         }));
+        console.error("Batch scrape failed:", error);
         if (completedVideos && completedVideos > 0) {
           toast.error(
-            `Batch failed after ${completedVideos} videos (${totalComments} comments): ${error}`
+            `Batch failed after ${completedVideos} videos (${totalComments} comments). Check console for details.`
           );
         } else {
-          toast.error(`Failed to scrape comments: ${error}`);
+          toast.error("Failed to scrape comments. Check console for details.");
         }
       }),
     ];

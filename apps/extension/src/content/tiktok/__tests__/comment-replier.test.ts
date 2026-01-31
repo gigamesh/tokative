@@ -117,6 +117,7 @@ describe("verifyComment", () => {
   function createScrapedComment(overrides: Partial<ScrapedComment> = {}): ScrapedComment {
     return {
       id: "test-id",
+      tiktokUserId: "7023701638964954118",
       handle: "testuser",
       comment: "Test comment",
       scrapedAt: new Date().toISOString(),
@@ -249,6 +250,7 @@ describe("Comment Element Detection", () => {
     const commentEl = container.querySelector(".content")!;
     const user: ScrapedComment = {
       id: "1",
+      tiktokUserId: "7023701638964954118",
       handle: "testuser",
       comment: "This is the actual comment content that is much longer",
       scrapedAt: "",
@@ -278,6 +280,7 @@ describe("Comment Element Detection", () => {
     const commentEl = container.querySelector(".content")!;
     const user: ScrapedComment = {
       id: "1",
+      tiktokUserId: "7023701638964954118",
       handle: "testuser",
       comment: "Actual comment",
       scrapedAt: "",

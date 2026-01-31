@@ -12,6 +12,7 @@ import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as ignoreList from "../ignoreList.js";
 import type * as settings from "../settings.js";
+import type * as tiktokProfiles from "../tiktokProfiles.js";
 import type * as users from "../users.js";
 import type * as videos from "../videos.js";
 
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   ignoreList: typeof ignoreList;
   settings: typeof settings;
+  tiktokProfiles: typeof tiktokProfiles;
   users: typeof users;
   videos: typeof videos;
 }>;

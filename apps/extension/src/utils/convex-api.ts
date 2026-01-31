@@ -151,6 +151,7 @@ export async function syncComments(
 ): Promise<ConvexSyncResult> {
   const convexComments = comments.map((c) => ({
     commentId: c.commentId,
+    tiktokUserId: c.tiktokUserId,
     handle: c.handle,
     comment: c.comment,
     scrapedAt: new Date(c.scrapedAt).getTime(),
@@ -171,29 +172,7 @@ export async function syncComments(
 }
 
 export async function fetchComments(): Promise<ScrapedComment[]> {
-  const comments = await apiRequest<
-    Array<{
-      id: string;
-      handle: string;
-      comment: string;
-      scrapedAt: string;
-      profileUrl: string;
-      avatarUrl?: string;
-      videoUrl?: string;
-      replySent?: boolean;
-      repliedAt?: string;
-      replyError?: string;
-      replyContent?: string;
-      commentTimestamp?: string;
-      commentId?: string;
-      videoId?: string;
-      parentCommentId?: string;
-      replyToReplyId?: string;
-      isReply?: boolean;
-      replyCount?: number;
-    }>
-  >("/api/comments");
-
+  const comments = await apiRequest<ScrapedComment[]>("/api/comments");
   return comments;
 }
 

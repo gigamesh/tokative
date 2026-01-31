@@ -12,6 +12,7 @@ import { VIDEO_SELECTORS } from "./video-selectors";
 
 interface RawCommentData {
   commentId: string;
+  tiktokUserId: string;
   handle: string;
   displayName: string;
   comment: string;
@@ -77,7 +78,7 @@ interface CommentReactData {
   create_time: number;
   aweme_id: string;
   text?: string;
-  user?: { unique_id: string; nickname?: string; avatar_thumb?: string };
+  user?: { uid: string; unique_id: string; nickname?: string; avatar_thumb?: string };
   reply_id?: string;
   reply_to_reply_id?: string;
   reply_comment_total?: number;
@@ -85,7 +86,7 @@ interface CommentReactData {
     cid: string;
     create_time: number;
     text?: string;
-    user?: { unique_id: string; nickname?: string; avatar_thumb?: string };
+    user?: { uid: string; unique_id: string; nickname?: string; avatar_thumb?: string };
     reply_id?: string;
     reply_to_reply_id?: string;
   }>;
@@ -140,7 +141,7 @@ async function extractAllReactData(): Promise<Map<number, CommentReactData>> {
         create_time: number;
         aweme_id: string;
         text?: string;
-        user?: { unique_id: string; nickname?: string };
+        user?: { uid: string; unique_id: string; nickname?: string; avatar_thumb?: string };
         reply_id?: string;
         reply_to_reply_id?: string;
         reply_comment_total?: number;
@@ -148,7 +149,7 @@ async function extractAllReactData(): Promise<Map<number, CommentReactData>> {
           cid: string;
           create_time: number;
           text?: string;
-          user?: { unique_id: string; nickname?: string };
+          user?: { uid: string; unique_id: string; nickname?: string; avatar_thumb?: string };
           reply_id?: string;
           reply_to_reply_id?: string;
         }>;
@@ -277,6 +278,7 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<
 
     const comment: RawCommentData = {
       commentId,
+      tiktokUserId: reactData.user?.uid || "",
       handle: reactData.user?.unique_id || "",
       displayName: reactData.user?.nickname || reactData.user?.unique_id || "",
       comment: reactData.text || "",
@@ -306,6 +308,7 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<
 
         comments.push({
           commentId: reply.cid,
+          tiktokUserId: reply.user?.uid || "",
           handle: reply.user?.unique_id || "",
           displayName: reply.user?.nickname || "",
           comment: reply.text || "",
@@ -359,6 +362,7 @@ function rawCommentToScrapedComment(
 
   return {
     id: raw.commentId,
+    tiktokUserId: raw.tiktokUserId,
     handle: raw.handle,
     comment: raw.comment,
     scrapedAt: new Date().toISOString(),

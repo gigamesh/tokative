@@ -18,8 +18,32 @@ export async function createTestUser(
   });
 }
 
+export async function createTestProfile(
+  t: TestContext,
+  userId: Id<"users">,
+  overrides: Partial<{
+    tiktokUserId: string;
+    handle: string;
+    profileUrl: string;
+    avatarUrl: string;
+  }> = {}
+): Promise<Id<"tiktokProfiles">> {
+  return await t.run(async (ctx) => {
+    return await ctx.db.insert("tiktokProfiles", {
+      userId,
+      tiktokUserId: overrides.tiktokUserId ?? "7023701638964954118",
+      handle: overrides.handle ?? "testuser",
+      profileUrl: overrides.profileUrl ?? "https://tiktok.com/@testuser",
+      avatarUrl: overrides.avatarUrl,
+      firstSeenAt: Date.now(),
+      lastSeenAt: Date.now(),
+    });
+  });
+}
+
 export function makeComment(overrides: Partial<{
   commentId: string;
+  tiktokUserId: string;
   handle: string;
   comment: string;
   scrapedAt: number;
@@ -30,6 +54,7 @@ export function makeComment(overrides: Partial<{
 }> = {}) {
   return {
     commentId: overrides.commentId ?? `comment-${Date.now()}-${Math.random()}`,
+    tiktokUserId: overrides.tiktokUserId ?? "7023701638964954118",
     handle: overrides.handle ?? "testuser",
     comment: overrides.comment ?? "Test comment",
     scrapedAt: overrides.scrapedAt ?? Date.now(),

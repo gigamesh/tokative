@@ -221,6 +221,7 @@ async function handleMessage(
 function createComment(overrides: Partial<ScrapedComment> = {}): ScrapedComment {
   return {
     id: `comment-${Date.now()}-${Math.random()}`,
+    tiktokUserId: "7023701638964954118",
     handle: "testuser",
     comment: "Test comment",
     scrapedAt: new Date().toISOString(),

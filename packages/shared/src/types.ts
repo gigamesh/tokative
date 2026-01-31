@@ -103,6 +103,7 @@ export type MessageType = (typeof MessageType)[keyof typeof MessageType];
 
 export interface ScrapedComment {
   id: string;
+  tiktokUserId: string;
   handle: string;
   comment: string;
   scrapedAt: string;
@@ -191,6 +192,16 @@ export type ScrapingState = CommentScrapingState;
 export interface IgnoreListEntry {
   text: string;
   addedAt: string;
+}
+
+export interface TiktokProfile {
+  id: string;
+  tiktokUserId: string;
+  handle: string;
+  profileUrl: string;
+  avatarUrl?: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
 }
 
 export interface GetVideoCommentsProgress {

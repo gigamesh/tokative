@@ -29,6 +29,7 @@ interface TikTokAvatar {
 
 // TikTok's comment user structure from React fiber
 interface TikTokUser {
+  uid: string;
   unique_id: string;
   nickname?: string;
   avatar_thumb?: TikTokAvatar;
@@ -53,8 +54,13 @@ interface ReactFiber {
     comment?: TikTokComment;
     children?: ReactChild | ReactChild[];
   };
+  pendingProps?: {
+    comment?: TikTokComment;
+    children?: ReactChild | ReactChild[];
+  };
   child?: ReactFiber;
   sibling?: ReactFiber;
+  return?: ReactFiber;
 }
 
 interface ReactChild {
@@ -70,7 +76,7 @@ interface ExtractedComment {
   create_time: number;
   aweme_id?: string;
   text?: string;
-  user: { unique_id: string; nickname?: string; avatar_thumb?: string } | null;
+  user: { uid: string; unique_id: string; nickname?: string; avatar_thumb?: string } | null;
   reply_id?: string;
   reply_to_reply_id?: string;
   reply_comment_total: number;
@@ -79,6 +85,7 @@ interface ExtractedComment {
     create_time: number;
     text?: string;
     user: {
+      uid: string;
       unique_id: string;
       nickname?: string;
       avatar_thumb?: string;
@@ -104,45 +111,38 @@ interface ElementWithFiber extends Element {
     return all;
   }
 
-  function findCommentData(
-    fiber: ReactFiber | null | undefined,
-    depth = 0,
-  ): TikTokComment | null {
-    if (depth > 10) return null;
-    if (!fiber) return null;
+  function findCommentInProps(props: ReactFiber["memoizedProps"]): TikTokComment | null {
+    if (!props) return null;
 
-    // Check memoizedProps for comment data
-    const props = fiber.memoizedProps;
-    if (props) {
-      // Direct comment property
-      if (props.comment?.cid) {
-        return props.comment;
-      }
-      // Check children array
-      if (Array.isArray(props.children)) {
-        for (const child of props.children) {
-          if (child?.props?.comment?.cid) {
-            return child.props.comment;
-          }
+    if (props.comment?.cid) {
+      return props.comment;
+    }
+    if (Array.isArray(props.children)) {
+      for (const child of props.children) {
+        if (child?.props?.comment?.cid) {
+          return child.props.comment;
         }
       }
-      // Single child
-      const singleChild = props.children as ReactChild | undefined;
-      if (singleChild?.props?.comment?.cid) {
-        return singleChild.props.comment;
-      }
     }
-
-    // Traverse child fiber
-    if (fiber.child) {
-      const result = findCommentData(fiber.child, depth + 1);
-      if (result) return result;
+    const singleChild = props.children as ReactChild | undefined;
+    if (singleChild?.props?.comment?.cid) {
+      return singleChild.props.comment;
     }
+    return null;
+  }
 
-    // Traverse sibling fiber
-    if (fiber.sibling) {
-      const result = findCommentData(fiber.sibling, depth + 1);
-      if (result) return result;
+  function findCommentData(fiber: ReactFiber | null | undefined): TikTokComment | null {
+    if (!fiber) return null;
+
+    let current: ReactFiber | null | undefined = fiber;
+    for (let i = 0; i < 15 && current; i++) {
+      const memoResult = findCommentInProps(current.memoizedProps);
+      if (memoResult) return memoResult;
+
+      const pendingResult = findCommentInProps(current.pendingProps);
+      if (pendingResult) return pendingResult;
+
+      current = current.return;
     }
 
     return null;
@@ -171,6 +171,7 @@ interface ElementWithFiber extends Element {
           text: comment.text,
           user: comment.user
             ? {
+                uid: comment.user.uid,
                 unique_id: comment.user.unique_id,
                 nickname: comment.user.nickname,
                 avatar_thumb: comment.user.avatar_thumb?.url_list?.[0],
@@ -185,6 +186,7 @@ interface ElementWithFiber extends Element {
             text: r.text,
             user: r.user
               ? {
+                  uid: r.user.uid,
                   unique_id: r.user.unique_id,
                   nickname: r.user.nickname,
                   avatar_thumb: r.user.avatar_thumb?.url_list?.[0],

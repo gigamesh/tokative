@@ -7,14 +7,24 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_clerk_id", ["clerkId"]),
 
+  tiktokProfiles: defineTable({
+    userId: v.id("users"),
+    tiktokUserId: v.string(),
+    handle: v.string(),
+    profileUrl: v.string(),
+    avatarUrl: v.optional(v.string()),
+    firstSeenAt: v.number(),
+    lastSeenAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_tiktok_id", ["userId", "tiktokUserId"]),
+
   comments: defineTable({
     userId: v.id("users"),
     commentId: v.string(),
-    handle: v.string(),
+    tiktokProfileId: v.id("tiktokProfiles"),
     comment: v.string(),
     scrapedAt: v.number(),
-    profileUrl: v.string(),
-    avatarUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
     replySent: v.optional(v.boolean()),
     repliedAt: v.optional(v.number()),
