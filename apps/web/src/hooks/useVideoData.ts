@@ -191,18 +191,18 @@ export function useVideoData() {
         const videoId =
           comments?.[0]?.videoId || currentFetchingVideoId.current;
 
-        if (videoId) {
-          setState((prev) => {
-            if (stats) {
-              return {
-                ...prev,
-                scrapingState: null,
-                scrapeReport: { stats },
-              };
-            }
-            return { ...prev, scrapingState: null };
-          });
-        }
+        setState((prev) => {
+          const newProgress = new Map(prev.getCommentsProgress);
+          if (videoId) {
+            newProgress.delete(videoId);
+          }
+          return {
+            ...prev,
+            getCommentsProgress: newProgress,
+            scrapingState: null,
+            scrapeReport: stats ? { stats } : prev.scrapeReport,
+          };
+        });
       }),
 
       bridge.on(MessageType.GET_BATCH_COMMENTS_PROGRESS, (payload) => {
