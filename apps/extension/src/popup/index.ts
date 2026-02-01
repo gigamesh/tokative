@@ -74,6 +74,22 @@ function extractVideoId(url: string | undefined): string | null {
 let isProfileScraping = false;
 let isCommentScraping = false;
 
+function renderSpinnerWithText(container: HTMLElement, text: string): void {
+  container.innerHTML = "";
+  const wrapper = document.createElement("div");
+  wrapper.className = "scrape-status-header";
+
+  const spinner = document.createElement("div");
+  spinner.className = "scrape-spinner";
+
+  const textSpan = document.createElement("span");
+  textSpan.textContent = text;
+
+  wrapper.appendChild(spinner);
+  wrapper.appendChild(textSpan);
+  container.appendChild(wrapper);
+}
+
 function renderStatsTable(
   container: HTMLElement,
   stats: { found: number; stored: number; ignored: number; duplicates: number },
@@ -82,6 +98,22 @@ function renderStatsTable(
   const skipped = stats.ignored + stats.duplicates;
 
   container.innerHTML = "";
+
+  // Show spinner header when scraping is in progress
+  if (!isComplete) {
+    const header = document.createElement("div");
+    header.className = "scrape-status-header";
+
+    const spinner = document.createElement("div");
+    spinner.className = "scrape-spinner";
+
+    const headerText = document.createElement("span");
+    headerText.textContent = "Scraping in progress...";
+
+    header.appendChild(spinner);
+    header.appendChild(headerText);
+    container.appendChild(header);
+  }
 
   const table = document.createElement("div");
   table.className = "stats-table";
@@ -208,6 +240,7 @@ function renderAuthSection(): void {
   if (!section || !icon || !text || !btn || !helper) return;
 
   section.className = "auth-section";
+  section.style.display = "block";
 
   switch (authState.status) {
     case "not_authenticated":
@@ -233,18 +266,8 @@ function renderAuthSection(): void {
       break;
 
     case "authenticated":
-      section.classList.add("connected");
-      icon.textContent = "✓";
-      text.innerHTML = `Connected <a id="disconnect-link" class="disconnect-link" href="#">Disconnect</a>`;
-      text.className = "auth-status-text green";
-      btn.style.display = "none";
-      helper.style.display = "none";
-
-      const disconnectLink = document.getElementById("disconnect-link");
-      disconnectLink?.addEventListener("click", async (e) => {
-        e.preventDefault();
-        await handleDisconnect();
-      });
+      // Hide the entire auth section when connected - status is inferred from other content
+      section.style.display = "none";
       break;
 
     case "error":
@@ -396,7 +419,7 @@ async function init(): Promise<void> {
       updateScrapeButtonState(scrapeProfileBtn, true, "Scrape Profile");
       if (scrapeStatusEl) {
         scrapeStatusEl.className = "scrape-status active";
-        scrapeStatusEl.textContent = progress.message || `${progress.videosFound} posts found...`;
+        renderSpinnerWithText(scrapeStatusEl, progress.message || `${progress.videosFound} posts found...`);
       }
     } else if (message.type === MessageType.SCRAPE_VIDEOS_COMPLETE) {
       const { videos: scrapedVideos, limitReached } = message.payload as { videos: unknown[]; limitReached?: boolean };
@@ -426,7 +449,7 @@ async function init(): Promise<void> {
         if (progress.stats) {
           renderStatsTable(commentScrapeStatusEl, progress.stats, false);
         } else {
-          commentScrapeStatusEl.textContent = progress.message || "Scraping...";
+          renderSpinnerWithText(commentScrapeStatusEl, progress.message || "Scraping...");
         }
       }
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
@@ -512,7 +535,7 @@ async function init(): Promise<void> {
     isProfileScraping = true;
     updateScrapeButtonState(scrapeProfileBtn, true, "Scrape Profile");
     scrapeStatusEl.className = "scrape-status active";
-    scrapeStatusEl.textContent = `Scraping up to ${postLimit} posts...`;
+    renderSpinnerWithText(scrapeStatusEl, `Scraping up to ${postLimit} posts...`);
 
     try {
       const response = await chrome.tabs.sendMessage(currentTab.id, {
@@ -575,7 +598,7 @@ async function init(): Promise<void> {
     isCommentScraping = true;
     updateScrapeButtonState(scrapeCommentsBtn, true, "Scrape Comments");
     commentScrapeStatusEl.className = "scrape-status active";
-    commentScrapeStatusEl.textContent = `Scraping up to ${commentLimit} comments...`;
+    renderSpinnerWithText(commentScrapeStatusEl, `Scraping up to ${commentLimit} comments...`);
 
     try {
       const response = await chrome.tabs.sendMessage(currentTab.id, {
