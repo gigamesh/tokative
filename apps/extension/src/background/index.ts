@@ -916,8 +916,9 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
-        closingTabsIntentionally.add(tab.id!);
-        chrome.tabs.remove(tab.id!);
+        // DEBUG: Temporarily keep tab open to see console logs
+        // closingTabsIntentionally.add(tab.id!);
+        // chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
         console.log("[Background] Scrape error:", msg.payload);
@@ -928,8 +929,9 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
-        closingTabsIntentionally.add(tab.id!);
-        chrome.tabs.remove(tab.id!);
+        // DEBUG: Temporarily keep tab open to see console logs
+        // closingTabsIntentionally.add(tab.id!);
+        // chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       }
     };
@@ -1129,10 +1131,11 @@ async function handleGetBatchComments(
       });
     }
 
-    if (tab?.id) {
-      closingTabsIntentionally.add(tab.id);
-      chrome.tabs.remove(tab.id);
-    }
+    // DEBUG: Temporarily keep tab open to see console logs
+    // if (tab?.id) {
+    //   closingTabsIntentionally.add(tab.id);
+    //   chrome.tabs.remove(tab.id);
+    // }
     await focusDashboardTab();
   } catch (error) {
     activeScrapingTabId = null;
@@ -1150,10 +1153,11 @@ async function handleGetBatchComments(
       },
     });
 
-    if (tab?.id) {
-      closingTabsIntentionally.add(tab.id);
-      chrome.tabs.remove(tab.id).catch(() => {});
-    }
+    // DEBUG: Temporarily keep tab open to see console logs
+    // if (tab?.id) {
+    //   closingTabsIntentionally.add(tab.id);
+    //   chrome.tabs.remove(tab.id).catch(() => {});
+    // }
     await focusDashboardTab();
   }
 }

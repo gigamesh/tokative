@@ -866,10 +866,12 @@ async function scrollToLoadComments(
       onProgress?.(cumulativeStats);
     }
 
-    // Early exit if we found a small batch (< 20 comments) - indicates we're near the end
-    if (newComments.length > 0 && newComments.length < 20) {
+    // Early exit if we extracted a small batch (< 20 comments) - indicates we're near the end
+    // Use rawComments (total extracted) not newComments (deduplicated) to avoid false positives
+    // when TikTok's virtualized list recycles previously-seen comments
+    if (rawComments.length > 0 && rawComments.length < 20) {
       log(
-        `[Tokative] Small batch (${newComments.length} < 20), likely reached end of comments`,
+        `[Tokative] Small batch (${rawComments.length} < 20), likely reached end of comments`,
       );
       break;
     }
