@@ -74,6 +74,51 @@ function extractVideoId(url: string | undefined): string | null {
 let isProfileScraping = false;
 let isCommentScraping = false;
 
+function renderStatsTable(
+  container: HTMLElement,
+  stats: { found: number; stored: number; ignored: number; duplicates: number },
+  isComplete: boolean
+): void {
+  const skipped = stats.ignored + stats.duplicates;
+
+  container.innerHTML = "";
+
+  const table = document.createElement("div");
+  table.className = "stats-table";
+
+  const rows = [
+    { label: "Found", value: stats.found, className: "" },
+    { label: "Stored", value: stats.stored, className: "green" },
+    { label: "Skipped", value: skipped, className: "gray" },
+  ];
+
+  rows.forEach(({ label, value, className }) => {
+    const row = document.createElement("div");
+    row.className = "stats-row";
+
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "stats-label";
+    labelSpan.textContent = label;
+
+    const valueSpan = document.createElement("span");
+    valueSpan.className = `stats-value ${className}`;
+    valueSpan.textContent = String(value);
+
+    row.appendChild(labelSpan);
+    row.appendChild(valueSpan);
+    table.appendChild(row);
+  });
+
+  container.appendChild(table);
+
+  if (isComplete) {
+    const note = document.createElement("div");
+    note.className = "stats-note";
+    note.innerHTML = `<strong>Skipped:</strong> Already stored or in ignore list.<br><strong>Note:</strong> TikTok's count may include deleted comments.`;
+    container.appendChild(note);
+  }
+}
+
 let rateLimitCountdownInterval: ReturnType<typeof setInterval> | null = null;
 
 function showRateLimitWarning(state: RateLimitState): void {
@@ -379,8 +424,7 @@ async function init(): Promise<void> {
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status active";
         if (progress.stats) {
-          const { found, ignored, stored } = progress.stats;
-          commentScrapeStatusEl.textContent = `Found: ${found} · Ignored: ${ignored} · Stored: ${stored}`;
+          renderStatsTable(commentScrapeStatusEl, progress.stats, false);
         } else {
           commentScrapeStatusEl.textContent = progress.message || "Scraping...";
         }
@@ -392,8 +436,7 @@ async function init(): Promise<void> {
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status success";
         if (payload.stats) {
-          const { found, ignored, stored } = payload.stats;
-          commentScrapeStatusEl.textContent = `Found: ${found} · Ignored: ${ignored} · Stored: ${stored}`;
+          renderStatsTable(commentScrapeStatusEl, payload.stats, true);
         } else {
           commentScrapeStatusEl.textContent = `Scraped ${payload.comments?.length || 0} comments`;
         }

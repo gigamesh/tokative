@@ -71,8 +71,8 @@
       }
       .scrape-status.success {
         display: block;
-        background: rgba(34, 197, 94, 0.2);
-        color: #22c55e;
+        background: rgba(34, 197, 94, 0.15);
+        color: #e5e5e5;
       }
       .scrape-status.error {
         display: block;
@@ -90,6 +90,44 @@
       }
       .scrape-status.paused a:hover {
         color: #fcd34d;
+      }
+      .stats-table {
+        width: 100%;
+        margin-bottom: 6px;
+      }
+      .stats-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .stats-row:last-child {
+        border-bottom: none;
+      }
+      .stats-label {
+        color: #888;
+      }
+      .stats-value {
+        font-weight: 500;
+      }
+      .stats-value.green {
+        color: #22c55e;
+      }
+      .stats-value.gray {
+        color: #666;
+      }
+      .stats-note {
+        font-size: 10px;
+        color: #666;
+        line-height: 1.4;
+        margin-top: 6px;
+      }
+      .stats-note a {
+        color: #3b82f6;
+        text-decoration: none;
+      }
+      .stats-note a:hover {
+        text-decoration: underline;
       }
       .limit-hint {
         margin-top: 6px;

@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { colors } from "@tokative/shared";
 
 const config: Config = {
   content: [
@@ -9,10 +10,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        brand: {
+          primary: colors.brand.primary,
+          "primary-hover": colors.brand.primaryHover,
+        },
+        surface: {
+          dark: colors.background.dark,
+          elevated: colors.background.elevated,
+          hover: colors.background.hover,
+        },
+        status: {
+          info: colors.status.info,
+          "info-hover": colors.status.infoHover,
+          success: colors.status.success,
+          warning: colors.status.warning,
+          error: colors.status.error,
+        },
+        // Keep tiktok alias for backwards compatibility
         tiktok: {
-          red: "#fe2c55",
-          dark: "#121212",
-          gray: "#1f1f1f",
+          red: colors.brand.primary,
+          dark: colors.background.dark,
+          gray: colors.background.elevated,
         },
       },
     },

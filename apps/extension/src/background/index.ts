@@ -5,6 +5,7 @@ import {
   ScrapedComment,
   ScrapedVideo,
 } from "../types";
+import { colors } from "@tokative/shared";
 import { setAuthToken } from "../utils/convex-api";
 import {
   addScrapedComments,
@@ -847,7 +848,7 @@ async function handleGetVideoComments(
     });
     broadcastScrapingState();
 
-    updateBadge("...", "#3b82f6");
+    updateBadge("...", colors.status.info);
 
     await waitForTabLoad(tab.id);
 
@@ -889,7 +890,7 @@ async function handleGetVideoComments(
           message: payload.message || "Scraping...",
         });
         broadcastScrapingState();
-        updateBadge(count.toString(), "#3b82f6");
+        updateBadge(count.toString(), colors.status.info);
         const progressPayload = (msg.payload || {}) as Record<string, unknown>;
         port.postMessage({
           type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
@@ -916,9 +917,8 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
-        // DEBUG: Temporarily keep tab open to see console logs
-        // closingTabsIntentionally.add(tab.id!);
-        // chrome.tabs.remove(tab.id!);
+        closingTabsIntentionally.add(tab.id!);
+        chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
         console.log("[Background] Scrape error:", msg.payload);
@@ -929,9 +929,8 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
-        // DEBUG: Temporarily keep tab open to see console logs
-        // closingTabsIntentionally.add(tab.id!);
-        // chrome.tabs.remove(tab.id!);
+        closingTabsIntentionally.add(tab.id!);
+        chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       }
     };
@@ -1009,7 +1008,7 @@ async function handleGetBatchComments(
         message,
       },
     });
-    updateBadge(`${currentVideoIndex}/${videosToProcess.length}`, "#3b82f6");
+    updateBadge(`${currentVideoIndex}/${videosToProcess.length}`, colors.status.info);
   };
 
   try {
@@ -1131,11 +1130,10 @@ async function handleGetBatchComments(
       });
     }
 
-    // DEBUG: Temporarily keep tab open to see console logs
-    // if (tab?.id) {
-    //   closingTabsIntentionally.add(tab.id);
-    //   chrome.tabs.remove(tab.id);
-    // }
+    if (tab?.id) {
+      closingTabsIntentionally.add(tab.id);
+      chrome.tabs.remove(tab.id);
+    }
     await focusDashboardTab();
   } catch (error) {
     activeScrapingTabId = null;
@@ -1153,11 +1151,10 @@ async function handleGetBatchComments(
       },
     });
 
-    // DEBUG: Temporarily keep tab open to see console logs
-    // if (tab?.id) {
-    //   closingTabsIntentionally.add(tab.id);
-    //   chrome.tabs.remove(tab.id).catch(() => {});
-    // }
+    if (tab?.id) {
+      closingTabsIntentionally.add(tab.id);
+      chrome.tabs.remove(tab.id).catch(() => {});
+    }
     await focusDashboardTab();
   }
 }
@@ -1269,7 +1266,7 @@ const TIKTOK_COMMENT_API_PATTERNS = [
 function updateRateLimitBadge(isRateLimited: boolean): void {
   if (isRateLimited) {
     chrome.action.setBadgeText({ text: "!" });
-    chrome.action.setBadgeBackgroundColor({ color: "#ef4444" }); // red
+    chrome.action.setBadgeBackgroundColor({ color: colors.status.error });
   } else {
     // Only clear if we're not actively scraping
     if (!activeScrapingTabId) {
