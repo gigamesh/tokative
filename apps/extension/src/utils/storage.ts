@@ -167,6 +167,8 @@ const DEFAULT_RATE_LIMIT_STATE: RateLimitState = {
   errorCount: 0,
   firstErrorAt: null,
   lastErrorAt: null,
+  isPausedFor429: false,
+  resumeAt: null,
 };
 
 export async function getRateLimitState(): Promise<RateLimitState> {
@@ -174,7 +176,10 @@ export async function getRateLimitState(): Promise<RateLimitState> {
   return result[STORAGE_KEYS.RATE_LIMIT_STATE] || DEFAULT_RATE_LIMIT_STATE;
 }
 
-export async function recordRateLimitError(errorMessage: string): Promise<RateLimitState> {
+export async function recordRateLimitError(
+  errorMessage: string,
+  options?: { isPausedFor429?: boolean; resumeAt?: string }
+): Promise<RateLimitState> {
   const current = await getRateLimitState();
   const now = new Date().toISOString();
   const newState: RateLimitState = {
@@ -183,6 +188,8 @@ export async function recordRateLimitError(errorMessage: string): Promise<RateLi
     errorCount: current.errorCount + 1,
     firstErrorAt: current.firstErrorAt || now,
     lastErrorAt: now,
+    isPausedFor429: options?.isPausedFor429 ?? current.isPausedFor429 ?? false,
+    resumeAt: options?.resumeAt ?? current.resumeAt ?? null,
   };
   await chrome.storage.local.set({
     [STORAGE_KEYS.RATE_LIMIT_STATE]: newState,

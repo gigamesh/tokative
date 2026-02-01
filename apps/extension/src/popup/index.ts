@@ -74,9 +74,17 @@ function extractVideoId(url: string | undefined): string | null {
 let isProfileScraping = false;
 let isCommentScraping = false;
 
+let rateLimitCountdownInterval: ReturnType<typeof setInterval> | null = null;
+
 function showRateLimitWarning(state: RateLimitState): void {
   const warningEl = document.getElementById("rate-limit-warning");
   if (!warningEl) return;
+
+  // Clear any existing countdown
+  if (rateLimitCountdownInterval) {
+    clearInterval(rateLimitCountdownInterval);
+    rateLimitCountdownInterval = null;
+  }
 
   if (state.isRateLimited && state.lastErrorAt) {
     // Only show if error was in the last 5 minutes
@@ -85,8 +93,28 @@ function showRateLimitWarning(state: RateLimitState): void {
     if (lastErrorTime > fiveMinutesAgo) {
       warningEl.style.display = "block";
       const errorTextEl = warningEl.querySelector(".rate-limit-text");
+
       if (errorTextEl) {
-        errorTextEl.textContent = `TikTok rate limit detected (${state.errorCount} errors). Try waiting a few minutes before scraping again.`;
+        // If paused for 429 with a resume time, show countdown
+        if (state.isPausedFor429 && state.resumeAt) {
+          const updateCountdown = () => {
+            const resumeTime = new Date(state.resumeAt!).getTime();
+            const remaining = Math.max(0, Math.ceil((resumeTime - Date.now()) / 1000));
+            if (remaining > 0) {
+              errorTextEl.textContent = `TikTok rate limit (429) - scraping paused. Resuming in ${remaining}s...`;
+            } else {
+              errorTextEl.textContent = `TikTok rate limit (429) - resuming scraping...`;
+              if (rateLimitCountdownInterval) {
+                clearInterval(rateLimitCountdownInterval);
+                rateLimitCountdownInterval = null;
+              }
+            }
+          };
+          updateCountdown();
+          rateLimitCountdownInterval = setInterval(updateCountdown, 1000);
+        } else {
+          errorTextEl.textContent = `TikTok rate limit detected (${state.errorCount} errors). Try waiting a few minutes before scraping again.`;
+        }
       }
       return;
     }
@@ -95,6 +123,10 @@ function showRateLimitWarning(state: RateLimitState): void {
 }
 
 function hideRateLimitWarning(): void {
+  if (rateLimitCountdownInterval) {
+    clearInterval(rateLimitCountdownInterval);
+    rateLimitCountdownInterval = null;
+  }
   const warningEl = document.getElementById("rate-limit-warning");
   if (warningEl) {
     warningEl.style.display = "none";
@@ -386,6 +418,11 @@ async function init(): Promise<void> {
     if (message.type === MessageType.RATE_LIMIT_DETECTED) {
       const state = message.payload as RateLimitState;
       showRateLimitWarning(state);
+    }
+
+    // Rate limit cleared (after 429 pause expires)
+    if (message.type === MessageType.RATE_LIMIT_CLEARED) {
+      hideRateLimitWarning();
     }
 
     // Auth token updates - when user signs in via web app

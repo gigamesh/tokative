@@ -95,6 +95,7 @@ export const MessageType = {
 
   // Rate limit detection
   RATE_LIMIT_DETECTED: "RATE_LIMIT_DETECTED",
+  RATE_LIMIT_CLEARED: "RATE_LIMIT_CLEARED",
   GET_RATE_LIMIT_STATE: "GET_RATE_LIMIT_STATE",
   CLEAR_RATE_LIMIT: "CLEAR_RATE_LIMIT",
 } as const;
@@ -228,4 +229,6 @@ export interface RateLimitState {
   errorCount: number;
   firstErrorAt: string | null;
   lastErrorAt: string | null;
+  isPausedFor429: boolean;
+  resumeAt: string | null;
 }

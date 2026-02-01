@@ -1278,13 +1278,25 @@ function updateRateLimitBadge(isRateLimited: boolean): void {
   }
 }
 
+let rateLimitResumeTimeout: ReturnType<typeof setTimeout> | null = null;
+
 chrome.webRequest.onCompleted.addListener(
   async (details) => {
-    // Check for 5xx errors on TikTok comment APIs
-    if (details.statusCode >= 500 && details.statusCode < 600) {
+    const is429 = details.statusCode === 429;
+    const is5xx = details.statusCode >= 500 && details.statusCode < 600;
+
+    if (is429 || is5xx) {
       const errorMsg = `TikTok API error ${details.statusCode} on ${new URL(details.url).pathname}`;
       console.log(`[Background] Rate limit detected: ${errorMsg}`);
-      const state = await recordRateLimitError(errorMsg);
+
+      // For 429 errors during active scraping, pause and set resume time
+      const shouldPause = is429 && activeScrapingTabId;
+      const resumeAt = shouldPause ? new Date(Date.now() + 60000).toISOString() : null;
+
+      const state = await recordRateLimitError(errorMsg, {
+        isPausedFor429: shouldPause,
+        resumeAt,
+      });
       updateRateLimitBadge(true);
 
       // Broadcast to popup/dashboard
@@ -1296,6 +1308,30 @@ chrome.webRequest.onCompleted.addListener(
         type: MessageType.RATE_LIMIT_DETECTED,
         payload: state,
       });
+
+      // For 429 errors, pause scraping and auto-resume after 60 seconds
+      if (shouldPause) {
+        console.log(`[Background] 429 detected - pausing scraping for 60 seconds`);
+        chrome.tabs.sendMessage(activeScrapingTabId!, { type: MessageType.SCRAPE_PAUSE });
+
+        // Clear any existing resume timeout
+        if (rateLimitResumeTimeout) {
+          clearTimeout(rateLimitResumeTimeout);
+        }
+
+        // Auto-resume after 60 seconds
+        rateLimitResumeTimeout = setTimeout(async () => {
+          console.log(`[Background] 60 seconds elapsed - resuming scraping`);
+          if (activeScrapingTabId) {
+            chrome.tabs.sendMessage(activeScrapingTabId, { type: MessageType.SCRAPE_RESUME });
+          }
+          await clearRateLimitState();
+          updateRateLimitBadge(false);
+          broadcastToDashboard({ type: MessageType.RATE_LIMIT_CLEARED });
+          broadcastToPopup({ type: MessageType.RATE_LIMIT_CLEARED });
+          rateLimitResumeTimeout = null;
+        }, 60000);
+      }
     }
   },
   { urls: TIKTOK_COMMENT_API_PATTERNS },
