@@ -128,6 +128,17 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
   if (!scrapingTabId) return;
 
+  // Verify the scraping tab still exists - if not, clear stale state
+  try {
+    await chrome.tabs.get(scrapingTabId);
+  } catch {
+    // Tab no longer exists - clear stale state
+    console.log("[Background] Scraping tab no longer exists, clearing stale state");
+    activeScrapingTabId = null;
+    await clearScrapingState();
+    return;
+  }
+
   if (activeInfo.tabId !== scrapingTabId) {
     // Pause scraping when leaving the TikTok tab (for both single and batch scraping)
     console.log("[Background] Scraping tab lost focus, pausing");
