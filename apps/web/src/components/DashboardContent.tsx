@@ -427,7 +427,8 @@ export function DashboardContent() {
               />
             )}
 
-            {activeTab === "comments" && (
+            {/* Pre-render comments tab (hidden when inactive) to avoid lag on first switch */}
+            <div className={activeTab === "comments" ? "" : "hidden"}>
               <div className="bg-tiktok-gray rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-medium text-white">Comments</h2>
@@ -461,7 +462,7 @@ export function DashboardContent() {
                   />
                 )}
               </div>
-            )}
+            </div>
 
             {activeTab === "settings" && (
               <SettingsTab

@@ -196,16 +196,8 @@ function verifyComment(commentElement: Element, user: ScrapedComment): Verificat
 
   console.log("[CommentReplier] Found handle:", foundHandle, "| Expected:", targetHandle);
 
-  // Extract comment text
-  let foundComment = "";
-  const textEls = commentElement.querySelectorAll('span');
-  for (const textEl of textEls) {
-    const text = textEl.textContent || "";
-    if (text.length > foundComment.length && text.length < 500) {
-      foundComment = text;
-    }
-  }
-  foundComment = normalizeText(foundComment);
+  // Extract comment text - use full textContent to handle @mentions and emoji spans
+  const foundComment = normalizeText(commentElement.textContent || "");
 
   console.log("[CommentReplier] Found comment:", foundComment.substring(0, 50));
   console.log("[CommentReplier] Expected comment:", targetComment.substring(0, 50));
