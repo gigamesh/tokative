@@ -41,9 +41,20 @@ export function DashboardContent() {
     loading,
     error,
     removeComments,
+    updateComment,
     saveCommentLimit,
     savePostLimit,
   } = useCommentData();
+
+  const handleReplyComplete = useCallback(
+    (commentId: string) => {
+      updateComment(commentId, {
+        replySent: true,
+        repliedAt: new Date().toISOString(),
+      });
+    },
+    [updateComment]
+  );
 
   const {
     isReplying,
@@ -53,7 +64,7 @@ export function DashboardContent() {
     replyToComment,
     startBulkReply,
     stopBulkReply,
-  } = useMessaging();
+  } = useMessaging({ onReplyComplete: handleReplyComplete });
 
   const {
     videos,
