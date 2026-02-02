@@ -98,6 +98,25 @@ export function ReplyComposer({
         )}
       </div>
 
+      {selectedComment && (
+        <div className="p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm text-gray-400">
+              Replying to @{selectedComment.handle}
+            </span>
+            <button
+              onClick={onClearSelection}
+              className="text-xs text-gray-500 hover:text-white"
+            >
+              Clear
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 truncate">
+            "{selectedComment.comment}"
+          </p>
+        </div>
+      )}
+
       <div className="space-y-2">
         {messages.map((message, index) => (
           <div key={index} className="relative">
@@ -109,7 +128,7 @@ export function ReplyComposer({
                   value={message}
                   onChange={(e) => updateMessage(index, e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 bg-tiktok-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none text-sm"
+                  className="w-full px-3 py-2 bg-tiktok-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-y text-sm min-h-[76px]"
                 />
                 <button
                   type="button"
@@ -173,26 +192,6 @@ export function ReplyComposer({
       >
         + Add Reply Variation
       </button>
-
-
-      {selectedComment && (
-        <div className="p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-gray-400">
-              Replying to @{selectedComment.handle}
-            </span>
-            <button
-              onClick={onClearSelection}
-              className="text-xs text-gray-500 hover:text-white"
-            >
-              Clear
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 truncate">
-            "{selectedComment.comment}"
-          </p>
-        </div>
-      )}
 
       <button
         onClick={handleSend}

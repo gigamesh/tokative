@@ -492,17 +492,22 @@ export function DashboardContent() {
             {replyProgress && (
               <div className="bg-tiktok-gray rounded-lg p-4">
                 <h3 className="font-medium text-white mb-2">Reply Status</h3>
-                <p className="text-sm text-gray-400">
-                  {replyProgress.status === "navigating" && "Opening video..."}
-                  {replyProgress.status === "finding" && "Finding comment..."}
-                  {replyProgress.status === "replying" && "Posting reply..."}
-                  {replyProgress.status === "complete" && "Reply posted!"}
-                  {replyProgress.status === "error" && (
-                    <span className="text-red-400">
-                      Error: {replyProgress.message}
-                    </span>
+                <div className="flex items-center gap-2">
+                  {replyProgress.status !== "complete" && replyProgress.status !== "error" && (
+                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                   )}
-                </p>
+                  <p className="text-sm text-gray-400">
+                    {replyProgress.status === "navigating" && "Opening video..."}
+                    {replyProgress.status === "finding" && "Finding comment..."}
+                    {replyProgress.status === "replying" && "Posting reply..."}
+                    {replyProgress.status === "complete" && "Reply posted!"}
+                    {replyProgress.status === "error" && (
+                      <span className="text-red-400">
+                        Error: {replyProgress.message}
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
             )}
 

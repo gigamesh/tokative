@@ -57,6 +57,16 @@ export function useVideoData() {
 
   const videos = (videosQuery ?? []) as ScrapedVideo[];
 
+  // Clear any stale scraping state on mount
+  // If we're mounting fresh (e.g. returning to tab), we shouldn't show in-progress state
+  useEffect(() => {
+    setState((prev) => ({
+      ...prev,
+      batchProgress: null,
+      getCommentsProgress: new Map(),
+    }));
+  }, []);
+
   useEffect(() => {
     if (videosQuery !== undefined) {
       setState((prev) => ({ ...prev, loading: false }));

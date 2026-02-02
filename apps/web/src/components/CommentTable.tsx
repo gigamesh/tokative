@@ -57,26 +57,61 @@ export function CommentTable({
   };
 
   const filteredComments = useMemo(() => {
-    const filtered = comments.filter((comment) => {
-      if (videoIdFilter && comment.videoId !== videoIdFilter) {
-        return false;
-      }
+    const videoFiltered = videoIdFilter
+      ? comments.filter((c) => c.videoId === videoIdFilter)
+      : comments;
 
-      const matchesSearch =
-        search === "" ||
-        comment.handle.toLowerCase().includes(search.toLowerCase()) ||
-        comment.comment.toLowerCase().includes(search.toLowerCase());
+    const matchesSearchText = (comment: ScrapedComment) =>
+      search === "" ||
+      comment.handle.toLowerCase().includes(search.toLowerCase()) ||
+      comment.comment.toLowerCase().includes(search.toLowerCase());
 
-      const matchesFilter =
-        filter === "all" ||
-        (filter === "replied" && comment.replySent) ||
-        (filter === "not_replied" &&
-          !comment.replySent &&
-          !comment.replyError) ||
-        (filter === "failed" && comment.replyError);
+    const matchesFilterStatus = (comment: ScrapedComment) =>
+      filter === "all" ||
+      (filter === "replied" && comment.replySent) ||
+      (filter === "not_replied" && !comment.replySent && !comment.replyError) ||
+      (filter === "failed" && comment.replyError);
 
-      return matchesSearch && matchesFilter;
-    });
+    // Find all comments that directly match the search
+    const directMatches = new Set(
+      videoFiltered
+        .filter((c) => matchesSearchText(c) && matchesFilterStatus(c))
+        .map((c) => c.id)
+    );
+
+    // If searching, include full threads: parents of matching replies + replies of matching parents
+    let threadIds = new Set(directMatches);
+    if (search !== "") {
+      // Find parent IDs of matching replies (to show the parent)
+      const parentIdsOfMatchingReplies = new Set(
+        videoFiltered
+          .filter((c) => directMatches.has(c.id) && c.isReply && c.parentCommentId)
+          .map((c) => c.parentCommentId!)
+      );
+
+      // Find comment IDs of matching parents (to show their replies)
+      const matchingParentCommentIds = new Set(
+        videoFiltered
+          .filter((c) => directMatches.has(c.id) && !c.isReply && c.commentId)
+          .map((c) => c.commentId!)
+      );
+
+      // Include parents of matching replies
+      videoFiltered.forEach((c) => {
+        if (c.commentId && parentIdsOfMatchingReplies.has(c.commentId)) {
+          threadIds.add(c.id);
+        }
+      });
+
+      // Include replies of matching parents
+      videoFiltered.forEach((c) => {
+        if (c.isReply && c.parentCommentId && matchingParentCommentIds.has(c.parentCommentId)) {
+          threadIds.add(c.id);
+        }
+      });
+    }
+
+    const filtered = videoFiltered.filter((comment) => threadIds.has(comment.id));
 
     return filtered.sort((a, b) => {
       if (sort === "newest") {

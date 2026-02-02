@@ -60,7 +60,7 @@ function extractVideoIdFromUrl(url: string): string | null {
   return match ? match[1] : null;
 }
 
-function getVideoId(): string | null {
+export function getVideoId(): string | null {
   for (const selector of VIDEO_SELECTORS.videoMetaUrl) {
     const el = document.querySelector<HTMLMetaElement>(selector);
     if (el?.content) {
@@ -92,7 +92,7 @@ interface CommentReactData {
   }>;
 }
 
-function injectReactExtractor(): Promise<void> {
+export function injectReactExtractor(): Promise<void> {
   return new Promise((resolve) => {
     if (document.getElementById("tokative-extractor")) {
       resolve();
@@ -108,7 +108,7 @@ function injectReactExtractor(): Promise<void> {
   });
 }
 
-async function extractAllReactData(): Promise<Map<number, CommentReactData>> {
+export async function extractAllReactData(): Promise<Map<number, CommentReactData>> {
   await injectReactExtractor();
 
   const isReady =
@@ -346,7 +346,7 @@ function getVideoAuthorFromUrl(): string | null {
  *
  * The videoUrl includes a cid parameter (base64 encoded) to link directly to the comment.
  */
-function rawCommentToScrapedComment(
+export function rawCommentToScrapedComment(
   raw: RawCommentData,
 ): ScrapedComment | null {
   if (!raw.commentId) {
@@ -377,6 +377,96 @@ function rawCommentToScrapedComment(
     isReply: !!raw.parentCommentId,
     replyCount: raw.replyCount,
   };
+}
+
+export interface FindReplyOptions {
+  parentCommentId: string;
+  replyText: string;
+  ourHandle?: string;
+  maxAgeSeconds?: number;
+}
+
+function stripAtMention(text: string): string {
+  return text.replace(/^@[\w.]+\s*/, "").trim();
+}
+
+function textsMatch(expected: string, found: string): boolean {
+  const normalizedExpected = expected.toLowerCase().trim();
+  const normalizedFound = found.toLowerCase().trim();
+  const foundNoMention = stripAtMention(normalizedFound).toLowerCase();
+
+  return (
+    normalizedFound === normalizedExpected ||
+    foundNoMention === normalizedExpected ||
+    normalizedFound.includes(normalizedExpected) ||
+    normalizedExpected.includes(normalizedFound) ||
+    foundNoMention.includes(normalizedExpected)
+  );
+}
+
+export async function findRecentlyPostedReply(
+  options: FindReplyOptions,
+): Promise<ScrapedComment | null> {
+  const { parentCommentId, replyText, ourHandle, maxAgeSeconds = 60 } = options;
+  const ourHandleLower = ourHandle?.toLowerCase();
+  const nowSeconds = Math.floor(Date.now() / 1000);
+
+  log(`[Tokative] findRecentlyPostedReply: looking for reply${ourHandle ? ` by @${ourHandle}` : ""} to comment ${parentCommentId}`);
+
+  const reactDataMap = await extractAllReactData();
+  log(`[Tokative] findRecentlyPostedReply: extracted ${reactDataMap.size} comments from React`);
+
+  const videoId = getVideoId();
+
+  for (const [, data] of reactDataMap) {
+    if (!data.cid || !data.user) continue;
+
+    const handleMatches = ourHandleLower ? data.user.unique_id?.toLowerCase() === ourHandleLower : true;
+    const isReplyToParent = data.reply_id === parentCommentId;
+    const ageSeconds = nowSeconds - (data.create_time || 0);
+    const isRecent = ageSeconds <= maxAgeSeconds && ageSeconds >= 0;
+    const textMatches = textsMatch(replyText, data.text || "");
+
+    if (handleMatches && isReplyToParent && isRecent && textMatches) {
+      log(`[Tokative] findRecentlyPostedReply: found match - cid=${data.cid}, age=${ageSeconds}s`);
+
+      const rawComment: RawCommentData = {
+        commentId: data.cid,
+        tiktokUserId: data.user.uid || "",
+        handle: data.user.unique_id || "",
+        displayName: data.user.nickname || "",
+        comment: data.text || "",
+        createTime: data.create_time || nowSeconds,
+        videoId: videoId || data.aweme_id || "",
+        avatarUrl: data.user.avatar_thumb,
+        parentCommentId,
+        replyToReplyId: data.reply_to_reply_id !== "0" ? data.reply_to_reply_id : null,
+      };
+
+      return rawCommentToScrapedComment(rawComment);
+    }
+  }
+
+  log(`[Tokative] findRecentlyPostedReply: no matching reply found`);
+  return null;
+}
+
+export async function findRecentlyPostedReplyWithRetry(
+  options: FindReplyOptions,
+  maxRetries: number = 3,
+  retryDelayMs: number = 1000,
+): Promise<ScrapedComment | null> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    log(`[Tokative] findRecentlyPostedReplyWithRetry: attempt ${attempt}/${maxRetries}`);
+    const result = await findRecentlyPostedReply(options);
+    if (result) {
+      return result;
+    }
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
+  }
+  return null;
 }
 
 /**

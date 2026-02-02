@@ -1,18 +1,24 @@
 import { ScrapedComment, MessageType, ReplyProgress } from "../../types";
-import { humanDelay, humanDelayWithJitter, humanClick, humanType } from "../../utils/dom";
+import { humanDelay, humanClick } from "../../utils/dom";
+import { addScrapedComments } from "../../utils/storage";
 import { SELECTORS, querySelector, querySelectorAll, waitForSelector } from "./selectors";
+import { findRecentlyPostedReplyWithRetry } from "./video-scraper";
+
+export interface ReplyResult {
+  postedReplyId?: string;
+}
 
 export async function replyToComment(
   user: ScrapedComment,
   replyMessage: string
-): Promise<void> {
+): Promise<ReplyResult> {
   console.log("[CommentReplier] Starting reply process for @" + user.handle);
   console.log("[CommentReplier] Expected comment:", user.comment.substring(0, 50));
   console.log("[CommentReplier] Video URL:", user.videoUrl);
 
   sendProgress(user.id, "finding", "Waiting for comments to load...");
 
-  await humanDelayWithJitter("long");
+  await humanDelay("short");
 
   const firstComment = await waitForFirstComment();
   if (!firstComment) {
@@ -48,7 +54,7 @@ export async function replyToComment(
 
   console.log("[CommentReplier] Clicking reply button");
   await humanClick(replyButton);
-  await humanDelayWithJitter("medium");
+  await humanDelay("short");
 
   sendProgress(user.id, "replying", "Waiting for reply input...");
 
@@ -86,7 +92,7 @@ export async function replyToComment(
   console.log("[CommentReplier] After typing, input textContent:", editableInput.textContent);
   console.log("[CommentReplier] After typing, input innerHTML:", editableInput.innerHTML?.substring(0, 200));
 
-  await humanDelayWithJitter("medium");
+  await humanDelay("short");
 
   sendProgress(user.id, "replying", "Posting reply...");
 
@@ -115,13 +121,43 @@ export async function replyToComment(
     await humanClick(postButton);
   }
 
-  await humanDelayWithJitter("long");
+  await humanDelay("medium");
 
   // Check if input was cleared (indicates successful post)
   console.log("[CommentReplier] After post, input textContent:", editableInput.textContent);
 
   console.log("[CommentReplier] Reply process complete");
   sendProgress(user.id, "complete", "Reply posted!");
+
+  // Try to extract and store the posted reply
+  const result: ReplyResult = {};
+
+  try {
+    console.log("[CommentReplier] Extracting posted reply...");
+
+    // Wait a moment for TikTok to add the reply to DOM/React state
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const postedReply = await findRecentlyPostedReplyWithRetry({
+      parentCommentId: user.id,
+      replyText: replyMessage,
+      maxAgeSeconds: 60,
+    });
+
+    if (postedReply) {
+      console.log("[CommentReplier] Found posted reply:", postedReply.id);
+      result.postedReplyId = postedReply.id;
+
+      const storeResult = await addScrapedComments([postedReply]);
+      console.log("[CommentReplier] Stored posted reply:", storeResult);
+    } else {
+      console.warn("[CommentReplier] Could not find posted reply in DOM");
+    }
+  } catch (error) {
+    console.warn("[CommentReplier] Failed to extract/store posted reply:", error);
+  }
+
+  return result;
 }
 
 async function waitForFirstComment(): Promise<Element | null> {
@@ -196,8 +232,10 @@ function verifyComment(commentElement: Element, user: ScrapedComment): Verificat
 
   console.log("[CommentReplier] Found handle:", foundHandle, "| Expected:", targetHandle);
 
-  // Extract comment text - use full textContent to handle @mentions and emoji spans
-  const foundComment = normalizeText(commentElement.textContent || "");
+  // Extract comment text from the wrapper to get full text in visual order
+  // TikTok renders @mentions as separate links which can mess up textContent order
+  const commentTextEl = commentWrapper?.querySelector('[class*="CommentText"], [class*="DivComment"] > span, [data-e2e="comment-level-1"]');
+  const foundComment = normalizeText((commentTextEl || commentElement).textContent || "");
 
   console.log("[CommentReplier] Found comment:", foundComment.substring(0, 50));
   console.log("[CommentReplier] Expected comment:", targetComment.substring(0, 50));
@@ -205,12 +243,10 @@ function verifyComment(commentElement: Element, user: ScrapedComment): Verificat
   // Check if handle matches
   const handleMatches = foundHandle === targetHandle;
 
-  // Check if comment text matches (allow partial match since text may be truncated)
-  const commentMatches =
-    foundComment.includes(targetComment) ||
-    targetComment.includes(foundComment) ||
-    (foundComment.length > 10 && targetComment.length > 10 &&
-      (foundComment.substring(0, 20) === targetComment.substring(0, 20)));
+  // Check if comment text matches
+  // Due to @mentions being rendered as separate DOM elements, text order can vary
+  // Use multiple matching strategies:
+  const commentMatches = checkCommentTextMatch(targetComment, foundComment);
 
   console.log("[CommentReplier] Handle matches:", handleMatches, "| Comment matches:", commentMatches);
 
@@ -227,6 +263,43 @@ function normalizeText(text: string): string {
     .replace(/\s+/g, " ")
     .trim()
     .substring(0, 100);
+}
+
+function checkCommentTextMatch(expected: string, found: string): boolean {
+  // Direct containment checks
+  if (found.includes(expected) || expected.includes(found)) {
+    return true;
+  }
+
+  // First 20 chars match
+  if (found.length > 10 && expected.length > 10 &&
+      found.substring(0, 20) === expected.substring(0, 20)) {
+    return true;
+  }
+
+  // Word overlap check - useful when @mentions cause text reordering
+  // Extract significant words (4+ chars to skip common words)
+  const getWords = (text: string) =>
+    text.split(/\s+/).filter(w => w.length >= 4);
+
+  const expectedWords = new Set(getWords(expected));
+  const foundWords = getWords(found);
+
+  if (expectedWords.size === 0 || foundWords.length === 0) {
+    return false;
+  }
+
+  // Count how many significant words from found appear in expected
+  const matchingWords = foundWords.filter(w => expectedWords.has(w)).length;
+  const matchRatio = matchingWords / Math.max(expectedWords.size, foundWords.length);
+
+  // If 50%+ of words match, consider it a match
+  if (matchRatio >= 0.5) {
+    console.log(`[CommentReplier] Word match ratio: ${matchRatio.toFixed(2)} (${matchingWords} words)`);
+    return true;
+  }
+
+  return false;
 }
 
 async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {

@@ -53,12 +53,12 @@ function handleMessage(
       };
 
       replyToComment(comment, replyMsg)
-        .then(() => {
+        .then((result) => {
           chrome.runtime.sendMessage({
             type: MessageType.REPLY_COMMENT_COMPLETE,
-            payload: { commentId: comment.id },
+            payload: { commentId: comment.id, postedReplyId: result.postedReplyId },
           });
-          sendResponse({ success: true });
+          sendResponse({ success: true, postedReplyId: result.postedReplyId });
         })
         .catch((error) => {
           chrome.runtime.sendMessage({
