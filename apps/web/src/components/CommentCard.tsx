@@ -113,7 +113,7 @@ export function CommentCard({
               href={comment.profileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-sm text-white hover:text-tiktok-red transition-colors"
+              className="font-medium text-sm text-white hover:text-blue-400 transition-colors"
             >
               @{comment.handle}
             </a>

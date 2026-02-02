@@ -75,6 +75,7 @@ interface CommentTableProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
+  isInitialLoading?: boolean;
 }
 
 export function CommentTable({
@@ -90,6 +91,7 @@ export function CommentTable({
   onLoadMore,
   hasMore,
   isLoadingMore,
+  isInitialLoading,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -354,11 +356,15 @@ export function CommentTable({
       </div>
 
       {displayComments.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          {comments.length === 0
-            ? "No comments scraped yet. Start scraping to see comments here."
-            : "No comments match your search/filter criteria."}
-        </div>
+        isInitialLoading ? (
+          <CommentTableSkeleton count={5} />
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            {comments.length === 0
+              ? "No comments scraped yet. Start scraping to see comments here."
+              : "No comments match your search/filter criteria."}
+          </div>
+        )
       ) : (
         <Virtuoso
           data={displayComments}

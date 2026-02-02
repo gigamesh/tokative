@@ -438,7 +438,7 @@ export function DashboardContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {activeTab === "posts" && (
+            <div className={activeTab === "posts" ? "" : "hidden"}>
               <PostsGrid
                 videos={videos}
                 loading={videosLoading}
@@ -453,9 +453,8 @@ export function DashboardContent() {
                 isScraping={isScraping}
                 onCancelScraping={handleCancelScraping}
               />
-            )}
+            </div>
 
-            {/* Pre-render comments tab (hidden when inactive) to avoid lag on first switch */}
             <div className={activeTab === "comments" ? "" : "hidden"}>
               <div className="bg-tiktok-gray rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
@@ -472,28 +471,25 @@ export function DashboardContent() {
                   </div>
                 )}
 
-                {loading ? (
-                  <CommentTableSkeleton />
-                ) : (
-                  <CommentTable
-                    comments={comments}
-                    selectedIds={selectedCommentIds}
-                    onSelectComment={handleSelectComment}
-                    onSelectFiltered={handleSelectFiltered}
-                    onRemoveSelected={handleRemoveSelected}
-                    onRemoveComment={handleRemoveComment}
-                    onReplyComment={handleReplyComment}
-                    videoIdFilter={selectedPostId}
-                    videoThumbnails={videoThumbnailMap}
-                    onLoadMore={loadMore}
-                    hasMore={hasMore}
-                    isLoadingMore={isLoadingMore}
-                  />
-                )}
+                <CommentTable
+                  comments={comments}
+                  selectedIds={selectedCommentIds}
+                  onSelectComment={handleSelectComment}
+                  onSelectFiltered={handleSelectFiltered}
+                  onRemoveSelected={handleRemoveSelected}
+                  onRemoveComment={handleRemoveComment}
+                  onReplyComment={handleReplyComment}
+                  videoIdFilter={selectedPostId}
+                  videoThumbnails={videoThumbnailMap}
+                  onLoadMore={loadMore}
+                  hasMore={hasMore}
+                  isLoadingMore={isLoadingMore}
+                  isInitialLoading={loading}
+                />
               </div>
             </div>
 
-            {activeTab === "settings" && (
+            <div className={activeTab === "settings" ? "" : "hidden"}>
               <SettingsTab
                 postLimitInput={postLimitInput}
                 commentLimitInput={commentLimitInput}
@@ -505,7 +501,7 @@ export function DashboardContent() {
                 onAddToIgnoreList={addToIgnoreList}
                 onRemoveFromIgnoreList={removeFromIgnoreList}
               />
-            )}
+            </div>
           </div>
 
           <div className="space-y-6 sticky top-24 self-start">

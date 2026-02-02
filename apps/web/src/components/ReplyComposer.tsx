@@ -93,7 +93,10 @@ export function ReplyComposer({
     ? messages.every(m => m.trim())
     : messages[0]?.trim();
 
-  const canSend = allMessagesValid && (selectedComment || selectedCount > 0);
+  const effectiveSelectedCount = selectedCount > 0 ? selectedCount : (selectedComment ? 1 : 0);
+  const hasVariationMismatch = messages.length > 1 && effectiveSelectedCount < messages.length;
+
+  const canSend = allMessagesValid && (selectedComment || selectedCount > 0) && !hasVariationMismatch;
 
   return (
     <div className="bg-tiktok-gray rounded-lg p-4 space-y-3">
@@ -106,7 +109,7 @@ export function ReplyComposer({
         )}
       </div>
 
-      {selectedComment && (
+      {selectedComment && selectedCount === 0 && (
         <div className="p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm text-gray-400">
@@ -125,7 +128,7 @@ export function ReplyComposer({
         </div>
       )}
 
-      {!selectedComment && selectedComments.length > 0 && (
+      {selectedComments.length > 0 && (
         <div className="relative mt-1 ml-1">
           {selectedComments[1] && (
             <div className="absolute -top-1 -left-1 right-1 bottom-1 p-2 bg-tiktok-dark border border-gray-600 rounded-lg" />
@@ -220,13 +223,20 @@ export function ReplyComposer({
         + Add Reply Variation
       </button>
 
-      <button
-        onClick={handleSend}
-        disabled={disabled || !canSend}
-        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg font-medium transition-colors text-sm"
-      >
-        {disabled ? "Replying..." : "Reply"}
-      </button>
+      <div className="relative group">
+        <button
+          onClick={handleSend}
+          disabled={disabled || !canSend}
+          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg font-medium transition-colors text-sm"
+        >
+          {disabled ? "Replying..." : "Reply"}
+        </button>
+        {hasVariationMismatch && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-gray-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+            Select at least {messages.length} comments or remove reply variations
+          </div>
+        )}
+      </div>
     </div>
   );
 }
