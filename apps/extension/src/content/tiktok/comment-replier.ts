@@ -6,6 +6,7 @@ import { findRecentlyPostedReplyWithRetry } from "./video-scraper";
 
 export interface ReplyResult {
   postedReplyId?: string;
+  postedReply?: ScrapedComment;
 }
 
 export async function replyToComment(
@@ -136,7 +137,7 @@ export async function replyToComment(
     console.log("[CommentReplier] Extracting posted reply...");
 
     // Wait a moment for TikTok to add the reply to DOM/React state
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const postedReply = await findRecentlyPostedReplyWithRetry({
       parentCommentId: user.id,
@@ -147,6 +148,7 @@ export async function replyToComment(
     if (postedReply) {
       console.log("[CommentReplier] Found posted reply:", postedReply.id);
       result.postedReplyId = postedReply.id;
+      result.postedReply = postedReply;
 
       const storeResult = await addScrapedComments([postedReply]);
       console.log("[CommentReplier] Stored posted reply:", storeResult);

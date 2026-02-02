@@ -5,6 +5,52 @@ import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { ExpanderRow } from "./ExpanderRow";
 
+export function CommentSkeleton({ depth = 0 }: { depth?: number }) {
+  return (
+    <div
+      className={`bg-tiktok-gray rounded-lg p-4 animate-pulse ${depth > 0 ? "ml-8" : ""}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-4 w-24 bg-gray-700 rounded" />
+            <div className="h-3 w-16 bg-gray-700 rounded" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-full bg-gray-700 rounded" />
+            <div className="h-4 w-3/4 bg-gray-700 rounded" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function CommentTableSkeleton({ count = 8 }: { count?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: count }).map((_, i) => (
+        <CommentSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+function LoadingFooter() {
+  return (
+    <div className="space-y-2 pt-2">
+      <CommentSkeleton />
+      <CommentSkeleton />
+      <CommentSkeleton />
+    </div>
+  );
+}
+
+function EmptyFooter() {
+  return null;
+}
+
 interface DisplayComment extends ScrapedComment {
   depth: number;
   isExpander?: boolean;
@@ -26,6 +72,9 @@ interface CommentTableProps {
   onReplyComment: (comment: ScrapedComment) => void;
   videoIdFilter?: string | null;
   videoThumbnails: Map<string, string>;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 export function CommentTable({
@@ -38,6 +87,9 @@ export function CommentTable({
   onReplyComment,
   videoIdFilter,
   videoThumbnails,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -312,6 +364,10 @@ export function CommentTable({
           data={displayComments}
           useWindowScroll
           overscan={10}
+          endReached={hasMore && !isLoadingMore ? onLoadMore : undefined}
+          components={{
+            Footer: isLoadingMore ? LoadingFooter : EmptyFooter,
+          }}
           itemContent={(index, item) => (
             <div className={index > 0 ? "pt-2" : ""}>
               {item.isExpander ? (

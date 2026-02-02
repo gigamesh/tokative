@@ -13,10 +13,11 @@ interface ReplyState {
 
 interface UseMessagingOptions {
   onReplyComplete?: (commentId: string) => void;
+  onPostedReply?: (reply: ScrapedComment) => void;
 }
 
 export function useMessaging(options: UseMessagingOptions = {}) {
-  const { onReplyComplete } = options;
+  const { onReplyComplete, onPostedReply } = options;
   const [state, setState] = useState<ReplyState>({
     isReplying: false,
     replyProgress: null,
@@ -36,9 +37,15 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       }),
 
       bridge.on(MessageType.REPLY_COMMENT_COMPLETE, (payload) => {
-        const { commentId } = payload as { commentId: string };
+        const { commentId, postedReply } = payload as {
+          commentId: string;
+          postedReply?: ScrapedComment;
+        };
         if (commentId && onReplyComplete) {
           onReplyComplete(commentId);
+        }
+        if (postedReply && onPostedReply) {
+          onPostedReply(postedReply);
         }
         setState((prev) => ({
           ...prev,
@@ -74,7 +81,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     ];
 
     return () => cleanups.forEach((cleanup) => cleanup());
-  }, [onReplyComplete]);
+  }, [onReplyComplete, onPostedReply]);
 
   const replyToComment = useCallback((comment: ScrapedComment, message: string) => {
     if (!bridge) return;

@@ -56,7 +56,11 @@ function handleMessage(
         .then((result) => {
           chrome.runtime.sendMessage({
             type: MessageType.REPLY_COMMENT_COMPLETE,
-            payload: { commentId: comment.id, postedReplyId: result.postedReplyId },
+            payload: {
+              commentId: comment.id,
+              postedReplyId: result.postedReplyId,
+              postedReply: result.postedReply,
+            },
           });
           sendResponse({ success: true, postedReplyId: result.postedReplyId });
         })

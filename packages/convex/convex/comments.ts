@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
@@ -21,7 +22,7 @@ export const list = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    const profileIds = [...new Set(comments.map((c) => c.tiktokProfileId))];
+    const profileIds = Array.from(new Set(comments.map((c) => c.tiktokProfileId)));
     const profiles = await Promise.all(
       profileIds.map((id) => ctx.db.get(id))
     );
@@ -52,6 +53,69 @@ export const list = query({
         _convexId: c._id,
       };
     });
+  },
+});
+
+export const listPaginated = query({
+  args: {
+    clerkId: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+
+    const result = await ctx.db
+      .query("comments")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    const profileIds = Array.from(new Set(result.page.map((c) => c.tiktokProfileId)));
+    const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
+    const profileMap = new Map(
+      profiles.filter(Boolean).map((p) => [p!._id, p!])
+    );
+
+    const formattedComments = result.page.map((c) => {
+      const profile = profileMap.get(c.tiktokProfileId);
+      return {
+        id: c.commentId,
+        handle: profile?.handle ?? "",
+        comment: c.comment,
+        scrapedAt: new Date(c.scrapedAt).toISOString(),
+        profileUrl: profile?.profileUrl ?? "",
+        avatarUrl: profile?.avatarUrl,
+        videoUrl: c.videoUrl,
+        replySent: c.replySent,
+        repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
+        replyError: c.replyError,
+        replyContent: c.replyContent,
+        commentTimestamp: c.commentTimestamp,
+        commentId: c.commentId,
+        videoId: c.videoId,
+        parentCommentId: c.parentCommentId,
+        isReply: c.isReply,
+        replyCount: c.replyCount,
+        _convexId: c._id,
+      };
+    });
+
+    return {
+      page: formattedComments,
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+    };
   },
 });
 

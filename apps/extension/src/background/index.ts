@@ -1260,7 +1260,7 @@ function waitForTabLoad(tabId: number): Promise<void> {
       if (updatedTabId === tabId && changeInfo.status === "complete") {
         clearTimeout(timeout);
         chrome.tabs.onUpdated.removeListener(listener);
-        setTimeout(resolve, 2000);
+        setTimeout(resolve, 750);
       }
     };
 

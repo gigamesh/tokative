@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { useAuth } from "@/providers/ConvexProvider";
 import { api } from "@tokative/convex";
 import { bridge } from "@/utils/extension-bridge";
@@ -14,6 +14,8 @@ interface CommentDataState {
   error: string | null;
 }
 
+const PAGE_SIZE = 50;
+
 export function useCommentData() {
   const { userId } = useAuth();
   const [state, setState] = useState<CommentDataState>({
@@ -23,10 +25,19 @@ export function useCommentData() {
     error: null,
   });
 
-  const comments = useQuery(
-    api.comments.list,
-    userId ? { clerkId: userId } : "skip"
+  const [optimisticComments, setOptimisticComments] = useState<ScrapedComment[]>([]);
+  const [hasLoadedInitial, setHasLoadedInitial] = useState(false);
+
+  const {
+    results: paginatedComments,
+    status: paginationStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.comments.listPaginated,
+    userId ? { clerkId: userId } : "skip",
+    { initialNumItems: PAGE_SIZE }
   );
+
   const settings = useQuery(
     api.settings.get,
     userId ? { clerkId: userId } : "skip"
@@ -49,10 +60,11 @@ export function useCommentData() {
   }, [settings]);
 
   useEffect(() => {
-    if (comments !== undefined) {
+    if (paginatedComments !== undefined && !hasLoadedInitial) {
+      setHasLoadedInitial(true);
       setState((prev) => ({ ...prev, loading: false }));
     }
-  }, [comments]);
+  }, [paginatedComments, hasLoadedInitial]);
 
   const lastCommentsCountRef = useRef<number>(0);
 
@@ -73,6 +85,17 @@ export function useCommentData() {
       cleanups.forEach((cleanup) => cleanup());
     };
   }, []);
+
+  const addOptimisticComment = useCallback((comment: ScrapedComment) => {
+    setOptimisticComments((prev) => [comment, ...prev]);
+  }, []);
+
+  const comments = useMemo(() => {
+    const convexComments = (paginatedComments ?? []) as unknown as ScrapedComment[];
+    const convexIds = new Set(convexComments.map((c) => c.id));
+    const newOptimistic = optimisticComments.filter((c) => !convexIds.has(c.id));
+    return [...newOptimistic, ...convexComments];
+  }, [paginatedComments, optimisticComments]);
 
   const saveCommentLimit = useCallback(
     async (limit: number) => {
@@ -173,16 +196,28 @@ export function useCommentData() {
     [userId, updateCommentMutation]
   );
 
+  const handleLoadMore = useCallback(() => {
+    if (paginationStatus === "CanLoadMore") {
+      loadMore(PAGE_SIZE);
+    }
+  }, [paginationStatus, loadMore]);
+
+  const isInitialLoading = state.loading || (!hasLoadedInitial && paginatedComments === undefined);
+
   return {
-    comments: (comments ?? []) as ScrapedComment[],
+    comments,
     commentLimit: state.commentLimit,
     postLimit: state.postLimit,
-    loading: state.loading || comments === undefined,
+    loading: isInitialLoading,
     error: state.error,
     removeComment,
     removeComments,
     updateComment,
     saveCommentLimit,
     savePostLimit,
+    addOptimisticComment,
+    loadMore: handleLoadMore,
+    hasMore: paginationStatus === "CanLoadMore",
+    isLoadingMore: paginationStatus === "LoadingMore",
   };
 }

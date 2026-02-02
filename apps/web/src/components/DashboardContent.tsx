@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CommentTable } from "@/components/CommentTable";
+import { CommentTable, CommentTableSkeleton } from "@/components/CommentTable";
 import { Header } from "@/components/Header";
 import { ReplyComposer } from "@/components/MessageComposer";
 import { PostsGrid } from "@/components/PostsGrid";
@@ -44,6 +44,10 @@ export function DashboardContent() {
     updateComment,
     saveCommentLimit,
     savePostLimit,
+    addOptimisticComment,
+    loadMore,
+    hasMore,
+    isLoadingMore,
   } = useCommentData();
 
   const handleReplyComplete = useCallback(
@@ -64,7 +68,10 @@ export function DashboardContent() {
     replyToComment,
     startBulkReply,
     stopBulkReply,
-  } = useMessaging({ onReplyComplete: handleReplyComplete });
+  } = useMessaging({
+    onReplyComplete: handleReplyComplete,
+    onPostedReply: addOptimisticComment,
+  });
 
   const {
     videos,
@@ -456,9 +463,7 @@ export function DashboardContent() {
                 )}
 
                 {loading ? (
-                  <div className="text-center py-12 text-gray-500">
-                    Loading comments...
-                  </div>
+                  <CommentTableSkeleton />
                 ) : (
                   <CommentTable
                     comments={comments}
@@ -470,6 +475,9 @@ export function DashboardContent() {
                     onReplyComment={handleReplyComment}
                     videoIdFilter={selectedPostId}
                     videoThumbnails={videoThumbnailMap}
+                    onLoadMore={loadMore}
+                    hasMore={hasMore}
+                    isLoadingMore={isLoadingMore}
                   />
                 )}
               </div>
