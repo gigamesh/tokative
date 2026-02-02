@@ -163,6 +163,7 @@ export async function syncComments(
     parentCommentId: c.parentCommentId ?? undefined,
     isReply: c.isReply,
     replyCount: c.replyCount,
+    source: c.source,
   }));
 
   return apiRequest("/api/comments/batch", {

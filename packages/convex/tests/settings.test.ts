@@ -23,6 +23,7 @@ describe("settings", () => {
         postLimit: 50,
         accountHandle: null,
         hasCompletedSetup: false,
+        hideOwnReplies: false,
       });
     });
 

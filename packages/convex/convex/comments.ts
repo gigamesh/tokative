@@ -50,6 +50,7 @@ export const list = query({
         parentCommentId: c.parentCommentId,
         isReply: c.isReply,
         replyCount: c.replyCount,
+        source: c.source,
         _convexId: c._id,
       };
     });
@@ -107,6 +108,7 @@ export const listPaginated = query({
         parentCommentId: c.parentCommentId,
         isReply: c.isReply,
         replyCount: c.replyCount,
+        source: c.source,
         _convexId: c._id,
       };
     });
@@ -133,6 +135,7 @@ const commentInput = {
   parentCommentId: v.optional(v.string()),
   isReply: v.optional(v.boolean()),
   replyCount: v.optional(v.number()),
+  source: v.optional(v.union(v.literal("app"), v.literal("scraped"))),
 };
 
 export const addBatch = mutation({
@@ -218,6 +221,7 @@ export const addBatch = mutation({
         parentCommentId: comment.parentCommentId,
         isReply: comment.isReply,
         replyCount: comment.replyCount,
+        source: comment.source,
       });
       stored++;
     }

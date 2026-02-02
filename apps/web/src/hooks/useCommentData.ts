@@ -10,6 +10,7 @@ import { MessageType, ScrapedComment } from "@/utils/constants";
 interface CommentDataState {
   commentLimit: number;
   postLimit: number;
+  hideOwnReplies: boolean;
   loading: boolean;
   error: string | null;
 }
@@ -21,6 +22,7 @@ export function useCommentData() {
   const [state, setState] = useState<CommentDataState>({
     commentLimit: 100,
     postLimit: 50,
+    hideOwnReplies: false,
     loading: true,
     error: null,
   });
@@ -54,6 +56,7 @@ export function useCommentData() {
         ...prev,
         commentLimit: settings.commentLimit ?? 100,
         postLimit: settings.postLimit ?? 50,
+        hideOwnReplies: settings.hideOwnReplies ?? false,
         loading: false,
       }));
     }
@@ -127,6 +130,19 @@ export function useCommentData() {
       if (bridge) {
         bridge.send(MessageType.SAVE_POST_LIMIT, { limit });
       }
+    },
+    [userId, updateSettingsMutation]
+  );
+
+  const saveHideOwnReplies = useCallback(
+    async (hide: boolean) => {
+      if (!userId) return;
+
+      setState((prev) => ({ ...prev, hideOwnReplies: hide }));
+      await updateSettingsMutation({
+        clerkId: userId,
+        settings: { hideOwnReplies: hide },
+      });
     },
     [userId, updateSettingsMutation]
   );
@@ -208,6 +224,7 @@ export function useCommentData() {
     comments,
     commentLimit: state.commentLimit,
     postLimit: state.postLimit,
+    hideOwnReplies: state.hideOwnReplies,
     loading: isInitialLoading,
     error: state.error,
     removeComment,
@@ -215,6 +232,7 @@ export function useCommentData() {
     updateComment,
     saveCommentLimit,
     savePostLimit,
+    saveHideOwnReplies,
     addOptimisticComment,
     loadMore: handleLoadMore,
     hasMore: paginationStatus === "CanLoadMore",

@@ -35,20 +35,27 @@ interface IgnoreListModalState {
 
 export function DashboardContent() {
   const {
-    comments,
+    comments: allComments,
     commentLimit,
     postLimit,
+    hideOwnReplies,
     loading,
     error,
     removeComments,
     updateComment,
     saveCommentLimit,
     savePostLimit,
+    saveHideOwnReplies,
     addOptimisticComment,
     loadMore,
     hasMore,
     isLoadingMore,
   } = useCommentData();
+
+  const comments = useMemo(() => {
+    if (!hideOwnReplies) return allComments;
+    return allComments.filter(c => c.source !== "app");
+  }, [allComments, hideOwnReplies]);
 
   const handleReplyComplete = useCallback(
     (commentId: string) => {
@@ -500,6 +507,8 @@ export function DashboardContent() {
                 ignoreList={ignoreList}
                 onAddToIgnoreList={addToIgnoreList}
                 onRemoveFromIgnoreList={removeFromIgnoreList}
+                hideOwnReplies={hideOwnReplies}
+                onHideOwnRepliesChange={saveHideOwnReplies}
               />
             </div>
           </div>

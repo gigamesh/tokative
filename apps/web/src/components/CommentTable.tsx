@@ -190,6 +190,16 @@ export function CommentTable({
     });
   }, [comments, search, filter, sort, videoIdFilter]);
 
+  const commentIdsWithAppReplies = useMemo(() => {
+    const ids = new Set<string>();
+    for (const comment of comments) {
+      if (comment.source === "app" && comment.parentCommentId) {
+        ids.add(comment.parentCommentId);
+      }
+    }
+    return ids;
+  }, [comments]);
+
   const displayComments = useMemo((): DisplayComment[] => {
     const topLevel = filteredComments.filter((c) => !c.isReply);
     const repliesMap = new Map<string, ScrapedComment[]>();
@@ -393,6 +403,7 @@ export function CommentTable({
                     item.videoId ? videoThumbnails.get(item.videoId) : undefined
                   }
                   depth={item.depth}
+                  hasAppReply={item.commentId ? commentIdsWithAppReplies.has(item.commentId) : false}
                 />
               )}
             </div>

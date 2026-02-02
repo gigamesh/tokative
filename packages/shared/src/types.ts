@@ -122,6 +122,7 @@ export interface ScrapedComment {
   replyToReplyId?: string | null;
   isReply?: boolean;
   replyCount?: number;
+  source?: "app" | "scraped";
 }
 
 export interface ExtensionMessage<T = unknown> {

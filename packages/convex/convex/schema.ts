@@ -35,6 +35,7 @@ export default defineSchema({
     parentCommentId: v.optional(v.string()),
     isReply: v.optional(v.boolean()),
     replyCount: v.optional(v.number()),
+    source: v.optional(v.union(v.literal("app"), v.literal("scraped"))),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_video", ["userId", "videoId"])
@@ -69,5 +70,6 @@ export default defineSchema({
     postLimit: v.optional(v.number()),
     accountHandle: v.optional(v.string()),
     hasCompletedSetup: v.optional(v.boolean()),
+    hideOwnReplies: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 });

@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
   postLimit: 50,
   accountHandle: null as string | null,
   hasCompletedSetup: false,
+  hideOwnReplies: false,
 };
 
 export const get = query({
@@ -38,6 +39,7 @@ export const get = query({
       postLimit: settings.postLimit ?? DEFAULT_SETTINGS.postLimit,
       accountHandle: settings.accountHandle ?? DEFAULT_SETTINGS.accountHandle,
       hasCompletedSetup: settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
+      hideOwnReplies: settings.hideOwnReplies ?? DEFAULT_SETTINGS.hideOwnReplies,
     };
   },
 });
@@ -52,6 +54,7 @@ export const update = mutation({
       postLimit: v.optional(v.number()),
       accountHandle: v.optional(v.string()),
       hasCompletedSetup: v.optional(v.boolean()),
+      hideOwnReplies: v.optional(v.boolean()),
     }),
   },
   handler: async (ctx, args) => {
@@ -116,6 +119,7 @@ export const getForCurrentUser = query({
       postLimit: settings.postLimit ?? DEFAULT_SETTINGS.postLimit,
       accountHandle: settings.accountHandle ?? DEFAULT_SETTINGS.accountHandle,
       hasCompletedSetup: settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
+      hideOwnReplies: settings.hideOwnReplies ?? DEFAULT_SETTINGS.hideOwnReplies,
     };
   },
 });

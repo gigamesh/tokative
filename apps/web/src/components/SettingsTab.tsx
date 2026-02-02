@@ -1,6 +1,5 @@
-
-import { useState } from "react";
 import { IgnoreListEntry } from "@/utils/constants";
+import { useState } from "react";
 
 interface SettingsTabProps {
   postLimitInput: string;
@@ -12,6 +11,8 @@ interface SettingsTabProps {
   ignoreList: IgnoreListEntry[];
   onAddToIgnoreList: (text: string) => void;
   onRemoveFromIgnoreList: (text: string) => void;
+  hideOwnReplies: boolean;
+  onHideOwnRepliesChange: (value: boolean) => void;
 }
 
 export function SettingsTab({
@@ -24,6 +25,8 @@ export function SettingsTab({
   ignoreList,
   onAddToIgnoreList,
   onRemoveFromIgnoreList,
+  hideOwnReplies,
+  onHideOwnRepliesChange,
 }: SettingsTabProps) {
   const [newIgnoreText, setNewIgnoreText] = useState("");
 
@@ -81,6 +84,25 @@ export function SettingsTab({
       </div>
 
       <div>
+        <h2 className="text-lg font-medium text-white mb-4">Display Options</h2>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={hideOwnReplies}
+            onChange={(e) => onHideOwnRepliesChange(e.target.checked)}
+            className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
+          />
+          <div>
+            <span className="text-sm text-white">Hide replies</span>
+            <p className="text-xs text-gray-500">
+              Don&apos;t show comments sent via this app (also hides the comment
+              being replied to)
+            </p>
+          </div>
+        </label>
+      </div>
+
+      <div>
         <h2 className="text-lg font-medium text-white mb-4">Ignore List</h2>
         <p className="text-sm text-gray-400 mb-4">
           Comments matching these texts will be automatically filtered out when
@@ -106,9 +128,7 @@ export function SettingsTab({
         </div>
 
         {ignoreList.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">
-            No ignored texts yet.
-          </p>
+          <p className="text-sm text-gray-500 italic">No ignored texts yet.</p>
         ) : (
           <div className="space-y-2">
             {ignoreList.map((entry) => (

@@ -4,6 +4,26 @@ import { addScrapedComments } from "../../utils/storage";
 import { SELECTORS, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { findRecentlyPostedReplyWithRetry } from "./video-scraper";
 
+let visibilityResolvers: Array<() => void> = [];
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    console.log("[CommentReplier] Tab became visible, resolving waiters");
+    visibilityResolvers.forEach((resolve) => resolve());
+    visibilityResolvers = [];
+  }
+});
+
+async function waitForTabVisible(): Promise<void> {
+  if (document.visibilityState === "visible") {
+    return;
+  }
+  console.log("[CommentReplier] Tab hidden, waiting for visibility...");
+  return new Promise((resolve) => {
+    visibilityResolvers.push(resolve);
+  });
+}
+
 export interface ReplyResult {
   postedReplyId?: string;
   postedReply?: ScrapedComment;
@@ -54,6 +74,7 @@ export async function replyToComment(
   }
 
   console.log("[CommentReplier] Clicking reply button");
+  await waitForTabVisible();
   await humanClick(replyButton);
   await humanDelay("short");
 
@@ -72,6 +93,7 @@ export async function replyToComment(
   console.log("[CommentReplier] Comment input HTML:", commentInput.outerHTML.substring(0, 300));
 
   // Click on the input area first to ensure proper focus
+  await waitForTabVisible();
   await humanClick(commentInput);
 
   const editableInput = commentInput.querySelector('[contenteditable="true"]') as HTMLElement || commentInput;
@@ -79,6 +101,7 @@ export async function replyToComment(
   console.log("[CommentReplier] Editable input contenteditable:", editableInput.getAttribute('contenteditable'));
 
   // Click directly on the editable area
+  await waitForTabVisible();
   await humanClick(editableInput);
 
   console.log("[CommentReplier] Input focused, document.activeElement:", document.activeElement?.tagName, document.activeElement?.className?.substring(0, 50));
@@ -107,8 +130,10 @@ export async function replyToComment(
     console.log("[CommentReplier] Post button disabled:", postButton.hasAttribute('disabled'), postButton.getAttribute('aria-disabled'));
   }
 
+  await waitForTabVisible();
   if (!postButton) {
     console.log("[CommentReplier] Post button not found, trying Enter key");
+    editableInput.focus();
     editableInput.dispatchEvent(new KeyboardEvent("keydown", {
       key: "Enter",
       code: "Enter",
@@ -147,6 +172,7 @@ export async function replyToComment(
 
     if (postedReply) {
       console.log("[CommentReplier] Found posted reply:", postedReply.id);
+      postedReply.source = "app";
       result.postedReplyId = postedReply.id;
       result.postedReply = postedReply;
 
@@ -305,11 +331,21 @@ function checkCommentTextMatch(expected: string, found: string): boolean {
 }
 
 async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
+  // Wait for tab to be visible before focusing
+  await waitForTabVisible();
   element.focus();
   await humanDelay("short");
 
   // Try using clipboard API to paste (works better with Draft.js)
   try {
+    // Re-check visibility and re-focus before paste
+    await waitForTabVisible();
+    if (document.activeElement !== element) {
+      console.log("[CommentReplier] Re-focusing element after visibility change");
+      element.focus();
+      await humanDelay("short");
+    }
+
     // Create a DataTransfer object to simulate paste
     const dataTransfer = new DataTransfer();
     dataTransfer.setData('text/plain', text);
@@ -337,6 +373,13 @@ async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
   // Fallback: try input events character by character
   console.log("[CommentReplier] Trying character-by-character input events");
   for (const char of text) {
+    // Wait for visibility and re-focus periodically during typing
+    await waitForTabVisible();
+    if (document.activeElement !== element) {
+      console.log("[CommentReplier] Re-focusing during character input");
+      element.focus();
+    }
+
     const inputEvent = new InputEvent('beforeinput', {
       bubbles: true,
       cancelable: true,

@@ -11,6 +11,7 @@ interface CommentCardProps {
   onReply: () => void;
   thumbnailUrl?: string;
   depth?: number;
+  hasAppReply?: boolean;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -36,8 +37,11 @@ export function CommentCard({
   onReply,
   thumbnailUrl,
   depth = 0,
+  hasAppReply = false,
 }: CommentCardProps) {
   const isReply = depth > 0;
+  const isAppPosted = comment.source === "app";
+  const hasAppHighlight = isAppPosted || hasAppReply;
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -58,8 +62,10 @@ export function CommentCard({
       className={`px-3 py-2 rounded-lg border transition-colors ${
         selected
           ? "border-blue-500 bg-blue-500/10"
-          : "border-gray-700 bg-tiktok-gray hover:border-gray-600"
-      } ${isReply ? "ml-10 border-l-2 border-l-gray-600" : ""}`}
+          : hasAppHighlight
+            ? "border-yellow-500/40 bg-tiktok-gray hover:border-yellow-500/60"
+            : "border-gray-700 bg-tiktok-gray hover:border-gray-600"
+      } ${isReply ? `ml-10 border-l-2 ${hasAppHighlight && !selected ? "border-l-yellow-500/40 hover:border-l-yellow-500/60" : "border-l-gray-600"}` : ""}`}
     >
       <div className="flex items-start gap-2">
         <input
