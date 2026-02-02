@@ -51,17 +51,7 @@ export function CommentCard({
     }
   }, [comment.comment]);
 
-  const replyStatusColor = comment.replySent
-    ? "text-green-400"
-    : comment.replyError
-      ? "text-red-400"
-      : "text-gray-400";
-
-  const replyStatusText = comment.replySent
-    ? "Replied"
-    : comment.replyError
-      ? "Reply failed"
-      : "";
+  const replyStatusText = comment.replyError ? "Reply failed" : "";
 
   return (
     <div
@@ -133,9 +123,7 @@ export function CommentCard({
               </span>
             )}
             {replyStatusText && (
-              <span className={`text-xs ${replyStatusColor}`}>
-                {replyStatusText}
-              </span>
+              <span className="text-xs text-red-400">{replyStatusText}</span>
             )}
             {!isReply && comment.replyCount != null && comment.replyCount > 0 && (
               <span className="text-xs text-gray-500">
@@ -162,15 +150,10 @@ export function CommentCard({
             </button>
           )}
 
-          {comment.repliedAt && (
-            <span className="text-xs text-gray-500">
-              Replied {formatRelativeTime(comment.repliedAt)}
-            </span>
-          )}
         </div>
 
         <div className="flex gap-2 flex-shrink-0 self-center">
-          {!comment.replySent && comment.videoUrl && (
+          {comment.videoUrl && (
             <button
               onClick={onReply}
               className="px-3 py-1.5 text-sm text-blue-400 border border-blue-400/50 bg-blue-500/10 hover:bg-blue-500/20 hover:border-blue-400 rounded-lg transition-colors"
