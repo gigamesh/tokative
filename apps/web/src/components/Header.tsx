@@ -14,7 +14,7 @@ export function Header({ showConnectionStatus = false }: HeaderProps) {
   const isSignedIn = !!userId;
 
   return (
-    <header className="border-b border-gray-800 bg-tiktok-gray/50 backdrop-blur-sm sticky top-0 z-10">
+    <header className="border-b border-gray-800 bg-tiktok-gray/50 backdrop-blur-sm sticky top-0 z-20">
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link
           href="/"
