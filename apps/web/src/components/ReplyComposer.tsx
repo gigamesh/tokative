@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 interface ReplyComposerProps {
   selectedComment: ScrapedComment | null;
+  selectedComments: ScrapedComment[];
   selectedCount: number;
   onSend: (message: string) => void;
   onBulkSend: (messages: string[]) => void;
@@ -14,6 +15,7 @@ interface ReplyComposerProps {
 
 export function ReplyComposer({
   selectedComment,
+  selectedComments,
   selectedCount,
   onSend,
   onBulkSend,
@@ -87,14 +89,20 @@ export function ReplyComposer({
     }
   };
 
-  const canSend = validMessages.length > 0 && (selectedComment || selectedCount > 0);
+  const allMessagesValid = messages.length > 1
+    ? messages.every(m => m.trim())
+    : messages[0]?.trim();
+
+  const canSend = allMessagesValid && (selectedComment || selectedCount > 0);
 
   return (
     <div className="bg-tiktok-gray rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-medium text-white">Reply Composer</h3>
         {selectedCount > 0 && (
-          <span className="text-sm text-gray-500">{selectedCount} comment{selectedCount !== 1 ? 's' : ''}</span>
+          <span className="text-sm bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+            {selectedCount} selected
+          </span>
         )}
       </div>
 
@@ -117,6 +125,25 @@ export function ReplyComposer({
         </div>
       )}
 
+      {!selectedComment && selectedComments.length > 0 && (
+        <div className="relative mt-1 ml-1">
+          {selectedComments[1] && (
+            <div className="absolute -top-1 -left-1 right-1 bottom-1 p-2 bg-tiktok-dark border border-gray-600 rounded-lg" />
+          )}
+          <div className="relative p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm text-gray-400">
+                Replying to @{selectedComments[0].handle}
+              </span>
+              <button onClick={onClearSelection} className="text-xs text-gray-500 hover:text-white">
+                Clear
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 truncate">"{selectedComments[0].comment}"</p>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         {messages.map((message, index) => (
           <div key={index} className="relative">
@@ -127,8 +154,8 @@ export function ReplyComposer({
                   placeholder={messages.length > 1 ? `Reply variation ${index + 1}...` : "Write your reply..."}
                   value={message}
                   onChange={(e) => updateMessage(index, e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 bg-tiktok-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-y text-sm min-h-[76px]"
+                  rows={4}
+                  className="w-full px-3 py-2 bg-tiktok-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-y text-sm min-h-[100px]"
                 />
                 <button
                   type="button"

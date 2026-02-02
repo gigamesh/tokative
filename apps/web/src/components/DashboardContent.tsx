@@ -193,6 +193,16 @@ export function DashboardContent() {
     return map;
   }, [videos]);
 
+  const selectedCommentsForDisplay = useMemo(() => {
+    const selected: ScrapedComment[] = [];
+    const idsArray = Array.from(selectedCommentIds);
+    for (let i = idsArray.length - 1; i >= 0 && selected.length < 2; i--) {
+      const comment = comments.find(c => c.id === idsArray[i]);
+      if (comment) selected.push(comment);
+    }
+    return selected;
+  }, [comments, selectedCommentIds]);
+
   const getCommentIdsByVideoIds = useCallback(
     (videoIds: string[]) =>
       comments
@@ -501,6 +511,7 @@ export function DashboardContent() {
           <div className="space-y-6 sticky top-24 self-start">
             <ReplyComposer
               selectedComment={selectedComment}
+              selectedComments={selectedCommentsForDisplay}
               selectedCount={selectedCommentIds.size}
               onSend={handleReplyFromComposer}
               onBulkSend={handleBulkReply}
