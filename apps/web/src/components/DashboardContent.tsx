@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CommentTable, CommentTableSkeleton } from "@/components/CommentTable";
 import { Header } from "@/components/Header";
-import { ReplyComposer } from "@/components/MessageComposer";
+import { ReplyComposer } from "@/components/ReplyComposer";
 import { PostsGrid } from "@/components/PostsGrid";
 import { TabNavigation } from "@/components/TabNavigation";
 import { SelectedPostContext } from "@/components/SelectedPostContext";

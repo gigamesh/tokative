@@ -16,13 +16,13 @@ Add language detection for stored comments and translation capability for replie
 **Key Files**:
 - `packages/shared/src/types.ts` - `ScrapedComment` interface (no language field currently)
 - `apps/extension/src/utils/storage.ts` - Chrome storage layer
-- `apps/web/src/components/MessageComposer.tsx` - Reply composition UI
+- `apps/web/src/components/ReplyComposer.tsx` - Reply composition UI
 - `apps/extension/src/content/tiktok/comment-replier.ts` - Sends replies to TikTok
 - `apps/extension/src/background/index.ts` - Background service worker
 
 **Reply Data Flow**:
 ```
-MessageComposer → useMessaging hook → Extension Bridge → Background Worker → Content Script → TikTok
+ReplyComposer → useMessaging hook → Extension Bridge → Background Worker → Content Script → TikTok
 ```
 
 ---
@@ -147,7 +147,7 @@ Assuming typical usage: ~10,000 comments detected/month, ~1,000 replies translat
 ### Phase 2: UI Updates
 
 1. Add language badge to `CommentCard` component
-2. Add "Translate reply" toggle in `MessageComposer`
+2. Add "Translate reply" toggle in `ReplyComposer`
 3. Show target language based on detected comment language
 
 ### Phase 3: Translation Integration
@@ -165,7 +165,7 @@ Assuming typical usage: ~10,000 comments detected/month, ~1,000 replies translat
 | `apps/extension/src/utils/storage.ts` | Integrate franc detection on save |
 | `apps/extension/src/background/index.ts` | Handle translation API calls |
 | `apps/web/src/components/CommentCard.tsx` | Display language badge |
-| `apps/web/src/components/MessageComposer.tsx` | Add translate toggle |
+| `apps/web/src/components/ReplyComposer.tsx` | Add translate toggle |
 | `apps/web/src/hooks/useMessaging.ts` | Integrate translation before send |
 | New: `apps/extension/src/utils/translation.ts` | Translation service wrapper |
 
