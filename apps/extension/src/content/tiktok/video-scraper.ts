@@ -490,7 +490,7 @@ async function expandAndSaveReplies(
     // Find all parent comment containers - filter to visible ones only
     // TikTok's virtualized list keeps many recycled DOM elements
     const allParentComments = querySelectorAll(
-      '[class*="DivCommentObjectWrapper"]',
+      ['[class*="DivCommentObjectWrapper"]'],
     );
     const parentComments = allParentComments.filter((el) => isVisible(el));
     log(
