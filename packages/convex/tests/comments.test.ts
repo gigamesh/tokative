@@ -43,6 +43,61 @@ describe("comments", () => {
     });
   });
 
+  describe("listPaginated", () => {
+    it("returns empty page for user with no comments", async () => {
+      const result = await t.query(api.comments.listPaginated, {
+        clerkId,
+        paginationOpts: { numItems: 10, cursor: null },
+      });
+
+      expect(result.page).toEqual([]);
+      expect(result.isDone).toBe(true);
+    });
+
+    it("returns paginated comments", async () => {
+      await t.mutation(api.comments.addBatch, {
+        clerkId,
+        comments: [
+          makeComment({ commentId: "1", comment: "First" }),
+          makeComment({ commentId: "2", comment: "Second" }),
+          makeComment({ commentId: "3", comment: "Third" }),
+        ],
+      });
+
+      const result = await t.query(api.comments.listPaginated, {
+        clerkId,
+        paginationOpts: { numItems: 2, cursor: null },
+      });
+
+      expect(result.page).toHaveLength(2);
+      expect(result.isDone).toBe(false);
+    });
+
+    it("continues from cursor", async () => {
+      await t.mutation(api.comments.addBatch, {
+        clerkId,
+        comments: [
+          makeComment({ commentId: "1", comment: "First" }),
+          makeComment({ commentId: "2", comment: "Second" }),
+          makeComment({ commentId: "3", comment: "Third" }),
+        ],
+      });
+
+      const firstPage = await t.query(api.comments.listPaginated, {
+        clerkId,
+        paginationOpts: { numItems: 2, cursor: null },
+      });
+
+      const secondPage = await t.query(api.comments.listPaginated, {
+        clerkId,
+        paginationOpts: { numItems: 2, cursor: firstPage.continueCursor },
+      });
+
+      expect(secondPage.page).toHaveLength(1);
+      expect(secondPage.isDone).toBe(true);
+    });
+  });
+
   describe("addBatch", () => {
     it("stores new comments", async () => {
       const result = await t.mutation(api.comments.addBatch, {

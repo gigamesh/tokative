@@ -1,5 +1,4 @@
 import { expect } from "vitest";
-import { Id } from "../convex/_generated/dataModel";
 import { createTestContext } from "./test.setup";
 
 export { createTestContext };
@@ -9,36 +8,14 @@ type TestContext = ReturnType<typeof createTestContext>;
 export async function createTestUser(
   t: TestContext,
   clerkId = "test-user-123"
-): Promise<Id<"users">> {
-  return await t.run(async (ctx) => {
-    return await ctx.db.insert("users", {
+): Promise<string> {
+  await t.run(async (ctx) => {
+    await ctx.db.insert("users", {
       clerkId,
       createdAt: Date.now(),
     });
   });
-}
-
-export async function createTestProfile(
-  t: TestContext,
-  userId: Id<"users">,
-  overrides: Partial<{
-    tiktokUserId: string;
-    handle: string;
-    profileUrl: string;
-    avatarUrl: string;
-  }> = {}
-): Promise<Id<"tiktokProfiles">> {
-  return await t.run(async (ctx) => {
-    return await ctx.db.insert("tiktokProfiles", {
-      userId,
-      tiktokUserId: overrides.tiktokUserId ?? "7023701638964954118",
-      handle: overrides.handle ?? "testuser",
-      profileUrl: overrides.profileUrl ?? "https://tiktok.com/@testuser",
-      avatarUrl: overrides.avatarUrl,
-      firstSeenAt: Date.now(),
-      lastSeenAt: Date.now(),
-    });
-  });
+  return clerkId;
 }
 
 export function makeComment(overrides: Partial<{
@@ -75,7 +52,7 @@ export function makeVideo(overrides: Partial<{
 }> = {}) {
   return {
     videoId: overrides.videoId ?? `video-${Date.now()}`,
-    thumbnailUrl: overrides.thumbnailUrl ?? "https://example.com/thumb.jpg",
+    thumbnailUrl: overrides.thumbnailUrl ?? "",
     videoUrl: overrides.videoUrl ?? "https://tiktok.com/@user/video/123",
     profileHandle: overrides.profileHandle ?? "testuser",
     order: overrides.order ?? 0,
