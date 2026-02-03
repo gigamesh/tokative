@@ -241,9 +241,9 @@ export function DashboardContent() {
   }, [videos]);
 
   const selectedCommentsForDisplay = useMemo(() => {
-    const selected: ScrapedComment[] = [];
     const idsArray = Array.from(selectedCommentIds);
-    for (let i = idsArray.length - 1; i >= 0 && selected.length < 2; i--) {
+    const selected: ScrapedComment[] = [];
+    for (let i = idsArray.length - 1; i >= 0; i--) {
       const comment = comments.find(c => c.id === idsArray[i]);
       if (comment) selected.push(comment);
     }
@@ -365,6 +365,7 @@ export function DashboardContent() {
 
   const handleClearSelection = useCallback(() => {
     setSelectedComment(null);
+    setSelectedCommentIds(new Set());
   }, []);
 
   const handleReplyFromComposer = useCallback(
@@ -608,71 +609,12 @@ export function DashboardContent() {
               onSend={handleReplyFromComposer}
               onBulkSend={handleBulkReply}
               onClearSelection={handleClearSelection}
+              onToggleComment={handleSelectComment}
+              replyProgress={replyProgress}
+              bulkReplyProgress={bulkReplyProgress}
+              onStopBulkReply={stopBulkReply}
               disabled={isReplying}
             />
-
-            {replyProgress && (
-              <div className="bg-surface-elevated rounded-lg p-4">
-                <h3 className="font-medium text-foreground mb-2">Reply Status</h3>
-                <div className="flex items-center gap-2">
-                  {replyProgress.status !== "complete" && replyProgress.status !== "error" && (
-                    <Spinner size="sm" />
-                  )}
-                  <p className="text-sm text-foreground-muted">
-                    {replyProgress.status === "navigating" && "Opening video..."}
-                    {replyProgress.status === "finding" && "Finding comment..."}
-                    {replyProgress.status === "replying" && "Posting reply..."}
-                    {replyProgress.status === "complete" && "Reply posted!"}
-                    {replyProgress.status === "error" && (
-                      <span className="text-red-400">
-                        Error: {replyProgress.message}
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {bulkReplyProgress && bulkReplyProgress.status === "running" && (
-              <div className="bg-surface-elevated rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium text-foreground">Bulk Reply Progress</h3>
-                  <button
-                    onClick={stopBulkReply}
-                    className="text-xs text-red-400 hover:text-red-300"
-                  >
-                    Stop
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-foreground-muted">
-                      {bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.skipped} / {bulkReplyProgress.total}
-                    </span>
-                    {bulkReplyProgress.current && (
-                      <span className="text-foreground-muted">@{bulkReplyProgress.current}</span>
-                    )}
-                  </div>
-                  <div className="w-full bg-surface-secondary rounded-full h-2">
-                    <div
-                      className="bg-green-500 h-2 rounded-full transition-all"
-                      style={{
-                        width: `${((bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.skipped) / bulkReplyProgress.total) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <div className="flex gap-4 text-xs">
-                    <span className="text-green-400">{bulkReplyProgress.completed} sent</span>
-                    {bulkReplyProgress.failed > 0 && (
-                      <span className="text-red-400">{bulkReplyProgress.failed} failed</span>
-                    )}
-                    {bulkReplyProgress.skipped > 0 && (
-                      <span className="text-yellow-400">{bulkReplyProgress.skipped} skipped</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </main>

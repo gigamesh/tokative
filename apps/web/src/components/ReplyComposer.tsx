@@ -1,7 +1,10 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { ScrapedComment } from "@/utils/constants";
+import { ReplyProgress, BulkReplyProgress } from "@tokative/shared";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { useEffect, useRef, useState } from "react";
+import { CompactCommentCard } from "./CompactCommentCard";
+import { Spinner } from "./Spinner";
 
 interface ReplyComposerProps {
   selectedComment: ScrapedComment | null;
@@ -10,6 +13,10 @@ interface ReplyComposerProps {
   onSend: (message: string) => void;
   onBulkSend: (messages: string[]) => void;
   onClearSelection: () => void;
+  onToggleComment: (commentId: string, selected: boolean) => void;
+  replyProgress: ReplyProgress | null;
+  bulkReplyProgress: BulkReplyProgress | null;
+  onStopBulkReply: () => void;
   disabled?: boolean;
 }
 
@@ -20,14 +27,20 @@ export function ReplyComposer({
   onSend,
   onBulkSend,
   onClearSelection,
+  onToggleComment,
+  replyProgress,
+  bulkReplyProgress,
+  onStopBulkReply,
   disabled,
 }: ReplyComposerProps) {
   const [messages, setMessages] = useState<string[]>([""]);
   const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(
     null,
   );
+  const [hasOverflow, setHasOverflow] = useState(false);
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
 
   useEffect(() => {
@@ -48,6 +61,12 @@ export function ReplyComposer({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [activeEmojiPicker]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    setHasOverflow(container.scrollHeight > container.clientHeight);
+  }, [selectedComments.length]);
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     if (activeEmojiPicker === null) return;
@@ -103,6 +122,9 @@ export function ReplyComposer({
     (selectedComment || selectedCount > 0) &&
     !hasVariationMismatch;
 
+  const showReplyProgress = replyProgress && replyProgress.status !== "complete";
+  const showBulkProgress = bulkReplyProgress && bulkReplyProgress.status === "running";
+
   return (
     <div className="bg-surface-elevated rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -134,27 +156,85 @@ export function ReplyComposer({
       )}
 
       {selectedComments.length > 0 && (
-        <div className="relative mt-1 ml-1">
-          {selectedComments[1] && (
-            <div
-              className={`absolute -top-1 -left-1 right-1 bottom-1 p-2 bg-surface border ${theme === "dark" ? "border-white/10" : "border-black/15"} rounded-lg`}
-            />
-          )}
-          <div className="relative p-3 bg-surface border border-border rounded-lg">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-foreground-muted">
-                Replying to @{selectedComments[0].handle}
-              </span>
-              <button
-                onClick={onClearSelection}
-                className="text-xs text-foreground-muted hover:text-foreground"
-              >
-                Clear
-              </button>
-            </div>
-            <p className="text-xs text-foreground-muted truncate">
-              "{selectedComments[0].comment}"
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-foreground-muted">Selected comments</span>
+            <button
+              onClick={onClearSelection}
+              className="text-xs text-foreground-muted hover:text-foreground"
+            >
+              Clear all
+            </button>
+          </div>
+          <div
+            ref={scrollContainerRef}
+            className={`max-h-48 space-y-1 pr-1 ${hasOverflow ? "scrollbar-visible" : "overflow-y-auto"}`}
+          >
+            {selectedComments.map((comment) => (
+              <CompactCommentCard
+                key={comment.id}
+                comment={comment}
+                selected={true}
+                onToggle={(selected) => onToggleComment(comment.id, selected)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showReplyProgress && (
+        <div className="p-3 bg-surface border border-border rounded-lg">
+          <div className="flex items-center gap-2">
+            {replyProgress.status !== "error" && <Spinner size="sm" />}
+            <p className="text-sm text-foreground-muted">
+              {replyProgress.status === "navigating" && "Opening video..."}
+              {replyProgress.status === "finding" && "Finding comment..."}
+              {replyProgress.status === "replying" && "Posting reply..."}
+              {replyProgress.status === "error" && (
+                <span className="text-red-400">
+                  Error: {replyProgress.message}
+                </span>
+              )}
             </p>
+          </div>
+        </div>
+      )}
+
+      {showBulkProgress && (
+        <div className="p-3 bg-surface border border-border rounded-lg space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-foreground">Bulk Reply Progress</span>
+            <button
+              onClick={onStopBulkReply}
+              className="text-xs text-red-400 hover:text-red-300"
+            >
+              Stop
+            </button>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-foreground-muted">
+              {bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.skipped} / {bulkReplyProgress.total}
+            </span>
+            {bulkReplyProgress.current && (
+              <span className="text-foreground-muted">@{bulkReplyProgress.current}</span>
+            )}
+          </div>
+          <div className="w-full bg-surface-secondary rounded-full h-1.5">
+            <div
+              className="bg-green-500 h-1.5 rounded-full transition-all"
+              style={{
+                width: `${((bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.skipped) / bulkReplyProgress.total) * 100}%`,
+              }}
+            />
+          </div>
+          <div className="flex gap-3 text-xs">
+            <span className="text-green-400">{bulkReplyProgress.completed} sent</span>
+            {bulkReplyProgress.failed > 0 && (
+              <span className="text-red-400">{bulkReplyProgress.failed} failed</span>
+            )}
+            {bulkReplyProgress.skipped > 0 && (
+              <span className="text-yellow-400">{bulkReplyProgress.skipped} skipped</span>
+            )}
           </div>
         </div>
       )}
