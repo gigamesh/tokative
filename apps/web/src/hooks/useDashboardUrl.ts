@@ -1,53 +1,66 @@
 "use client";
 
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type DashboardTab = "posts" | "comments" | "settings";
 
+const STORAGE_KEY = "tokative-dashboard-state";
+
+interface DashboardState {
+  tab: DashboardTab;
+  postId: string | null;
+}
+
+function loadState(): DashboardState {
+  if (typeof window === "undefined") {
+    return { tab: "posts", postId: null };
+  }
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return {
+        tab: parsed.tab || "posts",
+        postId: parsed.postId || null,
+      };
+    }
+  } catch {
+    // Invalid JSON, use defaults
+  }
+  return { tab: "posts", postId: null };
+}
+
+function saveState(state: DashboardState): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
 export function useDashboardUrl() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
+  const [activeTab, setActiveTab] = useState<DashboardTab>("posts");
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
-  const activeTab = useMemo<DashboardTab>(() => {
-    const tab = searchParams.get("tab");
-    if (tab === "comments") return "comments";
-    if (tab === "settings") return "settings";
-    return "posts";
-  }, [searchParams]);
+  // Load from localStorage on mount
+  useEffect(() => {
+    const stored = loadState();
+    setActiveTab(stored.tab);
+    setSelectedPostId(stored.postId);
+  }, []);
 
-  const selectedPostId = useMemo<string | null>(() => {
-    return searchParams.get("post");
-  }, [searchParams]);
+  const setTab = useCallback((tab: DashboardTab) => {
+    setActiveTab(tab);
+    setSelectedPostId(null);
+    saveState({ tab, postId: null });
+  }, []);
 
-  const setTab = useCallback(
-    (tab: DashboardTab) => {
-      const params = new URLSearchParams();
-      if (tab !== "posts") {
-        params.set("tab", tab);
-      }
-      const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [router, pathname]
-  );
-
-  const setSelectedPost = useCallback(
-    (videoId: string) => {
-      const params = new URLSearchParams();
-      params.set("tab", "comments");
-      params.set("post", videoId);
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    },
-    [router, pathname]
-  );
+  const setSelectedPost = useCallback((videoId: string) => {
+    setActiveTab("comments");
+    setSelectedPostId(videoId);
+    saveState({ tab: "comments", postId: videoId });
+  }, []);
 
   const clearPostFilter = useCallback(() => {
-    const params = new URLSearchParams();
-    params.set("tab", "comments");
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname]);
+    setSelectedPostId(null);
+    saveState({ tab: "comments", postId: null });
+  }, []);
 
   return {
     activeTab,
