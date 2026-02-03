@@ -73,6 +73,11 @@ export function useCommentData() {
   }, [paginatedComments, hasLoadedInitial]);
 
   const lastCommentsCountRef = useRef<number>(0);
+  const loadingRef = useRef(false);
+
+  useEffect(() => {
+    loadingRef.current = paginationStatus === "LoadingMore";
+  }, [paginationStatus]);
 
   useEffect(() => {
     if (!bridge) return;
@@ -229,7 +234,9 @@ export function useCommentData() {
   );
 
   const handleLoadMore = useCallback(() => {
+    if (loadingRef.current) return;
     if (paginationStatus === "CanLoadMore") {
+      loadingRef.current = true;
       loadMore(PAGE_SIZE);
     }
   }, [paginationStatus, loadMore]);

@@ -1,5 +1,5 @@
 import { ScrapedComment } from "@/utils/constants";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -265,18 +265,17 @@ export function CommentTable({
       }
     }
 
-    const orphanReplies = filteredComments.filter(
-      (c) =>
-        c.isReply &&
-        c.parentCommentId &&
-        !parentIdsInList.has(c.parentCommentId),
-    );
-    for (const orphan of orphanReplies) {
-      result.push({ ...orphan, depth: 1 });
-    }
+    // Orphan replies (replies whose parent hasn't loaded yet) are intentionally
+    // not rendered - they'll appear once their parent is loaded via pagination
 
     return result;
   }, [filteredComments, expandedThreads]);
+
+  const handleEndReached = useCallback(() => {
+    if (hasMore && !isLoadingMore && onLoadMore) {
+      onLoadMore();
+    }
+  }, [hasMore, isLoadingMore, onLoadMore]);
 
   const filteredSelectedCount = filteredComments.filter((c) =>
     selectedIds.has(c.id),
@@ -293,18 +292,31 @@ export function CommentTable({
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         {" "}
         <div className="flex gap-2 flex-wrap items-center">
-          <input
-            type="text"
-            placeholder="Search comments..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg min-w-80 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search comments..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-3 py-2 pr-8 bg-tiktok-gray border border-gray-700 rounded-lg min-w-80 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                aria-label="Clear search"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
 
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as FilterStatus)}
-            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
+            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"
           >
             <option value="all">All</option>
             <option value="not_replied">Not Replied</option>
@@ -315,7 +327,7 @@ export function CommentTable({
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortOption)}
-            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
+            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"
           >
             <option value="newest">Newest Comments</option>
             <option value="oldest">Oldest Comments</option>
@@ -382,7 +394,7 @@ export function CommentTable({
           data={displayComments}
           useWindowScroll
           overscan={10}
-          endReached={hasMore && !isLoadingMore ? onLoadMore : undefined}
+          endReached={handleEndReached}
           components={{
             Footer: isLoadingMore ? LoadingFooter : EmptyFooter,
           }}
