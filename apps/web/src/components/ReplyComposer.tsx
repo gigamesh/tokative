@@ -18,6 +18,7 @@ interface ReplyComposerProps {
   bulkReplyProgress: BulkReplyProgress | null;
   onStopBulkReply: () => void;
   disabled?: boolean;
+  resetTrigger?: number;
 }
 
 export function ReplyComposer({
@@ -32,6 +33,7 @@ export function ReplyComposer({
   bulkReplyProgress,
   onStopBulkReply,
   disabled,
+  resetTrigger,
 }: ReplyComposerProps) {
   const [messages, setMessages] = useState<string[]>([""]);
   const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(
@@ -42,6 +44,13 @@ export function ReplyComposer({
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
+
+  useEffect(() => {
+    if (resetTrigger !== undefined && resetTrigger > 0) {
+      setMessages([""]);
+      setActiveEmojiPicker(null);
+    }
+  }, [resetTrigger]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

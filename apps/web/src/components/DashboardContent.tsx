@@ -124,6 +124,7 @@ export function DashboardContent() {
   const [commentLimitInput, setCommentLimitInput] = useState(String(commentLimit));
 
   const [dismissedError, setDismissedError] = useState<string | null>(null);
+  const [composerResetTrigger, setComposerResetTrigger] = useState(0);
 
   const [deleteModal, setDeleteModal] = useState<DeleteModalState>({
     isOpen: false,
@@ -614,6 +615,7 @@ export function DashboardContent() {
               bulkReplyProgress={bulkReplyProgress}
               onStopBulkReply={stopBulkReply}
               disabled={isReplying}
+              resetTrigger={composerResetTrigger}
             />
           </div>
         </div>
@@ -658,7 +660,12 @@ export function DashboardContent() {
 
       <BulkReplyReportModal
         isOpen={bulkReplyReportModal.isOpen}
-        onClose={() => setBulkReplyReportModal({ isOpen: false, stats: { completed: 0, failed: 0, skipped: 0 } })}
+        onClose={() => {
+          setBulkReplyReportModal({ isOpen: false, stats: { completed: 0, failed: 0, skipped: 0 } });
+          setSelectedCommentIds(new Set());
+          setSelectedComment(null);
+          setComposerResetTrigger(prev => prev + 1);
+        }}
         stats={bulkReplyReportModal.stats}
         deleteMissingComments={deleteMissingComments}
       />
