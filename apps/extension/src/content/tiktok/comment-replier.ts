@@ -18,8 +18,6 @@ export async function replyToComment(
 
   sendProgress(user.id, "finding", "Waiting for comments to load...");
 
-  await humanDelay("short");
-
   const firstComment = await waitForFirstComment();
   if (!firstComment) {
     throw new Error("No comments found on this video");
@@ -69,14 +67,11 @@ export async function replyToComment(
   console.log("[CommentReplier] Found comment input");
   console.log("[CommentReplier] Comment input HTML:", commentInput.outerHTML.substring(0, 300));
 
-  // Click on the input area first to ensure proper focus
-  await humanClick(commentInput);
-
+  // Find the editable area and click it directly (skip clicking parent container)
   const editableInput = commentInput.querySelector('[contenteditable="true"]') as HTMLElement || commentInput;
   console.log("[CommentReplier] Editable input found:", !!editableInput);
   console.log("[CommentReplier] Editable input contenteditable:", editableInput.getAttribute('contenteditable'));
 
-  // Click directly on the editable area
   await humanClick(editableInput);
 
   console.log("[CommentReplier] Input focused, document.activeElement:", document.activeElement?.tagName, document.activeElement?.className?.substring(0, 50));
@@ -131,7 +126,7 @@ export async function replyToComment(
     console.log("[CommentReplier] Extracting posted reply...");
 
     // Wait a moment for TikTok to add the reply to DOM/React state
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const postedReply = await findRecentlyPostedReplyWithRetry({
       parentCommentId: user.id,

@@ -173,11 +173,11 @@ function clamp(value: number, min: number, max: number): number {
 export type DelayProfile = "micro" | "short" | "medium" | "long" | "typing";
 
 const DELAY_PROFILES: Record<DelayProfile, { mean: number; stdDev: number; min: number; max: number }> = {
-  micro: { mean: 42, stdDev: 14, min: 14, max: 83 },
-  short: { mean: 150, stdDev: 42, min: 83, max: 248 },
-  medium: { mean: 330, stdDev: 110, min: 165, max: 605 },
-  long: { mean: 605, stdDev: 165, min: 330, max: 1100 },
-  typing: { mean: 36, stdDev: 14, min: 14, max: 77 },
+  micro: { mean: 30, stdDev: 10, min: 10, max: 60 },
+  short: { mean: 100, stdDev: 30, min: 50, max: 180 },
+  medium: { mean: 200, stdDev: 60, min: 100, max: 350 },
+  long: { mean: 400, stdDev: 100, min: 200, max: 700 },
+  typing: { mean: 25, stdDev: 10, min: 10, max: 55 },
 };
 
 export function humanDelay(profile: DelayProfile): Promise<void> {
@@ -188,11 +188,6 @@ export function humanDelay(profile: DelayProfile): Promise<void> {
 
 export async function humanDelayWithJitter(profile: DelayProfile): Promise<void> {
   await humanDelay(profile);
-
-  if (Math.random() < 0.08) {
-    const extraPause = Math.random() * 1500 + 500;
-    await sleep(extraPause);
-  }
 }
 
 export async function humanClick(element: Element): Promise<void> {
