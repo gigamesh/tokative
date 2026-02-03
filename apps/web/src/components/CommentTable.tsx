@@ -1,5 +1,5 @@
 import { ScrapedComment } from "@/utils/constants";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -67,6 +67,7 @@ interface CommentTableProps {
   comments: ScrapedComment[];
   selectedIds: Set<string>;
   onSelectComment: (commentId: string, selected: boolean) => void;
+  onSelectRange: (commentIds: string[], selected: boolean) => void;
   onSelectFiltered: (commentIds: string[], selected: boolean) => void;
   onRemoveSelected: () => void;
   onRemoveComment: (commentId: string) => void;
@@ -85,6 +86,7 @@ export function CommentTable({
   comments,
   selectedIds,
   onSelectComment,
+  onSelectRange,
   onSelectFiltered,
   onRemoveSelected,
   onRemoveComment,
@@ -105,6 +107,7 @@ export function CommentTable({
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
     new Set(),
   );
+  const lastSelectedIndexRef = useRef<number | null>(null);
 
   const toggleThread = (parentId: string) => {
     setExpandedThreads((prev) => {
@@ -263,6 +266,27 @@ export function CommentTable({
     }
   }, [hasMore, isLoadingMore, onLoadMore]);
 
+  const handleSelectComment = useCallback(
+    (index: number, commentId: string, selected: boolean, shiftKey: boolean) => {
+      if (shiftKey && lastSelectedIndexRef.current !== null) {
+        const start = Math.min(lastSelectedIndexRef.current, index);
+        const end = Math.max(lastSelectedIndexRef.current, index);
+        const rangeIds: string[] = [];
+        for (let i = start; i <= end; i++) {
+          const item = displayComments[i];
+          if (item && !item.isExpander) {
+            rangeIds.push(item.id);
+          }
+        }
+        onSelectRange(rangeIds, selected);
+      } else {
+        onSelectComment(commentId, selected);
+      }
+      lastSelectedIndexRef.current = index;
+    },
+    [displayComments, onSelectComment, onSelectRange]
+  );
+
   const filteredSelectedCount = filteredComments.filter((c) =>
     selectedIds.has(c.id),
   ).length;
@@ -392,7 +416,7 @@ export function CommentTable({
                 <CommentCard
                   comment={item}
                   selected={selectedIds.has(item.id)}
-                  onSelect={(selected) => onSelectComment(item.id, selected)}
+                  onSelect={(selected, shiftKey) => handleSelectComment(index, item.id, selected, shiftKey)}
                   onRemove={() => onRemoveComment(item.id)}
                   onReply={() => onReplyComment(item)}
                   thumbnailUrl={

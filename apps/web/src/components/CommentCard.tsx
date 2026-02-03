@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 interface CommentCardProps {
   comment: ScrapedComment;
   selected: boolean;
-  onSelect: (selected: boolean) => void;
+  onSelect: (selected: boolean, shiftKey: boolean) => void;
   onRemove: () => void;
   onReply: () => void;
   thumbnailUrl?: string;
@@ -67,7 +67,7 @@ export function CommentCard({
         <input
           type="checkbox"
           checked={selected}
-          onChange={(e) => onSelect(e.target.checked)}
+          onChange={(e) => onSelect(e.target.checked, e.nativeEvent instanceof MouseEvent && e.nativeEvent.shiftKey)}
           className="mt-0.5 w-4 h-4 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500"
         />
 

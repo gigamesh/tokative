@@ -276,6 +276,18 @@ export function DashboardContent() {
     });
   }, []);
 
+  const handleSelectRange = useCallback((commentIds: string[], selected: boolean) => {
+    setSelectedCommentIds((prev) => {
+      const next = new Set(prev);
+      if (selected) {
+        commentIds.forEach((id) => next.add(id));
+      } else {
+        commentIds.forEach((id) => next.delete(id));
+      }
+      return next;
+    });
+  }, []);
+
   const handleSelectFiltered = useCallback(
     (commentIds: string[], selected: boolean) => {
       setSelectedCommentIds((prev) => {
@@ -559,6 +571,7 @@ export function DashboardContent() {
                   comments={comments}
                   selectedIds={selectedCommentIds}
                   onSelectComment={handleSelectComment}
+                  onSelectRange={handleSelectRange}
                   onSelectFiltered={handleSelectFiltered}
                   onRemoveSelected={handleRemoveSelected}
                   onRemoveComment={handleRemoveComment}
