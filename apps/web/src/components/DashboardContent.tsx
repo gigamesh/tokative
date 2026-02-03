@@ -526,8 +526,8 @@ export function DashboardContent() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className={activeTab === "posts" ? "" : "hidden"}>
+          <div className="lg:col-span-2">
+            <div className={activeTab !== "posts" ? "hidden" : ""}>
               <PostsGrid
                 videos={videos}
                 loading={videosLoading}
@@ -544,7 +544,7 @@ export function DashboardContent() {
               />
             </div>
 
-            <div className={activeTab === "comments" ? "" : "hidden"}>
+            <div className={activeTab !== "comments" ? "hidden" : ""}>
               <div className="bg-surface-elevated rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-medium text-foreground">Comments</h2>
@@ -579,7 +579,7 @@ export function DashboardContent() {
               </div>
             </div>
 
-            <div className={activeTab === "settings" ? "" : "hidden"}>
+            <div className={activeTab !== "settings" ? "hidden" : ""}>
               <SettingsTab
                 postLimitInput={postLimitInput}
                 commentLimitInput={commentLimitInput}
