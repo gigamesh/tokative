@@ -241,7 +241,9 @@ export function useCommentData() {
     }
   }, [paginationStatus, loadMore]);
 
-  const isInitialLoading = state.loading || (!hasLoadedInitial && paginatedComments === undefined);
+  const isInitialLoading = state.loading ||
+    paginationStatus === "LoadingFirstPage" ||
+    (!hasLoadedInitial && paginatedComments === undefined);
 
   return {
     comments,
