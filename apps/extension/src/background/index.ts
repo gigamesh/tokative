@@ -511,11 +511,12 @@ async function handlePortMessage(
     }
 
     case MessageType.BULK_REPLY_START: {
-      const { commentIds, messages: replyMessages } = message.payload as {
+      const { commentIds, messages: replyMessages, deleteMissingComments } = message.payload as {
         commentIds: string[];
         messages: string[];
+        deleteMissingComments: boolean;
       };
-      await handleBulkReply(commentIds, replyMessages, port);
+      await handleBulkReply(commentIds, replyMessages, deleteMissingComments, port);
       break;
     }
 
@@ -846,6 +847,7 @@ function extractVideoIdFromUrl(url: string): string | null {
 async function handleBulkReply(
   commentIds: string[],
   replyMessages: string[],
+  deleteMissingComments: boolean,
   port: chrome.runtime.Port,
 ): Promise<void> {
   const comments = await getScrapedComments();
@@ -876,6 +878,7 @@ async function handleBulkReply(
     total: targetComments.length,
     completed: 0,
     failed: 0,
+    skipped: 0,
     status: "running",
   };
 
@@ -908,6 +911,15 @@ async function handleBulkReply(
         // Store tabId for reuse on next comment in same video
         if (result.tabId) {
           tabId = result.tabId;
+        }
+      } else if (result.error === "Comment not found") {
+        progress.skipped++;
+        if (deleteMissingComments) {
+          await removeScrapedComment(comment.id);
+        } else {
+          await updateScrapedComment(comment.id, {
+            replyError: "Comment not found",
+          });
         }
       } else {
         progress.failed++;

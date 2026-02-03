@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
   accountHandle: null as string | null,
   hasCompletedSetup: false,
   hideOwnReplies: false,
+  deleteMissingComments: null as boolean | null,
 };
 
 export const get = query({
@@ -40,6 +41,7 @@ export const get = query({
       accountHandle: settings.accountHandle ?? DEFAULT_SETTINGS.accountHandle,
       hasCompletedSetup: settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
       hideOwnReplies: settings.hideOwnReplies ?? DEFAULT_SETTINGS.hideOwnReplies,
+      deleteMissingComments: settings.deleteMissingComments ?? DEFAULT_SETTINGS.deleteMissingComments,
     };
   },
 });
@@ -55,6 +57,7 @@ export const update = mutation({
       accountHandle: v.optional(v.string()),
       hasCompletedSetup: v.optional(v.boolean()),
       hideOwnReplies: v.optional(v.boolean()),
+      deleteMissingComments: v.optional(v.boolean()),
     }),
   },
   handler: async (ctx, args) => {
@@ -120,6 +123,7 @@ export const getForCurrentUser = query({
       accountHandle: settings.accountHandle ?? DEFAULT_SETTINGS.accountHandle,
       hasCompletedSetup: settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
       hideOwnReplies: settings.hideOwnReplies ?? DEFAULT_SETTINGS.hideOwnReplies,
+      deleteMissingComments: settings.deleteMissingComments ?? DEFAULT_SETTINGS.deleteMissingComments,
     };
   },
 });

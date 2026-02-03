@@ -11,6 +11,7 @@ interface CommentDataState {
   commentLimit: number;
   postLimit: number;
   hideOwnReplies: boolean;
+  deleteMissingComments: boolean | null;
   loading: boolean;
   error: string | null;
 }
@@ -23,6 +24,7 @@ export function useCommentData() {
     commentLimit: 100,
     postLimit: 50,
     hideOwnReplies: false,
+    deleteMissingComments: null,
     loading: true,
     error: null,
   });
@@ -57,6 +59,7 @@ export function useCommentData() {
         commentLimit: settings.commentLimit ?? 100,
         postLimit: settings.postLimit ?? 50,
         hideOwnReplies: settings.hideOwnReplies ?? false,
+        deleteMissingComments: settings.deleteMissingComments ?? null,
         loading: false,
       }));
     }
@@ -147,6 +150,19 @@ export function useCommentData() {
     [userId, updateSettingsMutation]
   );
 
+  const saveDeleteMissingComments = useCallback(
+    async (value: boolean) => {
+      if (!userId) return;
+
+      setState((prev) => ({ ...prev, deleteMissingComments: value }));
+      await updateSettingsMutation({
+        clerkId: userId,
+        settings: { deleteMissingComments: value },
+      });
+    },
+    [userId, updateSettingsMutation]
+  );
+
   const removeComment = useCallback(
     async (commentId: string) => {
       if (!userId) return;
@@ -225,6 +241,7 @@ export function useCommentData() {
     commentLimit: state.commentLimit,
     postLimit: state.postLimit,
     hideOwnReplies: state.hideOwnReplies,
+    deleteMissingComments: state.deleteMissingComments,
     loading: isInitialLoading,
     error: state.error,
     removeComment,
@@ -233,6 +250,7 @@ export function useCommentData() {
     saveCommentLimit,
     savePostLimit,
     saveHideOwnReplies,
+    saveDeleteMissingComments,
     addOptimisticComment,
     loadMore: handleLoadMore,
     hasMore: paginationStatus === "CanLoadMore",

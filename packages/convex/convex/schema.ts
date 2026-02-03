@@ -71,5 +71,6 @@ export default defineSchema({
     accountHandle: v.optional(v.string()),
     hasCompletedSetup: v.optional(v.boolean()),
     hideOwnReplies: v.optional(v.boolean()),
+    deleteMissingComments: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 });

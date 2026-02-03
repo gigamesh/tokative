@@ -105,7 +105,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     bridge.send(MessageType.REPLY_COMMENT, { comment, message });
   }, []);
 
-  const startBulkReply = useCallback((commentIds: string[], messages: string[]) => {
+  const startBulkReply = useCallback((commentIds: string[], messages: string[], deleteMissingComments: boolean) => {
     if (!bridge) return;
 
     setState((prev) => ({
@@ -116,11 +116,12 @@ export function useMessaging(options: UseMessagingOptions = {}) {
         total: commentIds.length,
         completed: 0,
         failed: 0,
+        skipped: 0,
         status: "running",
       },
     }));
 
-    bridge.send(MessageType.BULK_REPLY_START, { commentIds, messages });
+    bridge.send(MessageType.BULK_REPLY_START, { commentIds, messages, deleteMissingComments });
   }, []);
 
   const stopBulkReply = useCallback(() => {

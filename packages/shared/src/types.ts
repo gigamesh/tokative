@@ -144,6 +144,7 @@ export interface BulkReplyProgress {
   total: number;
   completed: number;
   failed: number;
+  skipped: number;
   current?: string;
   status: "running" | "complete" | "stopped" | "error";
 }

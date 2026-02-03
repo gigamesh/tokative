@@ -13,6 +13,8 @@ interface SettingsTabProps {
   onRemoveFromIgnoreList: (text: string) => void;
   hideOwnReplies: boolean;
   onHideOwnRepliesChange: (value: boolean) => void;
+  deleteMissingComments: boolean | null;
+  onDeleteMissingCommentsChange: (value: boolean) => void;
 }
 
 export function SettingsTab({
@@ -27,6 +29,8 @@ export function SettingsTab({
   onRemoveFromIgnoreList,
   hideOwnReplies,
   onHideOwnRepliesChange,
+  deleteMissingComments,
+  onDeleteMissingCommentsChange,
 }: SettingsTabProps) {
   const [newIgnoreText, setNewIgnoreText] = useState("");
 
@@ -97,6 +101,20 @@ export function SettingsTab({
             <p className="text-xs text-gray-500">
               Don&apos;t show comments sent via this app (also hides the comment
               being replied to)
+            </p>
+          </div>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer mt-4">
+          <input
+            type="checkbox"
+            checked={deleteMissingComments === true}
+            onChange={(e) => onDeleteMissingCommentsChange(e.target.checked)}
+            className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
+          />
+          <div>
+            <span className="text-sm text-white">Auto-delete missing comments</span>
+            <p className="text-xs text-gray-500">
+              Automatically remove comments from your list during bulk reply if they no longer exist on TikTok
             </p>
           </div>
         </label>

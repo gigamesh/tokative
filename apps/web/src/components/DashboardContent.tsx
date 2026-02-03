@@ -12,6 +12,8 @@ import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { CommentNotFoundModal } from "@/components/CommentNotFoundModal";
+import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
+import { BulkReplyReportModal } from "@/components/BulkReplyReportModal";
 import { Toast } from "@/components/Toast";
 import { SetupBanner } from "@/components/SetupBanner";
 import { useDashboardUrl } from "@/hooks/useDashboardUrl";
@@ -40,6 +42,7 @@ export function DashboardContent() {
     commentLimit,
     postLimit,
     hideOwnReplies,
+    deleteMissingComments,
     loading,
     error,
     removeComments,
@@ -47,6 +50,7 @@ export function DashboardContent() {
     saveCommentLimit,
     savePostLimit,
     saveHideOwnReplies,
+    saveDeleteMissingComments,
     addOptimisticComment,
     loadMore,
     hasMore,
@@ -137,6 +141,16 @@ export function DashboardContent() {
     commentId: string | null;
   }>({ isOpen: false, commentId: null });
 
+  const [missingCommentChoiceModal, setMissingCommentChoiceModal] = useState<{
+    isOpen: boolean;
+    pendingMessages: string[];
+  }>({ isOpen: false, pendingMessages: [] });
+
+  const [bulkReplyReportModal, setBulkReplyReportModal] = useState<{
+    isOpen: boolean;
+    stats: { completed: number; failed: number; skipped: number };
+  }>({ isOpen: false, stats: { completed: 0, failed: 0, skipped: 0 } });
+
   const showToast = useCallback((message: string) => {
     setToast({ isVisible: true, message });
   }, []);
@@ -168,6 +182,20 @@ export function DashboardContent() {
       setCommentNotFoundModal({ isOpen: true, commentId: selectedComment.id });
     }
   }, [replyError, selectedComment]);
+
+  // Show bulk reply report modal when bulk reply completes
+  useEffect(() => {
+    if (bulkReplyProgress?.status === "complete") {
+      setBulkReplyReportModal({
+        isOpen: true,
+        stats: {
+          completed: bulkReplyProgress.completed,
+          failed: bulkReplyProgress.failed,
+          skipped: bulkReplyProgress.skipped,
+        },
+      });
+    }
+  }, [bulkReplyProgress]);
 
   const handlePostLimitBlur = useCallback(() => {
     const parsed = parseInt(postLimitInput);
@@ -351,10 +379,34 @@ export function DashboardContent() {
   const handleBulkReply = useCallback(
     (messages: string[]) => {
       if (selectedCommentIds.size === 0) return;
-      startBulkReply(Array.from(selectedCommentIds), messages);
+      if (deleteMissingComments === null) {
+        setMissingCommentChoiceModal({ isOpen: true, pendingMessages: messages });
+        return;
+      }
+      startBulkReply(Array.from(selectedCommentIds), messages, deleteMissingComments);
     },
-    [selectedCommentIds, startBulkReply]
+    [selectedCommentIds, startBulkReply, deleteMissingComments]
   );
+
+  const handleMissingCommentChoiceSkip = useCallback(() => {
+    saveDeleteMissingComments(false);
+    startBulkReply(
+      Array.from(selectedCommentIds),
+      missingCommentChoiceModal.pendingMessages,
+      false
+    );
+    setMissingCommentChoiceModal({ isOpen: false, pendingMessages: [] });
+  }, [selectedCommentIds, missingCommentChoiceModal.pendingMessages, startBulkReply, saveDeleteMissingComments]);
+
+  const handleMissingCommentChoiceDelete = useCallback(() => {
+    saveDeleteMissingComments(true);
+    startBulkReply(
+      Array.from(selectedCommentIds),
+      missingCommentChoiceModal.pendingMessages,
+      true
+    );
+    setMissingCommentChoiceModal({ isOpen: false, pendingMessages: [] });
+  }, [selectedCommentIds, missingCommentChoiceModal.pendingMessages, startBulkReply, saveDeleteMissingComments]);
 
   const handleViewPostComments = useCallback(
     (videoId: string) => {
@@ -543,6 +595,8 @@ export function DashboardContent() {
                 onRemoveFromIgnoreList={removeFromIgnoreList}
                 hideOwnReplies={hideOwnReplies}
                 onHideOwnRepliesChange={saveHideOwnReplies}
+                deleteMissingComments={deleteMissingComments}
+                onDeleteMissingCommentsChange={saveDeleteMissingComments}
               />
             </div>
           </div>
@@ -594,7 +648,7 @@ export function DashboardContent() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">
-                      {bulkReplyProgress.completed + bulkReplyProgress.failed} / {bulkReplyProgress.total}
+                      {bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.skipped} / {bulkReplyProgress.total}
                     </span>
                     {bulkReplyProgress.current && (
                       <span className="text-gray-500">@{bulkReplyProgress.current}</span>
@@ -604,7 +658,7 @@ export function DashboardContent() {
                     <div
                       className="bg-green-500 h-2 rounded-full transition-all"
                       style={{
-                        width: `${((bulkReplyProgress.completed + bulkReplyProgress.failed) / bulkReplyProgress.total) * 100}%`,
+                        width: `${((bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.skipped) / bulkReplyProgress.total) * 100}%`,
                       }}
                     />
                   </div>
@@ -612,6 +666,9 @@ export function DashboardContent() {
                     <span className="text-green-400">{bulkReplyProgress.completed} sent</span>
                     {bulkReplyProgress.failed > 0 && (
                       <span className="text-red-400">{bulkReplyProgress.failed} failed</span>
+                    )}
+                    {bulkReplyProgress.skipped > 0 && (
+                      <span className="text-yellow-400">{bulkReplyProgress.skipped} skipped</span>
                     )}
                   </div>
                 </div>
@@ -650,6 +707,19 @@ export function DashboardContent() {
         isOpen={commentNotFoundModal.isOpen}
         onClose={handleCommentNotFoundClose}
         onDelete={handleCommentNotFoundDelete}
+      />
+
+      <MissingCommentChoiceModal
+        isOpen={missingCommentChoiceModal.isOpen}
+        onSkip={handleMissingCommentChoiceSkip}
+        onDelete={handleMissingCommentChoiceDelete}
+      />
+
+      <BulkReplyReportModal
+        isOpen={bulkReplyReportModal.isOpen}
+        onClose={() => setBulkReplyReportModal({ isOpen: false, stats: { completed: 0, failed: 0, skipped: 0 } })}
+        stats={bulkReplyReportModal.stats}
+        deleteMissingComments={deleteMissingComments}
       />
 
       <Toast
