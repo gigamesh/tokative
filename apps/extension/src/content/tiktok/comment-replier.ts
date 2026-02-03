@@ -1,27 +1,17 @@
 import { ScrapedComment, MessageType, ReplyProgress } from "../../types";
-import { humanDelay, humanClick } from "../../utils/dom";
 import { addScrapedComments } from "../../utils/storage";
 import { SELECTORS, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { findRecentlyPostedReplyWithRetry } from "./video-scraper";
 
-let visibilityResolvers: Array<() => void> = [];
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
-    console.log("[CommentReplier] Tab became visible, resolving waiters");
-    visibilityResolvers.forEach((resolve) => resolve());
-    visibilityResolvers = [];
+function clickElement(element: Element): void {
+  element.scrollIntoView({ behavior: "instant", block: "center" });
+  if (element instanceof HTMLElement) {
+    element.click();
+  } else {
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
   }
-});
-
-async function waitForTabVisible(): Promise<void> {
-  if (document.visibilityState === "visible") {
-    return;
-  }
-  console.log("[CommentReplier] Tab hidden, waiting for visibility...");
-  return new Promise((resolve) => {
-    visibilityResolvers.push(resolve);
-  });
 }
 
 export interface ReplyResult {
@@ -38,8 +28,6 @@ export async function replyToComment(
   console.log("[CommentReplier] Video URL:", user.videoUrl);
 
   sendProgress(user.id, "finding", "Waiting for comments to load...");
-
-  await humanDelay("short");
 
   const firstComment = await waitForFirstComment();
   if (!firstComment) {
@@ -74,9 +62,7 @@ export async function replyToComment(
   }
 
   console.log("[CommentReplier] Clicking reply button");
-  await waitForTabVisible();
-  await humanClick(replyButton);
-  await humanDelay("short");
+  clickElement(replyButton);
 
   sendProgress(user.id, "replying", "Waiting for reply input...");
 
@@ -93,16 +79,15 @@ export async function replyToComment(
   console.log("[CommentReplier] Comment input HTML:", commentInput.outerHTML.substring(0, 300));
 
   // Click on the input area first to ensure proper focus
-  await waitForTabVisible();
-  await humanClick(commentInput);
+  clickElement(commentInput);
 
   const editableInput = commentInput.querySelector('[contenteditable="true"]') as HTMLElement || commentInput;
   console.log("[CommentReplier] Editable input found:", !!editableInput);
   console.log("[CommentReplier] Editable input contenteditable:", editableInput.getAttribute('contenteditable'));
 
   // Click directly on the editable area
-  await waitForTabVisible();
-  await humanClick(editableInput);
+  clickElement(editableInput);
+  await sleep(100); // Let focus register
 
   console.log("[CommentReplier] Input focused, document.activeElement:", document.activeElement?.tagName, document.activeElement?.className?.substring(0, 50));
 
@@ -116,7 +101,7 @@ export async function replyToComment(
   console.log("[CommentReplier] After typing, input textContent:", editableInput.textContent);
   console.log("[CommentReplier] After typing, input innerHTML:", editableInput.innerHTML?.substring(0, 200));
 
-  await humanDelay("short");
+  await sleep(200); // Let React register the text so post button enables
 
   sendProgress(user.id, "replying", "Posting reply...");
 
@@ -130,7 +115,6 @@ export async function replyToComment(
     console.log("[CommentReplier] Post button disabled:", postButton.hasAttribute('disabled'), postButton.getAttribute('aria-disabled'));
   }
 
-  await waitForTabVisible();
   if (!postButton) {
     console.log("[CommentReplier] Post button not found, trying Enter key");
     editableInput.focus();
@@ -144,54 +128,47 @@ export async function replyToComment(
     }));
   } else {
     console.log("[CommentReplier] Clicking post button");
-    await humanClick(postButton);
+    clickElement(postButton);
   }
 
-  await humanDelay("medium");
+  await sleep(500); // Let TikTok submit the reply
 
-  // Check if input was cleared (indicates successful post)
-  console.log("[CommentReplier] After post, input textContent:", editableInput.textContent);
+  // Verify the reply was actually posted by finding it in TikTok's state
+  console.log("[CommentReplier] Verifying reply was posted...");
+  sendProgress(user.id, "replying", "Verifying reply...");
+
+  const postedReply = await findRecentlyPostedReplyWithRetry({
+    parentCommentId: user.id,
+    replyText: replyMessage,
+    maxAgeSeconds: 60,
+  });
+
+  if (!postedReply) {
+    console.error("[CommentReplier] Reply verification failed - could not find posted reply");
+    throw new Error("Reply verification failed - the reply may not have been posted");
+  }
+
+  console.log("[CommentReplier] Found posted reply:", postedReply.id);
+  postedReply.source = "app";
+
+  const storeResult = await addScrapedComments([postedReply]);
+  console.log("[CommentReplier] Stored posted reply:", storeResult);
 
   console.log("[CommentReplier] Reply process complete");
   sendProgress(user.id, "complete", "Reply posted!");
 
-  // Try to extract and store the posted reply
-  const result: ReplyResult = {};
-
-  try {
-    console.log("[CommentReplier] Extracting posted reply...");
-
-    // Wait a moment for TikTok to add the reply to DOM/React state
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const postedReply = await findRecentlyPostedReplyWithRetry({
-      parentCommentId: user.id,
-      replyText: replyMessage,
-      maxAgeSeconds: 60,
-    });
-
-    if (postedReply) {
-      console.log("[CommentReplier] Found posted reply:", postedReply.id);
-      postedReply.source = "app";
-      result.postedReplyId = postedReply.id;
-      result.postedReply = postedReply;
-
-      const storeResult = await addScrapedComments([postedReply]);
-      console.log("[CommentReplier] Stored posted reply:", storeResult);
-    } else {
-      console.warn("[CommentReplier] Could not find posted reply in DOM");
-    }
-  } catch (error) {
-    console.warn("[CommentReplier] Failed to extract/store posted reply:", error);
-  }
-
-  return result;
+  return {
+    postedReplyId: postedReply.id,
+    postedReply,
+  };
 }
 
 async function waitForFirstComment(): Promise<Element | null> {
   console.log("[CommentReplier] Waiting for first comment to load...");
 
   return new Promise((resolve) => {
+    let resolved = false;
+
     const checkComment = () => {
       const items = querySelectorAll(SELECTORS.commentItem);
       console.log("[CommentReplier] Found", items.length, "comment items");
@@ -199,6 +176,15 @@ async function waitForFirstComment(): Promise<Element | null> {
         return items[0];
       }
       return null;
+    };
+
+    const done = (result: Element | null) => {
+      if (resolved) return;
+      resolved = true;
+      observer.disconnect();
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+      resolve(result);
     };
 
     const firstCheck = checkComment();
@@ -209,10 +195,7 @@ async function waitForFirstComment(): Promise<Element | null> {
 
     const observer = new MutationObserver(() => {
       const item = checkComment();
-      if (item) {
-        observer.disconnect();
-        resolve(item);
-      }
+      if (item) done(item);
     });
 
     observer.observe(document.body, {
@@ -220,11 +203,16 @@ async function waitForFirstComment(): Promise<Element | null> {
       subtree: true,
     });
 
-    setTimeout(() => {
-      observer.disconnect();
+    // Poll every 500ms as backup (MutationObserver can be throttled in background tabs)
+    const pollInterval = setInterval(() => {
+      const item = checkComment();
+      if (item) done(item);
+    }, 500);
+
+    const timeout = setTimeout(() => {
       const items = querySelectorAll(SELECTORS.commentItem);
       console.log("[CommentReplier] Timeout reached. Found", items.length, "comments");
-      resolve(items.length > 0 ? items[0] : null);
+      done(items.length > 0 ? items[0] : null);
     }, 15000);
   });
 }
@@ -331,22 +319,10 @@ function checkCommentTextMatch(expected: string, found: string): boolean {
 }
 
 async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
-  // Wait for tab to be visible before focusing
-  await waitForTabVisible();
   element.focus();
-  await humanDelay("short");
 
   // Try using clipboard API to paste (works better with Draft.js)
   try {
-    // Re-check visibility and re-focus before paste
-    await waitForTabVisible();
-    if (document.activeElement !== element) {
-      console.log("[CommentReplier] Re-focusing element after visibility change");
-      element.focus();
-      await humanDelay("short");
-    }
-
-    // Create a DataTransfer object to simulate paste
     const dataTransfer = new DataTransfer();
     dataTransfer.setData('text/plain', text);
 
@@ -358,8 +334,6 @@ async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
 
     element.dispatchEvent(pasteEvent);
     console.log("[CommentReplier] Paste event dispatched");
-
-    await humanDelay("short");
 
     // Check if paste worked
     if (element.textContent?.includes(text.substring(0, 5))) {
@@ -373,40 +347,33 @@ async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
   // Fallback: try input events character by character
   console.log("[CommentReplier] Trying character-by-character input events");
   for (const char of text) {
-    // Wait for visibility and re-focus periodically during typing
-    await waitForTabVisible();
     if (document.activeElement !== element) {
-      console.log("[CommentReplier] Re-focusing during character input");
       element.focus();
     }
 
-    const inputEvent = new InputEvent('beforeinput', {
+    element.dispatchEvent(new InputEvent('beforeinput', {
       bubbles: true,
       cancelable: true,
       inputType: 'insertText',
       data: char,
-    });
-    element.dispatchEvent(inputEvent);
+    }));
 
-    const textInputEvent = new InputEvent('input', {
+    element.dispatchEvent(new InputEvent('input', {
       bubbles: true,
       cancelable: false,
       inputType: 'insertText',
       data: char,
-    });
-    element.dispatchEvent(textInputEvent);
-
-    await humanDelay("typing");
+    }));
   }
 }
 
 function sendProgress(
-  userId: string,
+  commentId: string,
   status: ReplyProgress["status"],
   message: string
 ): void {
   chrome.runtime.sendMessage({
     type: MessageType.REPLY_COMMENT_PROGRESS,
-    payload: { userId, status, message },
+    payload: { commentId, status, message },
   });
 }

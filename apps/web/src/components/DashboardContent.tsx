@@ -63,6 +63,7 @@ export function DashboardContent() {
         replySent: true,
         repliedAt: new Date().toISOString(),
       });
+      setSelectedComment(null);
     },
     [updateComment]
   );
@@ -331,7 +332,6 @@ export function DashboardContent() {
     (message: string) => {
       if (!selectedComment) return;
       replyToComment(selectedComment, message);
-      setSelectedComment(null);
     },
     [selectedComment, replyToComment]
   );
@@ -492,6 +492,7 @@ export function DashboardContent() {
                   hasMore={hasMore}
                   isLoadingMore={isLoadingMore}
                   isInitialLoading={loading}
+                  replyingCommentId={replyProgress?.commentId}
                 />
               </div>
             </div>

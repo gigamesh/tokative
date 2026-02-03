@@ -477,6 +477,17 @@ async function handleMessage(
       return { installed: true };
     }
 
+    case MessageType.ACTIVATE_TAB: {
+      const tabId = sender.tab?.id;
+      if (tabId) {
+        await chrome.tabs.update(tabId, { active: true });
+        if (sender.tab?.windowId) {
+          await chrome.windows.update(sender.tab.windowId, { focused: true });
+        }
+      }
+      return { success: true };
+    }
+
     default:
       console.log("[Background] Unknown message type:", message.type);
       return null;
@@ -712,11 +723,21 @@ async function broadcastToDashboard(message: ExtensionMessage): Promise<void> {
   }
 }
 
+interface ReplyToCommentResult {
+  success: boolean;
+  error?: string;
+  tabId?: number;
+}
+
 async function handleReplyToComment(
   comment: ScrapedComment,
   replyContent: string,
   port: chrome.runtime.Port,
-): Promise<void> {
+  existingTabId?: number,
+): Promise<ReplyToCommentResult> {
+  let tabId: number | undefined;
+  let tabCreatedHere = false;
+
   try {
     if (!comment.videoUrl) {
       throw new Error("No video URL available for this comment");
@@ -731,29 +752,95 @@ async function handleReplyToComment(
       },
     });
 
-    const tab = await chrome.tabs.create({
-      url: comment.videoUrl,
-      active: false,
-      index: await getDashboardTabIndex(),
-    });
+    if (existingTabId) {
+      await chrome.tabs.update(existingTabId, { url: comment.videoUrl, muted: true });
+      tabId = existingTabId;
+      await waitForTabLoad(tabId);
+    } else {
+      const tab = await chrome.tabs.create({
+        url: comment.videoUrl,
+        active: false,
+        index: await getDashboardTabIndex(),
+      });
 
-    if (!tab.id) throw new Error("Failed to create tab");
+      if (!tab.id) throw new Error("Failed to create tab");
+      tabId = tab.id;
+      tabCreatedHere = true;
+      chrome.tabs.update(tabId, { muted: true });
 
-    await waitForTabLoad(tab.id);
+      await waitForTabLoad(tabId);
+    }
 
-    chrome.tabs.sendMessage(tab.id, {
-      type: MessageType.REPLY_COMMENT,
-      payload: { comment, message: replyContent },
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        chrome.runtime.onMessage.removeListener(responseHandler);
+        port.postMessage({
+          type: MessageType.REPLY_COMMENT_ERROR,
+          payload: {
+            commentId: comment.id,
+            error: "Reply timed out after 60 seconds",
+          },
+        });
+        if (tabCreatedHere && tabId) {
+          closingTabsIntentionally.add(tabId);
+          chrome.tabs.remove(tabId).catch(() => {});
+        }
+        resolve({ success: false, error: "Timeout", tabId: existingTabId ? tabId : undefined });
+      }, 60000);
+
+      const responseHandler = (msg: ExtensionMessage) => {
+        if (msg.type === MessageType.REPLY_COMMENT_COMPLETE) {
+          const payload = msg.payload as { commentId?: string };
+          if (payload.commentId === comment.id) {
+            clearTimeout(timeout);
+            chrome.runtime.onMessage.removeListener(responseHandler);
+            if (tabCreatedHere && tabId) {
+              closingTabsIntentionally.add(tabId);
+              chrome.tabs.remove(tabId).catch(() => {});
+            }
+            resolve({ success: true, tabId: existingTabId ? tabId : undefined });
+          }
+        } else if (msg.type === MessageType.REPLY_COMMENT_ERROR) {
+          const payload = msg.payload as { commentId?: string; error?: string };
+          if (payload.commentId === comment.id) {
+            clearTimeout(timeout);
+            chrome.runtime.onMessage.removeListener(responseHandler);
+            if (tabCreatedHere && tabId) {
+              closingTabsIntentionally.add(tabId);
+              chrome.tabs.remove(tabId).catch(() => {});
+            }
+            resolve({ success: false, error: payload.error, tabId: existingTabId ? tabId : undefined });
+          }
+        }
+      };
+
+      chrome.runtime.onMessage.addListener(responseHandler);
+
+      chrome.tabs.sendMessage(tabId!, {
+        type: MessageType.REPLY_COMMENT,
+        payload: { comment, message: replyContent },
+      });
     });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     port.postMessage({
       type: MessageType.REPLY_COMMENT_ERROR,
       payload: {
         commentId: comment.id,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMessage,
       },
     });
+    if (tabCreatedHere && tabId) {
+      closingTabsIntentionally.add(tabId);
+      chrome.tabs.remove(tabId).catch(() => {});
+    }
+    return { success: false, error: errorMessage };
   }
+}
+
+function extractVideoIdFromUrl(url: string): string | null {
+  const match = url.match(/\/video\/(\d+)/);
+  return match ? match[1] : null;
 }
 
 async function handleBulkReply(
@@ -768,6 +855,23 @@ async function handleBulkReply(
     (c) => commentIds.includes(c.id) && !c.replySent && c.videoUrl,
   );
 
+  // Group comments by videoId for tab reuse
+  const commentsByVideo = new Map<string, ScrapedComment[]>();
+  for (const comment of targetComments) {
+    const videoId = comment.videoId || extractVideoIdFromUrl(comment.videoUrl || "");
+    if (videoId) {
+      const existing = commentsByVideo.get(videoId) || [];
+      existing.push(comment);
+      commentsByVideo.set(videoId, existing);
+    } else {
+      // Fallback for comments without videoId - use videoUrl as key
+      const key = comment.videoUrl || comment.id;
+      const existing = commentsByVideo.get(key) || [];
+      existing.push(comment);
+      commentsByVideo.set(key, existing);
+    }
+  }
+
   const progress: BulkReplyProgress = {
     total: targetComments.length,
     completed: 0,
@@ -775,33 +879,62 @@ async function handleBulkReply(
     status: "running",
   };
 
-  for (let i = 0; i < targetComments.length; i++) {
-    const comment = targetComments[i];
-    const replyMessage = replyMessages[i % replyMessages.length];
+  let commentIndex = 0;
 
-    progress.current = comment.handle;
-    port.postMessage({
-      type: MessageType.BULK_REPLY_PROGRESS,
-      payload: progress,
-    });
+  // Process comments grouped by video
+  for (const [videoKey, videoComments] of commentsByVideo) {
+    let tabId: number | undefined;
 
-    try {
-      await handleReplyToComment(comment, replyMessage, port);
-      progress.completed++;
+    for (let i = 0; i < videoComments.length; i++) {
+      const comment = videoComments[i];
+      const replyMessage = replyMessages[commentIndex % replyMessages.length];
+      commentIndex++;
 
-      await updateScrapedComment(comment.id, {
-        replySent: true,
-        repliedAt: new Date().toISOString(),
+      progress.current = comment.handle;
+      port.postMessage({
+        type: MessageType.BULK_REPLY_PROGRESS,
+        payload: progress,
       });
 
+      // Reuse tab for same video (pass existing tabId after first reply)
+      const result = await handleReplyToComment(comment, replyMessage, port, tabId);
+
+      if (result.success) {
+        progress.completed++;
+        await updateScrapedComment(comment.id, {
+          replySent: true,
+          repliedAt: new Date().toISOString(),
+        });
+        // Store tabId for reuse on next comment in same video
+        if (result.tabId) {
+          tabId = result.tabId;
+        }
+      } else {
+        progress.failed++;
+        await updateScrapedComment(comment.id, {
+          replyError: result.error || "Failed to post reply",
+        });
+      }
+
+      // Delay between replies (reduced for same-video since no tab creation overhead)
+      if (i < videoComments.length - 1) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, settings.messageDelay),
+        );
+      }
+    }
+
+    // Close tab after finishing all comments for this video
+    if (tabId) {
+      closingTabsIntentionally.add(tabId);
+      chrome.tabs.remove(tabId).catch(() => {});
+    }
+
+    // Delay between videos
+    if (commentsByVideo.size > 1) {
       await new Promise((resolve) =>
         setTimeout(resolve, settings.messageDelay),
       );
-    } catch {
-      progress.failed++;
-      await updateScrapedComment(comment.id, {
-        replyError: "Failed to post reply",
-      });
     }
   }
 

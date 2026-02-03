@@ -98,6 +98,9 @@ export const MessageType = {
   RATE_LIMIT_CLEARED: "RATE_LIMIT_CLEARED",
   GET_RATE_LIMIT_STATE: "GET_RATE_LIMIT_STATE",
   CLEAR_RATE_LIMIT: "CLEAR_RATE_LIMIT",
+
+  // Tab visibility
+  ACTIVATE_TAB: "ACTIVATE_TAB",
 } as const;
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];

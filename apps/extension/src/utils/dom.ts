@@ -173,11 +173,11 @@ function clamp(value: number, min: number, max: number): number {
 export type DelayProfile = "micro" | "short" | "medium" | "long" | "typing";
 
 const DELAY_PROFILES: Record<DelayProfile, { mean: number; stdDev: number; min: number; max: number }> = {
-  micro: { mean: 83, stdDev: 28, min: 28, max: 165 },
-  short: { mean: 303, stdDev: 83, min: 165, max: 495 },
-  medium: { mean: 660, stdDev: 220, min: 330, max: 1210 },
-  long: { mean: 1210, stdDev: 330, min: 660, max: 2200 },
-  typing: { mean: 72, stdDev: 28, min: 28, max: 154 },
+  micro: { mean: 42, stdDev: 14, min: 14, max: 83 },
+  short: { mean: 150, stdDev: 42, min: 83, max: 248 },
+  medium: { mean: 330, stdDev: 110, min: 165, max: 605 },
+  long: { mean: 605, stdDev: 165, min: 330, max: 1100 },
+  typing: { mean: 36, stdDev: 14, min: 14, max: 77 },
 };
 
 export function humanDelay(profile: DelayProfile): Promise<void> {

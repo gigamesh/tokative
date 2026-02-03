@@ -76,6 +76,7 @@ interface CommentTableProps {
   hasMore?: boolean;
   isLoadingMore?: boolean;
   isInitialLoading?: boolean;
+  replyingCommentId?: string | null;
 }
 
 export function CommentTable({
@@ -92,6 +93,7 @@ export function CommentTable({
   hasMore,
   isLoadingMore,
   isInitialLoading,
+  replyingCommentId,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -404,6 +406,7 @@ export function CommentTable({
                   }
                   depth={item.depth}
                   hasAppReply={item.commentId ? commentIdsWithAppReplies.has(item.commentId) : false}
+                  isReplying={replyingCommentId === item.id}
                 />
               )}
             </div>

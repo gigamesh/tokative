@@ -453,9 +453,10 @@ export async function findRecentlyPostedReply(
 
 export async function findRecentlyPostedReplyWithRetry(
   options: FindReplyOptions,
-  maxRetries: number = 3,
-  retryDelayMs: number = 1000,
+  maxRetries: number = 5,
+  initialDelayMs: number = 300,
 ): Promise<ScrapedComment | null> {
+  let delayMs = initialDelayMs;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     log(`[Tokative] findRecentlyPostedReplyWithRetry: attempt ${attempt}/${maxRetries}`);
     const result = await findRecentlyPostedReply(options);
@@ -463,7 +464,8 @@ export async function findRecentlyPostedReplyWithRetry(
       return result;
     }
     if (attempt < maxRetries) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      delayMs = Math.min(delayMs * 1.5, 1000); // Exponential backoff capped at 1s
     }
   }
   return null;
