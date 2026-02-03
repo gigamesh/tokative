@@ -96,10 +96,21 @@ export async function replyToComment(
   console.log("[CommentReplier] Typing message:", replyMessage);
 
   // Use clipboard paste for Draft.js compatibility
-  await typeViaPaste(editableInput, replyMessage);
+  try {
+    await typeViaPaste(editableInput, replyMessage);
+  } catch (e) {
+    console.error("[CommentReplier] typeViaPaste threw:", e);
+    throw e;
+  }
 
   console.log("[CommentReplier] After typing, input textContent:", editableInput.textContent);
   console.log("[CommentReplier] After typing, input innerHTML:", editableInput.innerHTML?.substring(0, 200));
+
+  // Check if text was actually entered
+  if (!editableInput.textContent?.includes(replyMessage.substring(0, 5))) {
+    console.error("[CommentReplier] Text was not entered into input field");
+    throw new Error("Failed to enter reply text into input field");
+  }
 
   await sleep(200); // Let React register the text so post button enables
 
@@ -319,9 +330,13 @@ function checkCommentTextMatch(expected: string, found: string): boolean {
 }
 
 async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
+  // Ensure element is focused
   element.focus();
+  await sleep(50);
 
-  // Try using clipboard API to paste (works better with Draft.js)
+  console.log("[CommentReplier] typeViaPaste starting, activeElement:", document.activeElement?.tagName);
+
+  // Method 1: Try ClipboardEvent paste (works with Draft.js)
   try {
     const dataTransfer = new DataTransfer();
     dataTransfer.setData('text/plain', text);
@@ -334,36 +349,69 @@ async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
 
     element.dispatchEvent(pasteEvent);
     console.log("[CommentReplier] Paste event dispatched");
+    await sleep(100);
 
-    // Check if paste worked
     if (element.textContent?.includes(text.substring(0, 5))) {
       console.log("[CommentReplier] Paste successful");
       return;
     }
+    console.log("[CommentReplier] Paste didn't take effect, textContent:", element.textContent?.substring(0, 50));
   } catch (e) {
-    console.log("[CommentReplier] Paste failed, trying input events:", e);
+    console.log("[CommentReplier] Paste failed:", e);
   }
 
-  // Fallback: try input events character by character
-  console.log("[CommentReplier] Trying character-by-character input events");
-  for (const char of text) {
-    if (document.activeElement !== element) {
-      element.focus();
-    }
+  // Method 2: Try execCommand (older but sometimes works better)
+  try {
+    element.focus();
+    const success = document.execCommand('insertText', false, text);
+    console.log("[CommentReplier] execCommand insertText result:", success);
+    await sleep(100);
 
+    if (element.textContent?.includes(text.substring(0, 5))) {
+      console.log("[CommentReplier] execCommand successful");
+      return;
+    }
+    console.log("[CommentReplier] execCommand didn't take effect");
+  } catch (e) {
+    console.log("[CommentReplier] execCommand failed:", e);
+  }
+
+  // Method 3: InputEvent with full text
+  try {
+    element.focus();
     element.dispatchEvent(new InputEvent('beforeinput', {
       bubbles: true,
       cancelable: true,
       inputType: 'insertText',
-      data: char,
+      data: text,
     }));
-
     element.dispatchEvent(new InputEvent('input', {
       bubbles: true,
       cancelable: false,
       inputType: 'insertText',
-      data: char,
+      data: text,
     }));
+    console.log("[CommentReplier] Full InputEvent dispatched");
+    await sleep(100);
+
+    if (element.textContent?.includes(text.substring(0, 5))) {
+      console.log("[CommentReplier] InputEvent successful");
+      return;
+    }
+    console.log("[CommentReplier] InputEvent didn't take effect");
+  } catch (e) {
+    console.log("[CommentReplier] InputEvent failed:", e);
+  }
+
+  // Method 4: Direct DOM manipulation as last resort
+  console.log("[CommentReplier] All standard methods failed, trying direct DOM manipulation");
+  try {
+    // For Draft.js, we need to trigger React's change detection
+    element.textContent = text;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    console.log("[CommentReplier] Direct DOM set, textContent:", element.textContent?.substring(0, 50));
+  } catch (e) {
+    console.log("[CommentReplier] Direct DOM manipulation failed:", e);
   }
 }
 
