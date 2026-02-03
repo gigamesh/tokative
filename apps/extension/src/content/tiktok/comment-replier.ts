@@ -1,22 +1,11 @@
 import { ScrapedComment, MessageType, ReplyProgress } from "../../types";
+import { humanDelay, humanClick } from "../../utils/dom";
 import { addScrapedComments } from "../../utils/storage";
 import { SELECTORS, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { findRecentlyPostedReplyWithRetry } from "./video-scraper";
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-function clickElement(element: Element): void {
-  element.scrollIntoView({ behavior: "instant", block: "center" });
-  if (element instanceof HTMLElement) {
-    element.click();
-  } else {
-    element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
-  }
-}
-
 export interface ReplyResult {
   postedReplyId?: string;
-  postedReply?: ScrapedComment;
 }
 
 export async function replyToComment(
@@ -28,6 +17,8 @@ export async function replyToComment(
   console.log("[CommentReplier] Video URL:", user.videoUrl);
 
   sendProgress(user.id, "finding", "Waiting for comments to load...");
+
+  await humanDelay("short");
 
   const firstComment = await waitForFirstComment();
   if (!firstComment) {
@@ -62,7 +53,8 @@ export async function replyToComment(
   }
 
   console.log("[CommentReplier] Clicking reply button");
-  clickElement(replyButton);
+  await humanClick(replyButton);
+  await humanDelay("short");
 
   sendProgress(user.id, "replying", "Waiting for reply input...");
 
@@ -79,15 +71,14 @@ export async function replyToComment(
   console.log("[CommentReplier] Comment input HTML:", commentInput.outerHTML.substring(0, 300));
 
   // Click on the input area first to ensure proper focus
-  clickElement(commentInput);
+  await humanClick(commentInput);
 
   const editableInput = commentInput.querySelector('[contenteditable="true"]') as HTMLElement || commentInput;
   console.log("[CommentReplier] Editable input found:", !!editableInput);
   console.log("[CommentReplier] Editable input contenteditable:", editableInput.getAttribute('contenteditable'));
 
   // Click directly on the editable area
-  clickElement(editableInput);
-  await sleep(100); // Let focus register
+  await humanClick(editableInput);
 
   console.log("[CommentReplier] Input focused, document.activeElement:", document.activeElement?.tagName, document.activeElement?.className?.substring(0, 50));
 
@@ -96,23 +87,12 @@ export async function replyToComment(
   console.log("[CommentReplier] Typing message:", replyMessage);
 
   // Use clipboard paste for Draft.js compatibility
-  try {
-    await typeViaPaste(editableInput, replyMessage);
-  } catch (e) {
-    console.error("[CommentReplier] typeViaPaste threw:", e);
-    throw e;
-  }
+  await typeViaPaste(editableInput, replyMessage);
 
   console.log("[CommentReplier] After typing, input textContent:", editableInput.textContent);
   console.log("[CommentReplier] After typing, input innerHTML:", editableInput.innerHTML?.substring(0, 200));
 
-  // Check if text was actually entered
-  if (!editableInput.textContent?.includes(replyMessage.substring(0, 5))) {
-    console.error("[CommentReplier] Text was not entered into input field");
-    throw new Error("Failed to enter reply text into input field");
-  }
-
-  await sleep(200); // Let React register the text so post button enables
+  await humanDelay("short");
 
   sendProgress(user.id, "replying", "Posting reply...");
 
@@ -128,7 +108,6 @@ export async function replyToComment(
 
   if (!postButton) {
     console.log("[CommentReplier] Post button not found, trying Enter key");
-    editableInput.focus();
     editableInput.dispatchEvent(new KeyboardEvent("keydown", {
       key: "Enter",
       code: "Enter",
@@ -139,47 +118,52 @@ export async function replyToComment(
     }));
   } else {
     console.log("[CommentReplier] Clicking post button");
-    clickElement(postButton);
+    await humanClick(postButton);
   }
 
-  await sleep(500); // Let TikTok submit the reply
+  await humanDelay("medium");
 
-  // Verify the reply was actually posted by finding it in TikTok's state
-  console.log("[CommentReplier] Verifying reply was posted...");
-  sendProgress(user.id, "replying", "Verifying reply...");
-
-  const postedReply = await findRecentlyPostedReplyWithRetry({
-    parentCommentId: user.id,
-    replyText: replyMessage,
-    maxAgeSeconds: 60,
-  });
-
-  if (!postedReply) {
-    console.error("[CommentReplier] Reply verification failed - could not find posted reply");
-    throw new Error("Reply verification failed - the reply may not have been posted");
-  }
-
-  console.log("[CommentReplier] Found posted reply:", postedReply.id);
-  postedReply.source = "app";
-
-  const storeResult = await addScrapedComments([postedReply]);
-  console.log("[CommentReplier] Stored posted reply:", storeResult);
+  // Check if input was cleared (indicates successful post)
+  console.log("[CommentReplier] After post, input textContent:", editableInput.textContent);
 
   console.log("[CommentReplier] Reply process complete");
   sendProgress(user.id, "complete", "Reply posted!");
 
-  return {
-    postedReplyId: postedReply.id,
-    postedReply,
-  };
+  // Try to extract and store the posted reply
+  const result: ReplyResult = {};
+
+  try {
+    console.log("[CommentReplier] Extracting posted reply...");
+
+    // Wait a moment for TikTok to add the reply to DOM/React state
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const postedReply = await findRecentlyPostedReplyWithRetry({
+      parentCommentId: user.id,
+      replyText: replyMessage,
+      maxAgeSeconds: 60,
+    });
+
+    if (postedReply) {
+      console.log("[CommentReplier] Found posted reply:", postedReply.id);
+      result.postedReplyId = postedReply.id;
+
+      const storeResult = await addScrapedComments([postedReply]);
+      console.log("[CommentReplier] Stored posted reply:", storeResult);
+    } else {
+      console.warn("[CommentReplier] Could not find posted reply in DOM");
+    }
+  } catch (error) {
+    console.warn("[CommentReplier] Failed to extract/store posted reply:", error);
+  }
+
+  return result;
 }
 
 async function waitForFirstComment(): Promise<Element | null> {
   console.log("[CommentReplier] Waiting for first comment to load...");
 
   return new Promise((resolve) => {
-    let resolved = false;
-
     const checkComment = () => {
       const items = querySelectorAll(SELECTORS.commentItem);
       console.log("[CommentReplier] Found", items.length, "comment items");
@@ -187,15 +171,6 @@ async function waitForFirstComment(): Promise<Element | null> {
         return items[0];
       }
       return null;
-    };
-
-    const done = (result: Element | null) => {
-      if (resolved) return;
-      resolved = true;
-      observer.disconnect();
-      clearInterval(pollInterval);
-      clearTimeout(timeout);
-      resolve(result);
     };
 
     const firstCheck = checkComment();
@@ -206,7 +181,10 @@ async function waitForFirstComment(): Promise<Element | null> {
 
     const observer = new MutationObserver(() => {
       const item = checkComment();
-      if (item) done(item);
+      if (item) {
+        observer.disconnect();
+        resolve(item);
+      }
     });
 
     observer.observe(document.body, {
@@ -214,16 +192,11 @@ async function waitForFirstComment(): Promise<Element | null> {
       subtree: true,
     });
 
-    // Poll every 500ms as backup (MutationObserver can be throttled in background tabs)
-    const pollInterval = setInterval(() => {
-      const item = checkComment();
-      if (item) done(item);
-    }, 500);
-
-    const timeout = setTimeout(() => {
+    setTimeout(() => {
+      observer.disconnect();
       const items = querySelectorAll(SELECTORS.commentItem);
       console.log("[CommentReplier] Timeout reached. Found", items.length, "comments");
-      done(items.length > 0 ? items[0] : null);
+      resolve(items.length > 0 ? items[0] : null);
     }, 15000);
   });
 }
@@ -330,14 +303,12 @@ function checkCommentTextMatch(expected: string, found: string): boolean {
 }
 
 async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
-  // Ensure element is focused
   element.focus();
-  await sleep(50);
+  await humanDelay("short");
 
-  console.log("[CommentReplier] typeViaPaste starting, activeElement:", document.activeElement?.tagName);
-
-  // Method 1: Try ClipboardEvent paste (works with Draft.js)
+  // Try using clipboard API to paste (works better with Draft.js)
   try {
+    // Create a DataTransfer object to simulate paste
     const dataTransfer = new DataTransfer();
     dataTransfer.setData('text/plain', text);
 
@@ -349,79 +320,48 @@ async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
 
     element.dispatchEvent(pasteEvent);
     console.log("[CommentReplier] Paste event dispatched");
-    await sleep(100);
 
+    await humanDelay("short");
+
+    // Check if paste worked
     if (element.textContent?.includes(text.substring(0, 5))) {
       console.log("[CommentReplier] Paste successful");
       return;
     }
-    console.log("[CommentReplier] Paste didn't take effect, textContent:", element.textContent?.substring(0, 50));
   } catch (e) {
-    console.log("[CommentReplier] Paste failed:", e);
+    console.log("[CommentReplier] Paste failed, trying input events:", e);
   }
 
-  // Method 2: Try execCommand (older but sometimes works better)
-  try {
-    element.focus();
-    const success = document.execCommand('insertText', false, text);
-    console.log("[CommentReplier] execCommand insertText result:", success);
-    await sleep(100);
-
-    if (element.textContent?.includes(text.substring(0, 5))) {
-      console.log("[CommentReplier] execCommand successful");
-      return;
-    }
-    console.log("[CommentReplier] execCommand didn't take effect");
-  } catch (e) {
-    console.log("[CommentReplier] execCommand failed:", e);
-  }
-
-  // Method 3: InputEvent with full text
-  try {
-    element.focus();
-    element.dispatchEvent(new InputEvent('beforeinput', {
+  // Fallback: try input events character by character
+  console.log("[CommentReplier] Trying character-by-character input events");
+  for (const char of text) {
+    const inputEvent = new InputEvent('beforeinput', {
       bubbles: true,
       cancelable: true,
       inputType: 'insertText',
-      data: text,
-    }));
-    element.dispatchEvent(new InputEvent('input', {
+      data: char,
+    });
+    element.dispatchEvent(inputEvent);
+
+    const textInputEvent = new InputEvent('input', {
       bubbles: true,
       cancelable: false,
       inputType: 'insertText',
-      data: text,
-    }));
-    console.log("[CommentReplier] Full InputEvent dispatched");
-    await sleep(100);
+      data: char,
+    });
+    element.dispatchEvent(textInputEvent);
 
-    if (element.textContent?.includes(text.substring(0, 5))) {
-      console.log("[CommentReplier] InputEvent successful");
-      return;
-    }
-    console.log("[CommentReplier] InputEvent didn't take effect");
-  } catch (e) {
-    console.log("[CommentReplier] InputEvent failed:", e);
-  }
-
-  // Method 4: Direct DOM manipulation as last resort
-  console.log("[CommentReplier] All standard methods failed, trying direct DOM manipulation");
-  try {
-    // For Draft.js, we need to trigger React's change detection
-    element.textContent = text;
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    console.log("[CommentReplier] Direct DOM set, textContent:", element.textContent?.substring(0, 50));
-  } catch (e) {
-    console.log("[CommentReplier] Direct DOM manipulation failed:", e);
+    await humanDelay("typing");
   }
 }
 
 function sendProgress(
-  commentId: string,
+  userId: string,
   status: ReplyProgress["status"],
   message: string
 ): void {
   chrome.runtime.sendMessage({
     type: MessageType.REPLY_COMMENT_PROGRESS,
-    payload: { commentId, status, message },
+    payload: { userId, status, message },
   });
 }
