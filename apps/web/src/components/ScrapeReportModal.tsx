@@ -21,26 +21,26 @@ export function ScrapeReportModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3 className="text-lg font-medium text-white mb-4">Scraping Complete</h3>
+      <h3 className="text-lg font-medium text-foreground mb-4">Scraping Complete</h3>
 
       <div className="space-y-3 mb-4">
-        <div className="flex justify-between items-center py-2 border-b border-gray-700">
-          <span className="text-gray-400">Found</span>
-          <span className="text-white font-medium">{stats.found}</span>
+        <div className="flex justify-between items-center py-2 border-b border-border">
+          <span className="text-foreground-muted">Found</span>
+          <span className="text-foreground font-medium">{stats.found}</span>
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-gray-700">
-          <span className="text-gray-400">Stored</span>
+        <div className="flex justify-between items-center py-2 border-b border-border">
+          <span className="text-foreground-muted">Stored</span>
           <span className="text-green-400 font-medium">{stats.stored}</span>
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-gray-700">
-          <span className="text-gray-400">Skipped</span>
-          <span className="text-gray-500 font-medium">{skipped}</span>
+        <div className="flex justify-between items-center py-2 border-b border-border">
+          <span className="text-foreground-muted">Skipped</span>
+          <span className="text-foreground-muted font-medium">{skipped}</span>
         </div>
       </div>
 
-      <div className="text-xs text-gray-500 space-y-2 mb-6">
+      <div className="text-xs text-foreground-muted space-y-2 mb-6">
         <p>
-          <strong className="text-gray-400">Skipped:</strong> Comments
+          <strong className="text-foreground-muted">Skipped:</strong> Comments
           previously stored or matching text in your{" "}
           <Link href="/dashboard?tab=settings" onClick={onClose}>
             ignore list
@@ -48,7 +48,7 @@ export function ScrapeReportModal({
           .
         </p>
         <p>
-          <strong className="text-gray-400">Note:</strong> The count shown by
+          <strong className="text-foreground-muted">Note:</strong> The count shown by
           TikTok may be higher because it includes deleted comments that are no
           longer accessible.
         </p>

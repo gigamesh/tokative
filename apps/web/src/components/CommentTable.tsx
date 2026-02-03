@@ -8,18 +8,18 @@ import { ExpanderRow } from "./ExpanderRow";
 export function CommentSkeleton({ depth = 0 }: { depth?: number }) {
   return (
     <div
-      className={`bg-tiktok-gray rounded-lg p-4 animate-pulse ${depth > 0 ? "ml-8" : ""}`}
+      className={`bg-surface-elevated rounded-lg p-4 animate-pulse ${depth > 0 ? "ml-8" : ""}`}
     >
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0" />
+        <div className="w-10 h-10 rounded-full bg-surface-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <div className="h-4 w-24 bg-gray-700 rounded" />
-            <div className="h-3 w-16 bg-gray-700 rounded" />
+            <div className="h-4 w-24 bg-surface-secondary rounded" />
+            <div className="h-3 w-16 bg-surface-secondary rounded" />
           </div>
           <div className="space-y-2">
-            <div className="h-4 w-full bg-gray-700 rounded" />
-            <div className="h-4 w-3/4 bg-gray-700 rounded" />
+            <div className="h-4 w-full bg-surface-secondary rounded" />
+            <div className="h-4 w-3/4 bg-surface-secondary rounded" />
           </div>
         </div>
       </div>
@@ -128,38 +128,32 @@ export function CommentTable({
       (filter === "not_replied" && !comment.replySent && !comment.replyError) ||
       (filter === "failed" && comment.replyError);
 
-    // Find all comments that directly match the search
     const directMatches = new Set(
       videoFiltered
         .filter((c) => matchesSearchText(c) && matchesFilterStatus(c))
         .map((c) => c.id)
     );
 
-    // If searching, include full threads: parents of matching replies + replies of matching parents
     let threadIds = new Set(directMatches);
     if (search !== "") {
-      // Find parent IDs of matching replies (to show the parent)
       const parentIdsOfMatchingReplies = new Set(
         videoFiltered
           .filter((c) => directMatches.has(c.id) && c.isReply && c.parentCommentId)
           .map((c) => c.parentCommentId!)
       );
 
-      // Find comment IDs of matching parents (to show their replies)
       const matchingParentCommentIds = new Set(
         videoFiltered
           .filter((c) => directMatches.has(c.id) && !c.isReply && c.commentId)
           .map((c) => c.commentId!)
       );
 
-      // Include parents of matching replies
       videoFiltered.forEach((c) => {
         if (c.commentId && parentIdsOfMatchingReplies.has(c.commentId)) {
           threadIds.add(c.id);
         }
       });
 
-      // Include replies of matching parents
       videoFiltered.forEach((c) => {
         if (c.isReply && c.parentCommentId && matchingParentCommentIds.has(c.parentCommentId)) {
           threadIds.add(c.id);
@@ -265,9 +259,6 @@ export function CommentTable({
       }
     }
 
-    // Orphan replies (replies whose parent hasn't loaded yet) are intentionally
-    // not rendered - they'll appear once their parent is loaded via pagination
-
     return result;
   }, [filteredComments, expandedThreads]);
 
@@ -298,12 +289,12 @@ export function CommentTable({
               placeholder="Search comments..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="px-3 py-2 pr-8 bg-tiktok-gray border border-gray-700 rounded-lg min-w-80 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              className="px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg min-w-80 text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-blue-500"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground transition-colors"
                 aria-label="Clear search"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -316,7 +307,7 @@ export function CommentTable({
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as FilterStatus)}
-            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
           >
             <option value="all">All</option>
             <option value="not_replied">Not Replied</option>
@@ -327,7 +318,7 @@ export function CommentTable({
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortOption)}
-            className="px-3 py-2 bg-tiktok-gray border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
           >
             <option value="newest">Newest Comments</option>
             <option value="oldest">Oldest Comments</option>
@@ -336,9 +327,9 @@ export function CommentTable({
         </div>
       </div>
 
-      <div className="flex items-center justify-between pb-2 border-b border-gray-700">
+      <div className="flex items-center justify-between pb-2 border-b border-border">
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-foreground-muted cursor-pointer">
             <input
               type="checkbox"
               checked={allFilteredSelected}
@@ -349,7 +340,7 @@ export function CommentTable({
                 const filteredIds = filteredComments.map((c) => c.id);
                 onSelectFiltered(filteredIds, e.target.checked);
               }}
-              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-tiktok-red focus:ring-tiktok-red"
+              className="w-4 h-4 rounded border-border bg-surface-secondary text-tiktok-red focus:ring-tiktok-red"
             />
             {selectedIds.size > 0
               ? `${selectedIds.size} selected`
@@ -360,7 +351,7 @@ export function CommentTable({
         <button
           onClick={() => setShowBulkDeleteConfirm(true)}
           disabled={selectedIds.size === 0}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-gray-400 disabled:border-gray-600 disabled:hover:bg-transparent"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-foreground-muted disabled:border-border disabled:hover:bg-transparent"
         >
           <svg
             className="w-4 h-4"
@@ -382,7 +373,7 @@ export function CommentTable({
       {isInitialLoading ? (
         <CommentTableSkeleton count={5} />
       ) : displayComments.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-foreground-muted">
           {comments.length === 0
             ? "No comments scraped yet. Start scraping to see comments here."
             : "No comments match your search/filter criteria."}

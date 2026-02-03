@@ -117,11 +117,11 @@ export function PostsGrid({
   }, [selectedVideoIds, onGetComments]);
 
   return (
-    <div className="bg-tiktok-gray rounded-lg p-4">
-      <h2 className="text-lg font-medium text-white mb-3">Posts</h2>
+    <div className="bg-surface-elevated rounded-lg p-4">
+      <h2 className="text-lg font-medium text-foreground mb-3">Posts</h2>
 
       {videos.length > 0 && (
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -130,9 +130,9 @@ export function PostsGrid({
                 if (el) el.indeterminate = someSelected;
               }}
               onChange={handleSelectAll}
-              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 cursor-pointer"
+              className="w-4 h-4 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500 cursor-pointer"
             />
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-foreground-muted">
               {selectedVideoIds.size > 0
                 ? `${selectedVideoIds.size} selected`
                 : "Select all"}
@@ -143,7 +143,7 @@ export function PostsGrid({
             <button
               onClick={handleRemoveSelected}
               disabled={selectedVideoIds.size === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-gray-400 disabled:border-gray-600 disabled:hover:bg-transparent"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-foreground-muted disabled:border-border disabled:hover:bg-transparent"
             >
               <svg
                 className="w-4 h-4"
@@ -191,11 +191,11 @@ export function PostsGrid({
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading posts...</div>
+        <div className="text-center py-12 text-foreground-muted">Loading posts...</div>
       ) : videos.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-foreground-muted">
           <svg
-            className="w-16 h-16 mx-auto mb-4 text-gray-600"
+            className="w-16 h-16 mx-auto mb-4 text-foreground-muted"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -208,10 +208,10 @@ export function PostsGrid({
             />
           </svg>
           <p className="mb-2">No posts scraped yet</p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-foreground-muted">
             To scrape posts, navigate to a TikTok profile and click
             <br />
-            <span className="font-semibold text-gray-500">
+            <span className="font-semibold text-foreground-secondary">
               Scrape Profile
             </span>{" "}
             in the extension popup.

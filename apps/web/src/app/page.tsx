@@ -18,27 +18,27 @@ export default function Home() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-tiktok-dark flex items-center justify-center">
-        <div className="text-gray-400">Loading...</div>
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="text-foreground-muted">Loading...</div>
       </div>
     );
   }
 
   if (userId) {
     return (
-      <div className="min-h-screen bg-tiktok-dark flex items-center justify-center">
-        <div className="text-gray-400">Redirecting to dashboard...</div>
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="text-foreground-muted">Redirecting to dashboard...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-tiktok-dark">
+    <div className="min-h-screen bg-surface">
       <Header />
       <main className="max-w-4xl mx-auto px-4 py-20">
         <div className="text-center">
-          <h1 className="text-5xl font-bold text-white mb-6">Tokative</h1>
-          <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+          <h1 className="text-5xl font-bold text-foreground mb-6">Tokative</h1>
+          <p className="text-xl text-foreground-muted mb-8 max-w-2xl mx-auto">
             Scrape comments from TikTok videos and manage your engagement. Reply
             to your audience efficiently with bulk messaging tools.
           </p>
@@ -137,10 +137,10 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="p-6 bg-tiktok-gray rounded-lg">
+    <div className="p-6 bg-surface-elevated rounded-lg">
       <div className="text-blue-400 mb-4">{icon}</div>
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-gray-400 text-sm">{description}</p>
+      <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
+      <p className="text-foreground-muted text-sm">{description}</p>
     </div>
   );
 }

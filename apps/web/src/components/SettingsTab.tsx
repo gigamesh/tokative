@@ -48,12 +48,12 @@ export function SettingsTab({
     }
   };
   return (
-    <div className="bg-tiktok-gray rounded-lg p-6 space-y-8">
+    <div className="bg-surface-elevated rounded-lg p-6 space-y-8">
       <div>
-        <h2 className="text-lg font-medium text-white mb-4">Scraping Limits</h2>
+        <h2 className="text-lg font-medium text-foreground mb-4">Scraping Limits</h2>
         <div className="flex gap-6">
           <div>
-            <label className="block text-sm text-gray-400 mb-2">
+            <label className="block text-sm text-foreground-muted mb-2">
               Post Limit
             </label>
             <input
@@ -62,14 +62,14 @@ export function SettingsTab({
               onChange={(e) => onPostLimitChange(e.target.value)}
               onBlur={onPostLimitBlur}
               min={1}
-              className="w-24 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
+              className="w-24 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-tiktok-red"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-foreground-muted mt-1">
               Max posts to scrape from profile
             </p>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-2">
+            <label className="block text-sm text-foreground-muted mb-2">
               Comment Limit
             </label>
             <input
@@ -78,9 +78,9 @@ export function SettingsTab({
               onChange={(e) => onCommentLimitChange(e.target.value)}
               onBlur={onCommentLimitBlur}
               min={1}
-              className="w-24 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:border-tiktok-red"
+              className="w-24 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-tiktok-red"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-foreground-muted mt-1">
               Max comments to scrape total
             </p>
           </div>
@@ -88,17 +88,17 @@ export function SettingsTab({
       </div>
 
       <div>
-        <h2 className="text-lg font-medium text-white mb-4">Display Options</h2>
+        <h2 className="text-lg font-medium text-foreground mb-4">Display Options</h2>
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"
             checked={hideOwnReplies}
             onChange={(e) => onHideOwnRepliesChange(e.target.checked)}
-            className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
+            className="w-5 h-5 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500"
           />
           <div>
-            <span className="text-sm text-white">Hide replies</span>
-            <p className="text-xs text-gray-500">
+            <span className="text-sm text-foreground">Hide replies</span>
+            <p className="text-xs text-foreground-muted">
               Don&apos;t show comments sent via this app (also hides the comment
               being replied to)
             </p>
@@ -109,11 +109,11 @@ export function SettingsTab({
             type="checkbox"
             checked={deleteMissingComments === true}
             onChange={(e) => onDeleteMissingCommentsChange(e.target.checked)}
-            className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
+            className="w-5 h-5 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500"
           />
           <div>
-            <span className="text-sm text-white">Auto-delete missing comments</span>
-            <p className="text-xs text-gray-500">
+            <span className="text-sm text-foreground">Auto-delete missing comments</span>
+            <p className="text-xs text-foreground-muted">
               Automatically remove comments from your list during bulk reply if they no longer exist on TikTok
             </p>
           </div>
@@ -121,8 +121,8 @@ export function SettingsTab({
       </div>
 
       <div>
-        <h2 className="text-lg font-medium text-white mb-4">Ignore List</h2>
-        <p className="text-sm text-gray-400 mb-4">
+        <h2 className="text-lg font-medium text-foreground mb-4">Ignore List</h2>
+        <p className="text-sm text-foreground-muted mb-4">
           Comments matching these texts will be automatically filtered out when
           scraping.
         </p>
@@ -134,27 +134,27 @@ export function SettingsTab({
             onChange={(e) => setNewIgnoreText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Enter text to ignore..."
-            className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-tiktok-red"
+            className="flex-1 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-tiktok-red"
           />
           <button
             onClick={handleAddIgnoreText}
             disabled={!newIgnoreText.trim()}
-            className="px-4 py-2 text-sm bg-tiktok-red hover:bg-red-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg transition-colors"
+            className="px-4 py-2 text-sm bg-tiktok-red hover:bg-red-500 disabled:bg-surface-secondary disabled:text-foreground-muted text-white rounded-lg transition-colors"
           >
             Add
           </button>
         </div>
 
         {ignoreList.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">No ignored texts yet.</p>
+          <p className="text-sm text-foreground-muted italic">No ignored texts yet.</p>
         ) : (
           <div className="space-y-2">
             {ignoreList.map((entry) => (
               <div
                 key={entry.text}
-                className="flex items-start gap-3 p-3 bg-gray-800 rounded-lg group"
+                className="flex items-start gap-3 p-3 bg-surface-secondary rounded-lg group"
               >
-                <p className="flex-1 text-sm text-gray-300 break-words">
+                <p className="flex-1 text-sm text-foreground-secondary break-words">
                   &ldquo;
                   {entry.text.length > 150
                     ? entry.text.slice(0, 150) + "..."
@@ -163,7 +163,7 @@ export function SettingsTab({
                 </p>
                 <button
                   onClick={() => onRemoveFromIgnoreList(entry.text)}
-                  className="text-gray-500 hover:text-red-400 transition-colors flex-shrink-0"
+                  className="text-foreground-muted hover:text-red-400 transition-colors flex-shrink-0"
                   title="Remove from ignore list"
                 >
                   <svg

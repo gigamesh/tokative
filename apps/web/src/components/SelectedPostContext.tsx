@@ -13,12 +13,12 @@ export function SelectedPostContext({
   onShowAllComments,
 }: SelectedPostContextProps) {
   return (
-    <div className="flex items-center gap-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+    <div className="flex items-center gap-4 p-3 bg-surface-secondary/50 rounded-lg border border-border">
       <a
         href={video.videoUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex-shrink-0 w-12 h-[72px] rounded overflow-hidden bg-gray-800"
+        className="flex-shrink-0 w-12 h-[72px] rounded overflow-hidden bg-surface-secondary"
       >
         {video.thumbnailUrl ? (
           <img
@@ -28,7 +28,7 @@ export function SelectedPostContext({
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-600">
+          <div className="w-full h-full flex items-center justify-center text-foreground-muted">
             <svg
               className="w-6 h-6"
               fill="none"
@@ -51,18 +51,18 @@ export function SelectedPostContext({
           href={`https://tiktok.com/@${video.profileHandle}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-gray-300 hover:text-white transition-colors"
+          className="text-sm text-foreground-secondary hover:text-foreground transition-colors"
         >
           Post by @{video.profileHandle}
         </a>
-        <p className="text-xs text-gray-500 mt-0.5">
+        <p className="text-xs text-foreground-muted mt-0.5">
           {commentCount} comment{commentCount !== 1 ? "s" : ""} shown
         </p>
       </div>
 
       <button
         onClick={onShowAllComments}
-        className="flex-shrink-0 px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+        className="flex-shrink-0 px-3 py-1.5 text-sm text-foreground-muted hover:text-foreground hover:bg-surface-secondary rounded-lg transition-colors"
       >
         Show All Comments
       </button>

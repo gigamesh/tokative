@@ -32,7 +32,7 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative bg-tiktok-gray border border-gray-700 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="relative bg-surface-elevated border border-border rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         {children}
       </div>
     </div>

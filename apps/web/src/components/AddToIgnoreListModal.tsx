@@ -21,20 +21,20 @@ export function AddToIgnoreListModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3 className="text-lg font-medium text-white mb-4">
+      <h3 className="text-lg font-medium text-foreground mb-4">
         Add to Ignore List?
       </h3>
-      <p className="text-gray-400 mb-2">
+      <p className="text-foreground-muted mb-2">
         Do you also want to add this text to your ignore list to automatically
         skip matching comments when scraping in the future?
       </p>
-      <p className="text-gray-500 text-sm mb-6 p-3 bg-gray-800 rounded-lg break-words">
+      <p className="text-foreground-muted text-sm mb-6 p-3 bg-surface-secondary rounded-lg break-words">
         &ldquo;{truncatedText}&rdquo;
       </p>
       <div className="flex gap-3 justify-end">
         <button
           onClick={onSkip}
-          className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+          className="px-4 py-2 text-sm text-foreground-muted hover:text-foreground transition-colors"
         >
           No, skip
         </button>
@@ -45,7 +45,7 @@ export function AddToIgnoreListModal({
           Yes, add to ignore list
         </button>
       </div>
-      <p className="text-sm text-gray-500 mt-4 text-center">
+      <p className="text-sm text-foreground-muted mt-4 text-center">
         You can manage your ignore list in the{" "}
         <Link href="/dashboard?tab=settings" onClick={onClose}>
           settings tab

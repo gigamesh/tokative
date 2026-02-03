@@ -2,6 +2,7 @@
 import { ScrapedComment } from "@/utils/constants";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface ReplyComposerProps {
   selectedComment: ScrapedComment | null;
@@ -26,6 +27,7 @@ export function ReplyComposer({
   const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(null);
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -80,11 +82,9 @@ export function ReplyComposer({
     if (validMessages.length === 0) return;
 
     if (selectedComment) {
-      // Single reply to the selected comment
       onSend(validMessages[0]);
       setMessages([""]);
     } else if (selectedCount > 0) {
-      // Bulk reply to checked comments
       onBulkSend(validMessages);
     }
   };
@@ -99,9 +99,9 @@ export function ReplyComposer({
   const canSend = allMessagesValid && (selectedComment || selectedCount > 0) && !hasVariationMismatch;
 
   return (
-    <div className="bg-tiktok-gray rounded-lg p-4 space-y-3">
+    <div className="bg-surface-elevated rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-medium text-white">Reply Composer</h3>
+        <h3 className="font-medium text-foreground">Reply Composer</h3>
         {selectedCount > 0 && (
           <span className="text-sm bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
             {selectedCount} selected
@@ -110,19 +110,19 @@ export function ReplyComposer({
       </div>
 
       {selectedComment && selectedCount === 0 && (
-        <div className="p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
+        <div className="p-3 bg-surface border border-border rounded-lg">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-foreground-muted">
               Replying to @{selectedComment.handle}
             </span>
             <button
               onClick={onClearSelection}
-              className="text-xs text-gray-500 hover:text-white"
+              className="text-xs text-foreground-muted hover:text-foreground"
             >
               Clear
             </button>
           </div>
-          <p className="text-xs text-gray-500 truncate">
+          <p className="text-xs text-foreground-muted truncate">
             "{selectedComment.comment}"
           </p>
         </div>
@@ -131,18 +131,18 @@ export function ReplyComposer({
       {selectedComments.length > 0 && (
         <div className="relative mt-1 ml-1">
           {selectedComments[1] && (
-            <div className="absolute -top-1 -left-1 right-1 bottom-1 p-2 bg-tiktok-dark border border-gray-600 rounded-lg" />
+            <div className="absolute -top-1 -left-1 right-1 bottom-1 p-2 bg-surface border border-border/60 rounded-lg" />
           )}
-          <div className="relative p-3 bg-tiktok-dark border border-gray-700 rounded-lg">
+          <div className="relative p-3 bg-surface border border-border rounded-lg">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-foreground-muted">
                 Replying to @{selectedComments[0].handle}
               </span>
-              <button onClick={onClearSelection} className="text-xs text-gray-500 hover:text-white">
+              <button onClick={onClearSelection} className="text-xs text-foreground-muted hover:text-foreground">
                 Clear
               </button>
             </div>
-            <p className="text-xs text-gray-500 truncate">"{selectedComments[0].comment}"</p>
+            <p className="text-xs text-foreground-muted truncate">"{selectedComments[0].comment}"</p>
           </div>
         </div>
       )}
@@ -158,12 +158,12 @@ export function ReplyComposer({
                   value={message}
                   onChange={(e) => updateMessage(index, e.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 bg-tiktok-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-y text-sm min-h-[100px]"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-foreground placeholder-foreground-muted focus:outline-none focus:border-blue-500 resize-y text-sm min-h-[100px]"
                 />
                 <button
                   type="button"
                   onClick={() => setActiveEmojiPicker(activeEmojiPicker === index ? null : index)}
-                  className="absolute right-2.5 bottom-2.5 text-gray-400 hover:text-white transition-colors"
+                  className="absolute right-2.5 bottom-2.5 text-foreground-muted hover:text-foreground transition-colors"
                   title="Add emoji"
                 >
                   <svg
@@ -189,7 +189,7 @@ export function ReplyComposer({
                     className="absolute right-0 top-full mt-2 z-10"
                   >
                     <EmojiPicker
-                      theme={Theme.DARK}
+                      theme={resolvedTheme === "dark" ? Theme.DARK : Theme.LIGHT}
                       onEmojiClick={handleEmojiClick}
                       width={280}
                       height={320}
@@ -202,7 +202,7 @@ export function ReplyComposer({
                 <button
                   type="button"
                   onClick={() => removeMessage(index)}
-                  className="self-start mt-2 text-gray-500 hover:text-red-400 transition-colors"
+                  className="self-start mt-2 text-foreground-muted hover:text-red-400 transition-colors"
                   title="Remove this reply"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -218,7 +218,7 @@ export function ReplyComposer({
       <button
         type="button"
         onClick={addMessage}
-        className="w-full py-1.5 text-sm text-gray-400 hover:text-white border border-dashed border-gray-600 hover:border-gray-500 rounded-lg transition-colors"
+        className="w-full py-1.5 text-sm text-foreground-muted hover:text-foreground border border-dashed border-border hover:border-foreground-muted rounded-lg transition-colors"
       >
         + Add Reply Variation
       </button>
@@ -227,12 +227,12 @@ export function ReplyComposer({
         <button
           onClick={handleSend}
           disabled={disabled || !canSend}
-          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg font-medium transition-colors text-sm"
+          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-surface-secondary disabled:text-foreground-muted text-white rounded-lg font-medium transition-colors text-sm"
         >
           {disabled ? "Replying..." : "Reply"}
         </button>
         {hasVariationMismatch && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-gray-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-elevated text-foreground-secondary text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
             Select at least {messages.length} comments or remove reply variations
           </div>
         )}

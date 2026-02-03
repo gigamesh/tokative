@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 import { colors } from "@tokative/shared";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -15,9 +16,19 @@ const config: Config = {
           "primary-hover": colors.brand.primaryHover,
         },
         surface: {
+          DEFAULT: "var(--bg-primary)",
+          secondary: "var(--bg-secondary)",
+          elevated: "var(--bg-elevated)",
           dark: colors.background.dark,
-          elevated: colors.background.elevated,
           hover: colors.background.hover,
+        },
+        foreground: {
+          DEFAULT: "var(--text-primary)",
+          secondary: "var(--text-secondary)",
+          muted: "var(--text-muted)",
+        },
+        border: {
+          DEFAULT: "var(--border-default)",
         },
         status: {
           info: colors.status.info,

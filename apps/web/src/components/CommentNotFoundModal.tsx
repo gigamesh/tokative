@@ -14,17 +14,17 @@ export function CommentNotFoundModal({
 }: CommentNotFoundModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3 className="text-lg font-medium text-white mb-4">
+      <h3 className="text-lg font-medium text-foreground mb-4">
         Comment not found
       </h3>
-      <p className="text-gray-400 mb-6">
+      <p className="text-foreground-muted mb-6">
         This comment may have been deleted by the author or removed by TikTok.
         Would you like to remove it from your list?
       </p>
       <div className="flex gap-3 justify-end">
         <button
           onClick={onClose}
-          className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+          className="px-4 py-2 text-sm text-foreground-muted hover:text-foreground transition-colors"
         >
           Keep it
         </button>

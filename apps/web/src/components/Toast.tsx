@@ -32,7 +32,7 @@ export function Toast({ message, isVisible, onClose, duration = 3000, variant = 
         isAnimating ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       }`}
     >
-      <div className={`${isError ? "bg-red-900/80 border-red-700" : "bg-gray-900 border-gray-700"} border text-white px-4 py-3 rounded-lg shadow-lg flex items-start gap-3 max-w-sm`}>
+      <div className={`${isError ? "bg-red-900/80 border-red-700" : "bg-surface-elevated border-border"} border text-foreground px-4 py-3 rounded-lg shadow-lg flex items-start gap-3 max-w-sm`}>
         {isError ? (
           <svg
             className="w-5 h-5 text-red-400 flex-shrink-0"

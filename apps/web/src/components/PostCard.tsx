@@ -33,7 +33,7 @@ export function PostCard({
           ? "ring-blue-500/30 border border-blue-500"
           : selected
           ? "ring-blue-500/30 border border-blue-500"
-          : "ring-transparent border border-gray-700 hover:border-gray-600"
+          : "ring-transparent border border-border hover:border-foreground-muted"
       }`}
     >
       <div className="absolute top-2 left-2 z-10">
@@ -42,7 +42,7 @@ export function PostCard({
           checked={selected}
           onChange={(e) => onSelect(e.target.checked)}
           onClick={(e) => e.stopPropagation()}
-          className="w-5 h-5 rounded border-gray-600 bg-gray-800/80 text-blue-500 focus:ring-blue-500 cursor-pointer"
+          className="w-5 h-5 rounded border-border bg-surface-secondary/80 text-blue-500 focus:ring-blue-500 cursor-pointer"
         />
       </div>
 
@@ -84,7 +84,7 @@ export function PostCard({
 
       <div
         onClick={handleClick}
-        className={`block aspect-[9/16] bg-gray-800 ${
+        className={`block aspect-[9/16] bg-surface-secondary ${
           onViewComments ? "cursor-pointer" : ""
         }`}
       >
@@ -100,7 +100,7 @@ export function PostCard({
             }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-600">
+          <div className="w-full h-full flex items-center justify-center text-foreground-muted">
             <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>

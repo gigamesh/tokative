@@ -1,5 +1,6 @@
 import { AuthBridge } from "@/components/AuthBridge";
 import { ConvexClientProvider } from "@/providers/ConvexProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
@@ -9,19 +10,42 @@ export const metadata: Metadata = {
   description: "Manage TikTok interactions - scrape comments and send messages",
 };
 
+const themeScript = `
+  (function() {
+    const stored = localStorage.getItem('tokative-theme');
+    const theme = stored || 'system';
+    const resolved = theme === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : theme;
+    document.documentElement.classList.add(resolved);
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="antialiased">
-        <ConvexClientProvider>
-          <AuthBridge />
-          {children}
-        </ConvexClientProvider>
-        <Toaster theme="dark" position="bottom-right" duration={6000} />
+        <ThemeProvider>
+          <ConvexClientProvider>
+            <AuthBridge />
+            {children}
+          </ConvexClientProvider>
+        </ThemeProvider>
+        <Toaster
+          theme="system"
+          position="bottom-right"
+          duration={6000}
+          toastOptions={{
+            className: "!bg-surface-elevated !text-foreground !border-border",
+          }}
+        />
       </body>
     </html>
   );

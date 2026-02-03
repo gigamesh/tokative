@@ -65,16 +65,16 @@ export function CommentCard({
         selected
           ? "border-blue-500 bg-blue-500/10"
           : hasAppHighlight
-            ? "border-yellow-500/40 bg-tiktok-gray hover:border-yellow-500/60"
-            : "border-gray-700 bg-tiktok-gray hover:border-gray-600"
-      } ${isReply ? `ml-10 border-l-2 ${hasAppHighlight && !selected ? "border-l-yellow-500/40 hover:border-l-yellow-500/60" : "border-l-gray-600"}` : ""}`}
+            ? "border-yellow-500/40 bg-surface-elevated hover:border-yellow-500/60"
+            : "border-border bg-surface-elevated hover:border-foreground-muted"
+      } ${isReply ? `ml-10 border-l-2 ${hasAppHighlight && !selected ? "border-l-yellow-500/40 hover:border-l-yellow-500/60" : "border-l-border"}` : ""}`}
     >
       <div className="flex items-start gap-2">
         <input
           type="checkbox"
           checked={selected}
           onChange={(e) => onSelect(e.target.checked)}
-          className="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
+          className="mt-0.5 w-4 h-4 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500"
         />
 
         {thumbnailUrl && !isReply && (
@@ -87,7 +87,7 @@ export function CommentCard({
             <img
               src={thumbnailUrl}
               alt="Video thumbnail"
-              className="w-10 h-12 object-cover rounded bg-gray-800"
+              className="w-10 h-12 object-cover rounded bg-surface-secondary"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
               }}
@@ -97,13 +97,13 @@ export function CommentCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            {isReply && <span className="text-gray-500 text-sm">↳</span>}
+            {isReply && <span className="text-foreground-muted text-sm">↳</span>}
             <a href={comment.profileUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
               {comment.avatarUrl && !avatarFailed ? (
                 <img
                   src={comment.avatarUrl}
                   alt={`@${comment.handle}`}
-                  className="w-6 h-6 rounded-full object-cover bg-gray-700"
+                  className="w-6 h-6 rounded-full object-cover bg-surface-secondary"
                   loading="lazy"
                   referrerPolicy="no-referrer"
                   onError={() => setAvatarFailed(true)}
@@ -121,12 +121,12 @@ export function CommentCard({
               href={comment.profileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-sm text-white hover:text-blue-400 transition-colors"
+              className="font-medium text-sm text-foreground hover:text-blue-400 transition-colors"
             >
               @{comment.handle}
             </a>
             {comment.commentTimestamp && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-foreground-muted">
                 {formatRelativeTime(comment.commentTimestamp)}
               </span>
             )}
@@ -134,19 +134,19 @@ export function CommentCard({
               <span className="text-xs text-red-400">{replyStatusText}</span>
             )}
             {!isReply && comment.replyCount != null && comment.replyCount > 0 && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-foreground-muted">
                 {comment.replyCount} {comment.replyCount === 1 ? "reply" : "replies"}
               </span>
             )}
           </div>
 
-          <div className={`flex gap-1.5 text-sm text-gray-400 ${isCommentExpanded ? "" : ""}`}>
+          <div className={`flex gap-1.5 text-sm text-foreground-muted ${isCommentExpanded ? "" : ""}`}>
             {comment.videoUrl && (
               <a
                 href={comment.videoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-shrink-0 text-gray-500 hover:text-blue-400 transition-colors mt-0.5"
+                className="flex-shrink-0 text-foreground-muted hover:text-blue-400 transition-colors mt-0.5"
                 title="Open on TikTok"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -224,7 +224,7 @@ export function CommentCard({
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="p-1 text-gray-400 hover:bg-gray-500/20 rounded transition-colors"
+                className="p-1 text-foreground-muted hover:bg-surface-secondary rounded transition-colors"
                 title="Cancel"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

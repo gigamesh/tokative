@@ -22,33 +22,33 @@ export function BulkReplyReportModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3 className="text-lg font-medium text-white mb-4">Bulk Reply Complete</h3>
+      <h3 className="text-lg font-medium text-foreground mb-4">Bulk Reply Complete</h3>
 
       <div className="space-y-3 mb-4">
-        <div className="flex justify-between items-center py-2 border-b border-gray-700">
-          <span className="text-gray-400">Total</span>
-          <span className="text-white font-medium">{total}</span>
+        <div className="flex justify-between items-center py-2 border-b border-border">
+          <span className="text-foreground-muted">Total</span>
+          <span className="text-foreground font-medium">{total}</span>
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-gray-700">
-          <span className="text-gray-400">Successful</span>
+        <div className="flex justify-between items-center py-2 border-b border-border">
+          <span className="text-foreground-muted">Successful</span>
           <span className="text-green-400 font-medium">{stats.completed}</span>
         </div>
         {stats.failed > 0 && (
-          <div className="flex justify-between items-center py-2 border-b border-gray-700">
-            <span className="text-gray-400">Failed</span>
+          <div className="flex justify-between items-center py-2 border-b border-border">
+            <span className="text-foreground-muted">Failed</span>
             <span className="text-red-400 font-medium">{stats.failed}</span>
           </div>
         )}
         {stats.skipped > 0 && (
-          <div className="flex justify-between items-center py-2 border-b border-gray-700">
-            <span className="text-gray-400">Skipped (missing)</span>
+          <div className="flex justify-between items-center py-2 border-b border-border">
+            <span className="text-foreground-muted">Skipped (missing)</span>
             <span className="text-yellow-400 font-medium">{stats.skipped}</span>
           </div>
         )}
       </div>
 
       {stats.skipped > 0 && (
-        <p className="text-xs text-gray-500 mb-6">
+        <p className="text-xs text-foreground-muted mb-6">
           Missing comments were{" "}
           {deleteMissingComments ? "automatically removed" : "kept for review"}.{" "}
           <Link href="/dashboard?tab=settings" onClick={onClose}>

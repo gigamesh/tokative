@@ -169,21 +169,18 @@ export function DashboardContent() {
     setCommentLimitInput(String(commentLimit));
   }, [commentLimit]);
 
-  // Reset dismissed error when a new error occurs (for general errors only)
   useEffect(() => {
     if (error && error !== dismissedError) {
       setDismissedError(null);
     }
   }, [error, dismissedError]);
 
-  // Show comment not found modal when reply fails with that error
   useEffect(() => {
     if (replyError === "Comment not found" && selectedComment) {
       setCommentNotFoundModal({ isOpen: true, commentId: selectedComment.id });
     }
   }, [replyError, selectedComment]);
 
-  // Show bulk reply report modal when bulk reply completes
   useEffect(() => {
     if (bulkReplyProgress?.status === "complete") {
       setBulkReplyReportModal({
@@ -474,7 +471,7 @@ export function DashboardContent() {
   }, [clearError]);
 
   return (
-    <div className="min-h-screen bg-tiktok-dark">
+    <div className="min-h-screen bg-surface">
       <Header showConnectionStatus />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
@@ -548,9 +545,9 @@ export function DashboardContent() {
             </div>
 
             <div className={activeTab === "comments" ? "" : "hidden"}>
-              <div className="bg-tiktok-gray rounded-lg p-4">
+              <div className="bg-surface-elevated rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-medium text-white">Comments</h2>
+                  <h2 className="text-lg font-medium text-foreground">Comments</h2>
                 </div>
 
                 {selectedVideo && (
@@ -613,13 +610,13 @@ export function DashboardContent() {
             />
 
             {replyProgress && (
-              <div className="bg-tiktok-gray rounded-lg p-4">
-                <h3 className="font-medium text-white mb-2">Reply Status</h3>
+              <div className="bg-surface-elevated rounded-lg p-4">
+                <h3 className="font-medium text-foreground mb-2">Reply Status</h3>
                 <div className="flex items-center gap-2">
                   {replyProgress.status !== "complete" && replyProgress.status !== "error" && (
                     <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                   )}
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-foreground-muted">
                     {replyProgress.status === "navigating" && "Opening video..."}
                     {replyProgress.status === "finding" && "Finding comment..."}
                     {replyProgress.status === "replying" && "Posting reply..."}
@@ -635,9 +632,9 @@ export function DashboardContent() {
             )}
 
             {bulkReplyProgress && bulkReplyProgress.status === "running" && (
-              <div className="bg-tiktok-gray rounded-lg p-4">
+              <div className="bg-surface-elevated rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium text-white">Bulk Reply Progress</h3>
+                  <h3 className="font-medium text-foreground">Bulk Reply Progress</h3>
                   <button
                     onClick={stopBulkReply}
                     className="text-xs text-red-400 hover:text-red-300"
@@ -647,14 +644,14 @@ export function DashboardContent() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">
+                    <span className="text-foreground-muted">
                       {bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.skipped} / {bulkReplyProgress.total}
                     </span>
                     {bulkReplyProgress.current && (
-                      <span className="text-gray-500">@{bulkReplyProgress.current}</span>
+                      <span className="text-foreground-muted">@{bulkReplyProgress.current}</span>
                     )}
                   </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="w-full bg-surface-secondary rounded-full h-2">
                     <div
                       className="bg-green-500 h-2 rounded-full transition-all"
                       style={{

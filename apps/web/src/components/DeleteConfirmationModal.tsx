@@ -23,27 +23,27 @@ export function DeleteConfirmationModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3 className="text-lg font-medium text-white mb-4">
+      <h3 className="text-lg font-medium text-foreground mb-4">
         Delete matching comments?
       </h3>
-      <p className="text-gray-400 mb-2">
-        Found <span className="text-white font-medium">{matchCount}</span> other
+      <p className="text-foreground-muted mb-2">
+        Found <span className="text-foreground font-medium">{matchCount}</span> other
         comment{matchCount > 1 ? "s" : ""} with the same text:
       </p>
-      <p className="text-gray-500 text-sm mb-6 p-3 bg-gray-800 rounded-lg break-words">
+      <p className="text-foreground-muted text-sm mb-6 p-3 bg-surface-secondary rounded-lg break-words">
         &ldquo;{truncatedText}&rdquo;
       </p>
-      <p className="text-gray-400 mb-6">Delete all of them?</p>
+      <p className="text-foreground-muted mb-6">Delete all of them?</p>
       <div className="flex gap-3 justify-end">
         <button
           onClick={onClose}
-          className="px-4 py-2 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+          className="px-4 py-2 text-sm text-foreground-muted hover:text-foreground-secondary transition-colors"
         >
           Cancel
         </button>
         <button
           onClick={onDeleteOne}
-          className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+          className="px-4 py-2 text-sm text-foreground-muted hover:text-foreground transition-colors"
         >
           Just this one
         </button>
