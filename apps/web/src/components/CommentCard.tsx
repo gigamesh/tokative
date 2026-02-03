@@ -11,7 +11,6 @@ interface CommentCardProps {
   onReply: () => void;
   thumbnailUrl?: string;
   depth?: number;
-  hasAppReply?: boolean;
   isReplying?: boolean;
 }
 
@@ -38,12 +37,9 @@ export function CommentCard({
   onReply,
   thumbnailUrl,
   depth = 0,
-  hasAppReply = false,
   isReplying = false,
 }: CommentCardProps) {
   const isReply = depth > 0;
-  const isAppPosted = comment.source === "app";
-  const hasAppHighlight = isAppPosted || hasAppReply;
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -64,10 +60,8 @@ export function CommentCard({
       className={`px-3 py-2 rounded-lg border transition-colors ${
         selected
           ? "border-blue-500 bg-blue-500/10"
-          : hasAppHighlight
-            ? "border-yellow-500/40 bg-surface-elevated hover:border-yellow-500/60"
-            : "border-border bg-surface-elevated hover:border-foreground-muted"
-      } ${isReply ? `ml-10 border-l-2 ${hasAppHighlight && !selected ? "border-l-yellow-500/40 hover:border-l-yellow-500/60" : "border-l-border"}` : ""}`}
+          : "border-border bg-surface-elevated hover:border-foreground-muted"
+      } ${isReply ? "ml-10 border-l-2 border-l-border" : ""}`}
     >
       <div className="flex items-start gap-2">
         <input

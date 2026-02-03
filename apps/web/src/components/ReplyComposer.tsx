@@ -131,6 +131,10 @@ export function ReplyComposer({
     (selectedComment || selectedCount > 0) &&
     !hasVariationMismatch;
 
+  const needsMoreVariations =
+    (selectedCount > 30 && messages.length < 3) ||
+    (selectedCount > 10 && messages.length < 2);
+
   const showReplyProgress = replyProgress && replyProgress.status !== "complete";
   const showBulkProgress = bulkReplyProgress && bulkReplyProgress.status === "running";
 
@@ -335,6 +339,29 @@ export function ReplyComposer({
           </div>
         ))}
       </div>
+
+      {needsMoreVariations && (
+        <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+          <svg
+            className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+          <p className="text-xs text-yellow-500">
+            {selectedCount > 30
+              ? "You have more than 30 comments selected. Add at least 3 reply variations to make your replies look natural and avoid being flagged as spam."
+              : "You have more than 10 comments selected. Add at least 2 reply variations to make your replies look natural and avoid being flagged as spam."}
+          </p>
+        </div>
+      )}
 
       <button
         type="button"
