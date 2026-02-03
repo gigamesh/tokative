@@ -22,6 +22,7 @@ import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { useMessaging } from "@/hooks/useMessaging";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
 import { useCommentData } from "@/hooks/useCommentData";
+import { useCommentCounts } from "@/hooks/useCommentCounts";
 import { useVideoData } from "@/hooks/useVideoData";
 import { useIgnoreList } from "@/hooks/useIgnoreList";
 import { ScrapedComment } from "@/utils/constants";
@@ -122,6 +123,8 @@ export function DashboardContent() {
     removeFromIgnoreList,
   } = useIgnoreList();
 
+  const { commentCountsByVideo } = useCommentCounts();
+
   const [selectedCommentIds, setSelectedCommentIds] = useState<Set<string>>(new Set());
   const [selectedVideoIds, setSelectedVideoIds] = useState<Set<string>>(new Set());
   const [selectedComment, setSelectedComment] = useState<ScrapedComment | null>(null);
@@ -220,16 +223,6 @@ export function DashboardContent() {
     if (!selectedPostId) return null;
     return videos.find((v) => v.videoId === selectedPostId) ?? null;
   }, [selectedPostId, videos]);
-
-  const commentCountsByVideo = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const comment of comments) {
-      if (comment.videoId) {
-        counts.set(comment.videoId, (counts.get(comment.videoId) || 0) + 1);
-      }
-    }
-    return counts;
-  }, [comments]);
 
   const filteredCommentCount = useMemo(() => {
     if (!selectedPostId) return 0;
