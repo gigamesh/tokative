@@ -11,6 +11,7 @@ import { SettingsTab } from "@/components/SettingsTab";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
+import { CommentNotFoundModal } from "@/components/CommentNotFoundModal";
 import { Toast } from "@/components/Toast";
 import { SetupBanner } from "@/components/SetupBanner";
 import { useDashboardUrl } from "@/hooks/useDashboardUrl";
@@ -76,6 +77,7 @@ export function DashboardContent() {
     replyToComment,
     startBulkReply,
     stopBulkReply,
+    clearError,
   } = useMessaging({
     onReplyComplete: handleReplyComplete,
     onPostedReply: addOptimisticComment,
@@ -130,6 +132,10 @@ export function DashboardContent() {
   });
 
   const [toast, setToast] = useState({ isVisible: false, message: "" });
+  const [commentNotFoundModal, setCommentNotFoundModal] = useState<{
+    isOpen: boolean;
+    commentId: string | null;
+  }>({ isOpen: false, commentId: null });
 
   const showToast = useCallback((message: string) => {
     setToast({ isVisible: true, message });
@@ -149,13 +155,19 @@ export function DashboardContent() {
     setCommentLimitInput(String(commentLimit));
   }, [commentLimit]);
 
-  // Reset dismissed error when a new error occurs
+  // Reset dismissed error when a new error occurs (for general errors only)
   useEffect(() => {
-    const currentError = error || replyError;
-    if (currentError && currentError !== dismissedError) {
+    if (error && error !== dismissedError) {
       setDismissedError(null);
     }
-  }, [error, replyError, dismissedError]);
+  }, [error, dismissedError]);
+
+  // Show comment not found modal when reply fails with that error
+  useEffect(() => {
+    if (replyError === "Comment not found" && selectedComment) {
+      setCommentNotFoundModal({ isOpen: true, commentId: selectedComment.id });
+    }
+  }, [replyError, selectedComment]);
 
   const handlePostLimitBlur = useCallback(() => {
     const parsed = parseInt(postLimitInput);
@@ -388,6 +400,27 @@ export function DashboardContent() {
     cancelScraping();
   }, [cancelScraping]);
 
+  const handleCommentNotFoundDelete = useCallback(() => {
+    if (commentNotFoundModal.commentId) {
+      removeComments([commentNotFoundModal.commentId]);
+      setSelectedCommentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(commentNotFoundModal.commentId!);
+        return next;
+      });
+      showToast("Removed 1 comment");
+    }
+    setCommentNotFoundModal({ isOpen: false, commentId: null });
+    setSelectedComment(null);
+    clearError();
+  }, [commentNotFoundModal.commentId, removeComments, showToast, clearError]);
+
+  const handleCommentNotFoundClose = useCallback(() => {
+    setCommentNotFoundModal({ isOpen: false, commentId: null });
+    setSelectedComment(null);
+    clearError();
+  }, [clearError]);
+
   return (
     <div className="min-h-screen bg-tiktok-dark">
       <Header showConnectionStatus />
@@ -419,11 +452,11 @@ export function DashboardContent() {
           </div>
         )}
 
-        {(error || replyError) && (error || replyError) !== dismissedError && (
+        {error && error !== dismissedError && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 flex items-start justify-between gap-3">
-            <span>{error || replyError}</span>
+            <span>{error}</span>
             <button
-              onClick={() => setDismissedError(error || replyError || null)}
+              onClick={() => setDismissedError(error)}
               className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0"
               aria-label="Dismiss error"
             >
@@ -612,6 +645,12 @@ export function DashboardContent() {
           stats={scrapeReport.stats}
         />
       )}
+
+      <CommentNotFoundModal
+        isOpen={commentNotFoundModal.isOpen}
+        onClose={handleCommentNotFoundClose}
+        onDelete={handleCommentNotFoundDelete}
+      />
 
       <Toast
         message={toast.message}

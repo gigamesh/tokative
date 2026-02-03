@@ -31,11 +31,11 @@ export async function replyToComment(
 
   const verification = verifyComment(firstComment, user);
   if (!verification.isMatch) {
-    console.log("[CommentReplier] Verification failed:", verification);
-    throw new Error(
-      `Comment mismatch. Expected @${user.handle} but found @${verification.foundHandle}. ` +
+    console.warn(
+      `[CommentReplier] Comment mismatch. Expected @${user.handle} but found @${verification.foundHandle}. ` +
       `Expected "${user.comment.substring(0, 30)}..." but found "${verification.foundComment.substring(0, 30)}..."`
     );
+    throw new Error("Comment not found");
   }
 
   console.log("[CommentReplier] Comment verified successfully");
@@ -54,7 +54,6 @@ export async function replyToComment(
 
   console.log("[CommentReplier] Clicking reply button");
   await humanClick(replyButton);
-  await humanDelay("short");
 
   sendProgress(user.id, "replying", "Waiting for reply input...");
 
@@ -92,8 +91,6 @@ export async function replyToComment(
   console.log("[CommentReplier] After typing, input textContent:", editableInput.textContent);
   console.log("[CommentReplier] After typing, input innerHTML:", editableInput.innerHTML?.substring(0, 200));
 
-  await humanDelay("short");
-
   sendProgress(user.id, "replying", "Posting reply...");
 
   const postButton = await waitForSelector<HTMLElement>(SELECTORS.commentPostButton, {
@@ -120,8 +117,6 @@ export async function replyToComment(
     console.log("[CommentReplier] Clicking post button");
     await humanClick(postButton);
   }
-
-  await humanDelay("medium");
 
   // Check if input was cleared (indicates successful post)
   console.log("[CommentReplier] After post, input textContent:", editableInput.textContent);
