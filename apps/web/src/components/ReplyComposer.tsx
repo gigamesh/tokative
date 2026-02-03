@@ -1,8 +1,7 @@
-
+import { useTheme } from "@/providers/ThemeProvider";
 import { ScrapedComment } from "@/utils/constants";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { useEffect, useRef, useState } from "react";
-import { useTheme } from "@/providers/ThemeProvider";
 
 interface ReplyComposerProps {
   selectedComment: ScrapedComment | null;
@@ -24,7 +23,9 @@ export function ReplyComposer({
   disabled,
 }: ReplyComposerProps) {
   const [messages, setMessages] = useState<string[]>([""]);
-  const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(null);
+  const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(
+    null,
+  );
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
@@ -89,14 +90,18 @@ export function ReplyComposer({
     }
   };
 
-  const allMessagesValid = messages.length > 1
-    ? messages.every(m => m.trim())
-    : messages[0]?.trim();
+  const allMessagesValid =
+    messages.length > 1 ? messages.every((m) => m.trim()) : messages[0]?.trim();
 
-  const effectiveSelectedCount = selectedCount > 0 ? selectedCount : (selectedComment ? 1 : 0);
-  const hasVariationMismatch = messages.length > 1 && effectiveSelectedCount < messages.length;
+  const effectiveSelectedCount =
+    selectedCount > 0 ? selectedCount : selectedComment ? 1 : 0;
+  const hasVariationMismatch =
+    messages.length > 1 && effectiveSelectedCount < messages.length;
 
-  const canSend = allMessagesValid && (selectedComment || selectedCount > 0) && !hasVariationMismatch;
+  const canSend =
+    allMessagesValid &&
+    (selectedComment || selectedCount > 0) &&
+    !hasVariationMismatch;
 
   return (
     <div className="bg-surface-elevated rounded-lg p-4 space-y-3">
@@ -131,18 +136,25 @@ export function ReplyComposer({
       {selectedComments.length > 0 && (
         <div className="relative mt-1 ml-1">
           {selectedComments[1] && (
-            <div className="absolute -top-1 -left-1 right-1 bottom-1 p-2 bg-surface border border-border/60 rounded-lg" />
+            <div
+              className={`absolute -top-1 -left-1 right-1 bottom-1 p-2 bg-surface border ${theme === "dark" ? "border-white/10" : "border-black/15"} rounded-lg`}
+            />
           )}
           <div className="relative p-3 bg-surface border border-border rounded-lg">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm text-foreground-muted">
                 Replying to @{selectedComments[0].handle}
               </span>
-              <button onClick={onClearSelection} className="text-xs text-foreground-muted hover:text-foreground">
+              <button
+                onClick={onClearSelection}
+                className="text-xs text-foreground-muted hover:text-foreground"
+              >
                 Clear
               </button>
             </div>
-            <p className="text-xs text-foreground-muted truncate">"{selectedComments[0].comment}"</p>
+            <p className="text-xs text-foreground-muted truncate">
+              "{selectedComments[0].comment}"
+            </p>
           </div>
         </div>
       )}
@@ -153,8 +165,14 @@ export function ReplyComposer({
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <textarea
-                  ref={(el) => { textareaRefs.current[index] = el; }}
-                  placeholder={messages.length > 1 ? `Reply variation ${index + 1}...` : "Write your reply..."}
+                  ref={(el) => {
+                    textareaRefs.current[index] = el;
+                  }}
+                  placeholder={
+                    messages.length > 1
+                      ? `Reply variation ${index + 1}...`
+                      : "Write your reply..."
+                  }
                   value={message}
                   onChange={(e) => updateMessage(index, e.target.value)}
                   rows={4}
@@ -162,7 +180,11 @@ export function ReplyComposer({
                 />
                 <button
                   type="button"
-                  onClick={() => setActiveEmojiPicker(activeEmojiPicker === index ? null : index)}
+                  onClick={() =>
+                    setActiveEmojiPicker(
+                      activeEmojiPicker === index ? null : index,
+                    )
+                  }
                   className="absolute right-2.5 bottom-2.5 text-foreground-muted hover:text-foreground transition-colors"
                   title="Add emoji"
                 >
@@ -205,8 +227,18 @@ export function ReplyComposer({
                   className="self-start mt-2 text-foreground-muted hover:text-red-400 transition-colors"
                   title="Remove this reply"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               )}
@@ -233,7 +265,8 @@ export function ReplyComposer({
         </button>
         {hasVariationMismatch && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-elevated text-foreground-secondary text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            Select at least {messages.length} comments or remove reply variations
+            Select at least {messages.length} comments or remove reply
+            variations
           </div>
         )}
       </div>
