@@ -10,6 +10,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      spacing: {
+        header: "57px",
+      },
       colors: {
         brand: {
           primary: colors.brand.primary,

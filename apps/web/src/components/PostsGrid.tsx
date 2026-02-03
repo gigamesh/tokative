@@ -2,8 +2,10 @@ import { GetVideoCommentsProgress, ScrapedVideo } from "@/utils/constants";
 import { forwardRef, useCallback, useRef, useState } from "react";
 import { GridComponents, VirtuosoGrid } from "react-virtuoso";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { DangerButton } from "./DangerButton";
 import { FetchCommentsButton } from "./FetchCommentsButton";
 import { PostCard } from "./PostCard";
+import { TabContentContainer } from "./TabContentContainer";
 
 const gridComponents: GridComponents<ScrapedVideo> = {
   List: forwardRef(({ style, children, ...props }, ref) => (
@@ -116,34 +118,40 @@ export function PostsGrid({
     onGetComments(Array.from(selectedVideoIds));
   }, [selectedVideoIds, onGetComments]);
 
-  return (
-    <div className="bg-surface-elevated rounded-lg p-4">
+  const stickyHeader = (
+    <>
       <h2 className="text-lg font-medium text-foreground mb-3">Posts</h2>
 
       {videos.length > 0 && (
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={allSelected}
-              ref={(el) => {
-                if (el) el.indeterminate = someSelected;
-              }}
-              onChange={handleSelectAll}
-              className="w-4 h-4 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500 cursor-pointer"
-            />
-            <span className="text-sm text-foreground-muted">
-              {selectedVideoIds.size > 0
-                ? `${selectedVideoIds.size} selected`
-                : "Select all"}
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={allSelected}
+            ref={(el) => {
+              if (el) el.indeterminate = someSelected;
+            }}
+            onChange={handleSelectAll}
+            className="w-4 h-4 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500 cursor-pointer"
+          />
+          <span className="text-sm text-foreground-muted">
+            {selectedVideoIds.size > 0
+              ? `${selectedVideoIds.size} selected`
+              : "Select all"}
+          </span>
+        </div>
 
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
+          <DangerButton
+            onClick={handleRemoveSelected}
+            disabled={selectedVideoIds.size === 0}
+          >
+            Remove
+          </DangerButton>
+          {isScraping ? (
             <button
-              onClick={handleRemoveSelected}
-              disabled={selectedVideoIds.size === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-foreground-muted disabled:border-border disabled:hover:bg-transparent"
+              onClick={onCancelScraping}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white bg-tiktok-red hover:bg-red-600 rounded-lg transition-colors"
             >
               <svg
                 className="w-4 h-4"
@@ -155,40 +163,25 @@ export function PostsGrid({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-              Remove
+              Cancel
             </button>
-            {isScraping ? (
-              <button
-                onClick={onCancelScraping}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white bg-tiktok-red hover:bg-red-600 rounded-lg transition-colors"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-                Cancel
-              </button>
-            ) : (
-              <FetchCommentsButton
-                onClick={handleGetCommentsSelected}
-                disabled={selectedVideoIds.size === 0}
-              />
-            )}
-          </div>
+          ) : (
+            <FetchCommentsButton
+              onClick={handleGetCommentsSelected}
+              disabled={selectedVideoIds.size === 0}
+            />
+          )}
+        </div>
         </div>
       )}
+    </>
+  );
+
+  return (
+    <TabContentContainer stickyHeader={stickyHeader}>
 
       {loading ? (
         <div className="text-center py-12 text-foreground-muted">Loading posts...</div>
@@ -257,6 +250,6 @@ export function PostsGrid({
         confirmText="Remove"
         variant="danger"
       />
-    </div>
+    </TabContentContainer>
   );
 }

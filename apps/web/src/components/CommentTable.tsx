@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { DangerButton } from "./DangerButton";
 import { ExpanderRow } from "./ExpanderRow";
 
 export function CommentSkeleton({ depth = 0 }: { depth?: number }) {
@@ -77,6 +78,7 @@ interface CommentTableProps {
   isLoadingMore?: boolean;
   isInitialLoading?: boolean;
   replyingCommentId?: string | null;
+  headerContent?: React.ReactNode;
 }
 
 export function CommentTable({
@@ -94,6 +96,7 @@ export function CommentTable({
   isLoadingMore,
   isInitialLoading,
   replyingCommentId,
+  headerContent,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -280,54 +283,55 @@ export function CommentTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        {" "}
-        <div className="flex gap-2 flex-wrap items-center">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search comments..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg min-w-80 text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-blue-500"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground transition-colors"
-                aria-label="Clear search"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
+      <div className="sticky top-header z-20 bg-surface-elevated pt-4 space-y-4">
+        {headerContent}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex gap-2 flex-wrap items-center">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search comments..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg min-w-80 text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-blue-500"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground transition-colors"
+                  aria-label="Clear search"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as FilterStatus)}
+              className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">All</option>
+              <option value="not_replied">Not Replied</option>
+              <option value="replied">Replied</option>
+              <option value="failed">Failed</option>
+            </select>
+
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortOption)}
+              className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
+            >
+              <option value="newest">Newest Comments</option>
+              <option value="oldest">Oldest Comments</option>
+              <option value="recent_scrape">Recently Scraped</option>
+            </select>
           </div>
-
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as FilterStatus)}
-            className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
-          >
-            <option value="all">All</option>
-            <option value="not_replied">Not Replied</option>
-            <option value="replied">Replied</option>
-            <option value="failed">Failed</option>
-          </select>
-
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortOption)}
-            className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
-          >
-            <option value="newest">Newest Comments</option>
-            <option value="oldest">Oldest Comments</option>
-            <option value="recent_scrape">Recently Scraped</option>
-          </select>
         </div>
-      </div>
 
-      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div className="flex items-center justify-between pb-2 border-b border-border">
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-foreground-muted cursor-pointer">
             <input
@@ -348,26 +352,13 @@ export function CommentTable({
           </label>
         </div>
 
-        <button
+        <DangerButton
           onClick={() => setShowBulkDeleteConfirm(true)}
           disabled={selectedIds.size === 0}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-foreground-muted disabled:border-border disabled:hover:bg-transparent"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
           Remove
-        </button>
+        </DangerButton>
+        </div>
       </div>
 
       {isInitialLoading ? (

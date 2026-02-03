@@ -8,6 +8,7 @@ import { PostsGrid } from "@/components/PostsGrid";
 import { TabNavigation } from "@/components/TabNavigation";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
 import { SettingsTab } from "@/components/SettingsTab";
+import { TabContentContainer } from "@/components/TabContentContainer";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
@@ -15,6 +16,7 @@ import { CommentNotFoundModal } from "@/components/CommentNotFoundModal";
 import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
 import { BulkReplyReportModal } from "@/components/BulkReplyReportModal";
 import { Toast } from "@/components/Toast";
+import { Spinner } from "@/components/Spinner";
 import { SetupBanner } from "@/components/SetupBanner";
 import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { useMessaging } from "@/hooks/useMessaging";
@@ -491,7 +493,7 @@ export function DashboardContent() {
 
         {batchProgress && !scrapingState?.isPaused && (
           <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <Spinner size="md" />
             <div>
               <span className="text-blue-400 font-medium">
                 Scraping post {batchProgress.currentVideoIndex}/{batchProgress.totalVideos}
@@ -516,7 +518,7 @@ export function DashboardContent() {
           </div>
         )}
 
-        <div className="mb-6">
+        <div className="sticky top-0 z-10 bg-surface pb-4 -mx-4 px-4 pt-1 -mt-1">
           <TabNavigation
             activeTab={activeTab}
             onTabChange={setTab}
@@ -545,21 +547,7 @@ export function DashboardContent() {
             </div>
 
             <div className={activeTab !== "comments" ? "hidden" : ""}>
-              <div className="bg-surface-elevated rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-medium text-foreground">Comments</h2>
-                </div>
-
-                {selectedVideo && (
-                  <div className="mb-4">
-                    <SelectedPostContext
-                      video={selectedVideo}
-                      commentCount={filteredCommentCount}
-                      onShowAllComments={clearPostFilter}
-                    />
-                  </div>
-                )}
-
+              <TabContentContainer>
                 <CommentTable
                   comments={comments}
                   selectedIds={selectedCommentIds}
@@ -575,8 +563,22 @@ export function DashboardContent() {
                   isLoadingMore={isLoadingMore}
                   isInitialLoading={loading}
                   replyingCommentId={replyProgress?.commentId}
+                  headerContent={
+                    <>
+                      <h2 className="text-lg font-medium text-foreground">Comments</h2>
+                      {selectedVideo && (
+                        <div className="mt-3">
+                          <SelectedPostContext
+                            video={selectedVideo}
+                            commentCount={filteredCommentCount}
+                            onShowAllComments={clearPostFilter}
+                          />
+                        </div>
+                      )}
+                    </>
+                  }
                 />
-              </div>
+              </TabContentContainer>
             </div>
 
             <div className={activeTab !== "settings" ? "hidden" : ""}>
@@ -598,7 +600,7 @@ export function DashboardContent() {
             </div>
           </div>
 
-          <div className="space-y-6 sticky top-24 self-start">
+          <div className="space-y-6 sticky top-header self-start">
             <ReplyComposer
               selectedComment={selectedComment}
               selectedComments={selectedCommentsForDisplay}
@@ -614,7 +616,7 @@ export function DashboardContent() {
                 <h3 className="font-medium text-foreground mb-2">Reply Status</h3>
                 <div className="flex items-center gap-2">
                   {replyProgress.status !== "complete" && replyProgress.status !== "error" && (
-                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                    <Spinner size="sm" />
                   )}
                   <p className="text-sm text-foreground-muted">
                     {replyProgress.status === "navigating" && "Opening video..."}
