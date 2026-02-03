@@ -456,7 +456,7 @@ export async function findRecentlyPostedReply(
 export async function findRecentlyPostedReplyWithRetry(
   options: FindReplyOptions,
   maxRetries: number = 5,
-  initialDelayMs: number = 300,
+  initialDelayMs: number = 200,
 ): Promise<ScrapedComment | null> {
   let delayMs = initialDelayMs;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {

@@ -126,7 +126,7 @@ export async function replyToComment(
     console.log("[CommentReplier] Extracting posted reply...");
 
     // Wait a moment for TikTok to add the reply to DOM/React state
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const postedReply = await findRecentlyPostedReplyWithRetry({
       parentCommentId: user.id,
@@ -294,7 +294,7 @@ function checkCommentTextMatch(expected: string, found: string): boolean {
 
 async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
   element.focus();
-  await humanDelay("short");
+  await humanDelay("micro");
 
   // Try using clipboard API to paste (works better with Draft.js)
   try {
@@ -311,7 +311,7 @@ async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
     element.dispatchEvent(pasteEvent);
     console.log("[CommentReplier] Paste event dispatched");
 
-    await humanDelay("short");
+    await humanDelay("micro");
 
     // Check if paste worked
     if (element.textContent?.includes(text.substring(0, 5))) {
