@@ -346,12 +346,12 @@ async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
 }
 
 function sendProgress(
-  userId: string,
+  commentId: string,
   status: ReplyProgress["status"],
   message: string
 ): void {
   chrome.runtime.sendMessage({
     type: MessageType.REPLY_COMMENT_PROGRESS,
-    payload: { userId, status, message },
+    payload: { commentId, status, message },
   });
 }

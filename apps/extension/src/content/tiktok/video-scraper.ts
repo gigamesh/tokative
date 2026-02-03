@@ -348,6 +348,7 @@ function getVideoAuthorFromUrl(): string | null {
  */
 export function rawCommentToScrapedComment(
   raw: RawCommentData,
+  source: "app" | "scraped" = "scraped",
 ): ScrapedComment | null {
   if (!raw.commentId) {
     return null;
@@ -376,6 +377,7 @@ export function rawCommentToScrapedComment(
     replyToReplyId: raw.replyToReplyId || null,
     isReply: !!raw.parentCommentId,
     replyCount: raw.replyCount,
+    source,
   };
 }
 
@@ -443,7 +445,7 @@ export async function findRecentlyPostedReply(
         replyToReplyId: data.reply_to_reply_id !== "0" ? data.reply_to_reply_id : null,
       };
 
-      return rawCommentToScrapedComment(rawComment);
+      return rawCommentToScrapedComment(rawComment, "app");
     }
   }
 

@@ -47,11 +47,20 @@ export function useMessaging(options: UseMessagingOptions = {}) {
         if (postedReply && onPostedReply) {
           onPostedReply(postedReply);
         }
+        // Keep progress visible briefly so user sees completion state
         setState((prev) => ({
           ...prev,
-          isReplying: false,
-          replyProgress: null,
+          replyProgress: prev.replyProgress
+            ? { ...prev.replyProgress, status: "complete" }
+            : null,
         }));
+        setTimeout(() => {
+          setState((prev) => ({
+            ...prev,
+            isReplying: false,
+            replyProgress: null,
+          }));
+        }, 1500);
       }),
 
       bridge.on(MessageType.REPLY_COMMENT_ERROR, (payload) => {
