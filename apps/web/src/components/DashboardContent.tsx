@@ -71,6 +71,11 @@ export function DashboardContent() {
         repliedAt: new Date().toISOString(),
       });
       setSelectedComment(null);
+      setSelectedCommentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(commentId);
+        return next;
+      });
     },
     [updateComment]
   );
@@ -577,6 +582,16 @@ export function DashboardContent() {
                           />
                         </div>
                       )}
+                      {selectedPostId && !selectedVideo && (
+                        <div className="mt-3">
+                          <button
+                            onClick={clearPostFilter}
+                            className="text-sm text-blue-500 hover:text-blue-400"
+                          >
+                            Clear post filter
+                          </button>
+                        </div>
+                      )}
                     </>
                   }
                 />
@@ -662,8 +677,6 @@ export function DashboardContent() {
         isOpen={bulkReplyReportModal.isOpen}
         onClose={() => {
           setBulkReplyReportModal({ isOpen: false, stats: { completed: 0, failed: 0, skipped: 0 } });
-          setSelectedCommentIds(new Set());
-          setSelectedComment(null);
           setComposerResetTrigger(prev => prev + 1);
         }}
         stats={bulkReplyReportModal.stats}

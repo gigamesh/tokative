@@ -120,6 +120,9 @@ export function CommentTable({
       ? comments.filter((c) => c.videoId === videoIdFilter)
       : comments;
 
+    const topLevel = videoFiltered.filter((c) => !c.isReply);
+    const replies = videoFiltered.filter((c) => c.isReply);
+
     const matchesSearchText = (comment: ScrapedComment) =>
       search === "" ||
       comment.handle.toLowerCase().includes(search.toLowerCase()) ||
@@ -131,42 +134,28 @@ export function CommentTable({
       (filter === "not_replied" && !comment.replySent && !comment.replyError) ||
       (filter === "failed" && comment.replyError);
 
-    const directMatches = new Set(
-      videoFiltered
-        .filter((c) => matchesSearchText(c) && matchesFilterStatus(c))
-        .map((c) => c.id)
+    // Filter and sort only top-level comments based on criteria
+    let filteredTopLevel = topLevel.filter(
+      (c) => matchesSearchText(c) && matchesFilterStatus(c),
     );
 
-    let threadIds = new Set(directMatches);
+    // If searching, also include parents of matching replies
     if (search !== "") {
+      const matchingReplies = replies.filter((c) => matchesSearchText(c));
       const parentIdsOfMatchingReplies = new Set(
-        videoFiltered
-          .filter((c) => directMatches.has(c.id) && c.isReply && c.parentCommentId)
-          .map((c) => c.parentCommentId!)
+        matchingReplies.map((c) => c.parentCommentId).filter(Boolean),
       );
-
-      const matchingParentCommentIds = new Set(
-        videoFiltered
-          .filter((c) => directMatches.has(c.id) && !c.isReply && c.commentId)
-          .map((c) => c.commentId!)
+      const additionalParents = topLevel.filter(
+        (c) =>
+          c.commentId &&
+          parentIdsOfMatchingReplies.has(c.commentId) &&
+          !filteredTopLevel.some((f) => f.id === c.id),
       );
-
-      videoFiltered.forEach((c) => {
-        if (c.commentId && parentIdsOfMatchingReplies.has(c.commentId)) {
-          threadIds.add(c.id);
-        }
-      });
-
-      videoFiltered.forEach((c) => {
-        if (c.isReply && c.parentCommentId && matchingParentCommentIds.has(c.parentCommentId)) {
-          threadIds.add(c.id);
-        }
-      });
+      filteredTopLevel = [...filteredTopLevel, ...additionalParents];
     }
 
-    const filtered = videoFiltered.filter((comment) => threadIds.has(comment.id));
-
-    return filtered.sort((a, b) => {
+    // Sort top-level comments
+    const sortedTopLevel = filteredTopLevel.sort((a, b) => {
       if (sort === "newest") {
         const aTime = a.commentTimestamp
           ? new Date(a.commentTimestamp).getTime()
@@ -187,6 +176,19 @@ export function CommentTable({
       }
       return new Date(b.scrapedAt).getTime() - new Date(a.scrapedAt).getTime();
     });
+
+    // Build set of parent commentIds that made it through filtering
+    const includedParentCommentIds = new Set(
+      sortedTopLevel.map((c) => c.commentId).filter(Boolean),
+    );
+
+    // Include all replies whose parent is in the filtered set
+    const includedReplies = replies.filter(
+      (c) =>
+        c.parentCommentId && includedParentCommentIds.has(c.parentCommentId),
+    );
+
+    return [...sortedTopLevel, ...includedReplies];
   }, [comments, search, filter, sort, videoIdFilter]);
 
   const commentIdsWithAppReplies = useMemo(() => {
@@ -301,8 +303,18 @@ export function CommentTable({
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground transition-colors"
                   aria-label="Clear search"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               )}
@@ -332,32 +344,32 @@ export function CommentTable({
         </div>
 
         <div className="flex items-center justify-between pb-2 border-b border-border">
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm text-foreground-muted cursor-pointer">
-            <input
-              type="checkbox"
-              checked={allFilteredSelected}
-              ref={(el) => {
-                if (el) el.indeterminate = someFilteredSelected;
-              }}
-              onChange={(e) => {
-                const filteredIds = filteredComments.map((c) => c.id);
-                onSelectFiltered(filteredIds, e.target.checked);
-              }}
-              className="w-4 h-4 rounded border-border bg-surface-secondary text-tiktok-red focus:ring-tiktok-red"
-            />
-            {selectedIds.size > 0
-              ? `${selectedIds.size} selected`
-              : `Select all (${filteredComments.length})`}
-          </label>
-        </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-foreground-muted cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allFilteredSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = someFilteredSelected;
+                }}
+                onChange={(e) => {
+                  const filteredIds = filteredComments.map((c) => c.id);
+                  onSelectFiltered(filteredIds, e.target.checked);
+                }}
+                className="w-4 h-4 rounded border-border bg-surface-secondary text-tiktok-red focus:ring-tiktok-red"
+              />
+              {selectedIds.size > 0
+                ? `${selectedIds.size} selected`
+                : `Select all (${filteredComments.length})`}
+            </label>
+          </div>
 
-        <DangerButton
-          onClick={() => setShowBulkDeleteConfirm(true)}
-          disabled={selectedIds.size === 0}
-        >
-          Remove
-        </DangerButton>
+          <DangerButton
+            onClick={() => setShowBulkDeleteConfirm(true)}
+            disabled={selectedIds.size === 0}
+          >
+            Remove
+          </DangerButton>
         </div>
       </div>
 
@@ -397,7 +409,11 @@ export function CommentTable({
                     item.videoId ? videoThumbnails.get(item.videoId) : undefined
                   }
                   depth={item.depth}
-                  hasAppReply={item.commentId ? commentIdsWithAppReplies.has(item.commentId) : false}
+                  hasAppReply={
+                    item.commentId
+                      ? commentIdsWithAppReplies.has(item.commentId)
+                      : false
+                  }
                   isReplying={replyingCommentId === item.id}
                 />
               )}
