@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useExtensionStatus } from "@/hooks/useExtensionStatus";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@tokative/convex";
+import { useAuth } from "@/providers/ConvexProvider";
 
 export function SetupBanner() {
   const { setupState, dismissSetup, recheckConnection } = useExtensionStatus();
   const [showSuccess, setShowSuccess] = useState(false);
+  const { isLoaded: isAuthLoaded } = useAuth();
   const settings = useQuery(api.settings.getForCurrentUser);
   const markSetupComplete = useMutation(api.settings.markSetupComplete);
 
@@ -15,7 +17,8 @@ export function SetupBanner() {
   const hasCompletedSetup = settings?.hasCompletedSetup ?? false;
 
   useEffect(() => {
-    if (!isLoading && setupState === "connected" && !hasCompletedSetup) {
+    if (!isAuthLoaded || isLoading) return;
+    if (setupState === "connected" && !hasCompletedSetup) {
       setShowSuccess(true);
       markSetupComplete();
       const timer = setTimeout(() => {
@@ -23,7 +26,7 @@ export function SetupBanner() {
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [setupState, hasCompletedSetup, isLoading, markSetupComplete]);
+  }, [setupState, hasCompletedSetup, isLoading, isAuthLoaded, markSetupComplete]);
 
   if (isLoading || setupState === "dismissed") {
     return null;
