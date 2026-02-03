@@ -27,7 +27,7 @@ export function ReplyComposer({
   const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(null);
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const { resolvedTheme } = useTheme();
+  const { theme } = useTheme();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -189,7 +189,7 @@ export function ReplyComposer({
                     className="absolute right-0 top-full mt-2 z-10"
                   >
                     <EmojiPicker
-                      theme={resolvedTheme === "dark" ? Theme.DARK : Theme.LIGHT}
+                      theme={theme === "dark" ? Theme.DARK : Theme.LIGHT}
                       onEmojiClick={handleEmojiClick}
                       width={280}
                       height={320}

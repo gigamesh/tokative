@@ -10,16 +10,7 @@ export const metadata: Metadata = {
   description: "Manage TikTok interactions - scrape comments and send messages",
 };
 
-const themeScript = `
-  (function() {
-    const stored = localStorage.getItem('tokative-theme');
-    const theme = stored || 'system';
-    const resolved = theme === 'system'
-      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      : theme;
-    document.documentElement.classList.add(resolved);
-  })();
-`;
+const themeScript = "(function(){var s=localStorage.getItem('tokative-theme');var t=s||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.classList.add(t)})();";
 
 export default function RootLayout({
   children,
