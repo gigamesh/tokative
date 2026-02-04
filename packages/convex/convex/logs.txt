@@ -1,0 +1,324 @@
+@tokative/web:dev:  GET /.well-known/appspecific/com.chrome.devtools.json 404 in 11ms
+@tokative/convex:dev: 2/3/2026, 4:49:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1842'
+@tokative/convex:dev: 2/3/2026, 4:49:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":315,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:49:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1842'
+@tokative/convex:dev: 2/3/2026, 4:49:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":315,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/web:dev:  GET /dashboard 200 in 33ms
+@tokative/web:dev:  GET /dashboard 200 in 20ms
+@tokative/web:dev:  GET /.well-known/appspecific/com.chrome.devtools.json 404 in 22ms
+@tokative/web:dev:  GET /.well-known/appspecific/com.chrome.devtools.json 404 in 14ms
+@tokative/convex:dev: 2/3/2026, 4:49:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1842'
+@tokative/convex:dev: 2/3/2026, 4:49:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":315,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:49:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1842'
+@tokative/convex:dev: 2/3/2026, 4:49:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":315,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/web:dev:  GET /dashboard 200 in 22ms
+@tokative/web:dev:  GET /dashboard 200 in 15ms
+@tokative/web:dev:  GET /.well-known/appspecific/com.chrome.devtools.json 404 in 24ms
+@tokative/web:dev:  GET /.well-known/appspecific/com.chrome.devtools.json 404 in 16ms
+@tokative/convex:dev: 2/3/2026, 4:55:22 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1842'
+@tokative/convex:dev: 2/3/2026, 4:55:22 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":315,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:55:22 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1842'
+@tokative/convex:dev: 2/3/2026, 4:55:22 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":315,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:55:36 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 24 comments'
+@tokative/convex:dev: 2/3/2026, 4:55:36 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:55:37 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=11, duplicates=13, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:55:38 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1853'
+@tokative/convex:dev: 2/3/2026, 4:55:38 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":326,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:55:43 PM [CONVEX H(OPTIONS /api/comments/batch)] [INFO] Client disconnected
+@tokative/convex:dev: 
+@tokative/convex:dev: 2/3/2026, 4:55:43 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 3 comments'
+@tokative/convex:dev: 2/3/2026, 4:55:43 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:55:44 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:55:45 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 3 comments'
+@tokative/convex:dev: 2/3/2026, 4:55:45 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:55:45 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:55:47 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 2 comments'
+@tokative/convex:dev: 2/3/2026, 4:55:47 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:55:47 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:55:48 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 3 comments'
+@tokative/convex:dev: 2/3/2026, 4:55:48 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:55:48 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:55:51 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 19 comments'
+@tokative/convex:dev: 2/3/2026, 4:55:51 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:55:51 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=9, duplicates=10, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:55:52 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1862'
+@tokative/convex:dev: 2/3/2026, 4:55:52 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":335,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:55:54 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 2 comments'
+@tokative/convex:dev: 2/3/2026, 4:55:54 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:55:54 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:55:59 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 24 comments'
+@tokative/convex:dev: 2/3/2026, 4:55:59 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:55:59 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=13, duplicates=11, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:55:59 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1875'
+@tokative/convex:dev: 2/3/2026, 4:55:59 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":348,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:01 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 2 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:01 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:01 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:03 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 18 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:03 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:04 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=15, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:04 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1890'
+@tokative/convex:dev: 2/3/2026, 4:56:04 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":363,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:07 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 12 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:07 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:07 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=8, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:08 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1898'
+@tokative/convex:dev: 2/3/2026, 4:56:08 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":371,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:10 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 20 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:10 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:10 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=18, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:12 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1916'
+@tokative/convex:dev: 2/3/2026, 4:56:12 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":389,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:15 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 21 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:15 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:15 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=11, duplicates=10, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:15 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1927'
+@tokative/convex:dev: 2/3/2026, 4:56:15 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":400,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:16 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 1 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:16 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:16 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=1, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:19 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 13 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:19 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:19 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=10, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:19 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1937'
+@tokative/convex:dev: 2/3/2026, 4:56:19 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":410,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:22 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 20 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:22 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:22 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=16, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:22 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1953'
+@tokative/convex:dev: 2/3/2026, 4:56:22 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":426,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:26 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 9 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:26 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:26 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=8, duplicates=1, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:27 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1961'
+@tokative/convex:dev: 2/3/2026, 4:56:27 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":434,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:29 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 15 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:29 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:29 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=12, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:30 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1973'
+@tokative/convex:dev: 2/3/2026, 4:56:30 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":446,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:32 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 15 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:32 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:32 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=12, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:33 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 1985'
+@tokative/convex:dev: 2/3/2026, 4:56:33 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":458,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:35 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 20 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:35 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:35 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=16, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:35 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2001'
+@tokative/convex:dev: 2/3/2026, 4:56:35 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":474,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:38 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 19 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:38 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:38 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=6, duplicates=13, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:38 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2007'
+@tokative/convex:dev: 2/3/2026, 4:56:38 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":480,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:39 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 2 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:39 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:39 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:42 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 8 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:42 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:42 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=5, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:43 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2012'
+@tokative/convex:dev: 2/3/2026, 4:56:43 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":485,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:45 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 18 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:45 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:45 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=14, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:46 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2026'
+@tokative/convex:dev: 2/3/2026, 4:56:46 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":499,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:48 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 16 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:48 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:48 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=8, duplicates=8, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:49 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2034'
+@tokative/convex:dev: 2/3/2026, 4:56:49 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":507,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:51 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 11 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:51 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:51 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=6, duplicates=5, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:51 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2040'
+@tokative/convex:dev: 2/3/2026, 4:56:51 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":513,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:56:54 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 20 comments'
+@tokative/convex:dev: 2/3/2026, 4:56:54 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:56:54 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=17, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:56:55 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2057'
+@tokative/convex:dev: 2/3/2026, 4:56:55 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":530,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:00 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 16 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:00 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:00 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=13, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:00 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2070'
+@tokative/convex:dev: 2/3/2026, 4:57:00 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":543,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:03 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 12 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:03 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:03 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=9, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:03 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2079'
+@tokative/convex:dev: 2/3/2026, 4:57:03 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":552,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:06 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 11 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:06 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:06 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=9, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:06 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2088'
+@tokative/convex:dev: 2/3/2026, 4:57:06 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":561,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:08 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 11 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:08 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:09 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=8, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:09 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2096'
+@tokative/convex:dev: 2/3/2026, 4:57:09 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":569,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:12 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 11 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:12 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:12 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=10, duplicates=1, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:12 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2106'
+@tokative/convex:dev: 2/3/2026, 4:57:12 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":579,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:14 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 4 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:14 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:14 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=4, duplicates=0, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:15 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2110'
+@tokative/convex:dev: 2/3/2026, 4:57:15 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":583,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:17 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 17 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:17 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:17 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=12, duplicates=5, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:18 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2122'
+@tokative/convex:dev: 2/3/2026, 4:57:18 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":595,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:20 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 18 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:20 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:20 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=10, duplicates=8, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:21 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2132'
+@tokative/convex:dev: 2/3/2026, 4:57:21 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":605,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:23 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 17 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:23 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:23 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=13, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:24 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2145'
+@tokative/convex:dev: 2/3/2026, 4:57:24 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":618,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:26 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 19 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:26 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:26 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=14, duplicates=5, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:27 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2159'
+@tokative/convex:dev: 2/3/2026, 4:57:27 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":632,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:29 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 19 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:29 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:29 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=10, duplicates=9, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:30 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2169'
+@tokative/convex:dev: 2/3/2026, 4:57:30 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":642,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:32 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 18 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:32 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:32 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=16, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:33 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2185'
+@tokative/convex:dev: 2/3/2026, 4:57:33 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":658,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:35 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 19 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:35 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:35 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=13, duplicates=6, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:36 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2198'
+@tokative/convex:dev: 2/3/2026, 4:57:36 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":671,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:38 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 20 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:38 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:38 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=17, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2215'
+@tokative/convex:dev: 2/3/2026, 4:57:39 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":688,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:40 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 1 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:40 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:40 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=1, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:43 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 15 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:43 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:43 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=11, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:44 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2226'
+@tokative/convex:dev: 2/3/2026, 4:57:44 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":699,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:46 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 13 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:46 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:46 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=9, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:46 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2235'
+@tokative/convex:dev: 2/3/2026, 4:57:46 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":708,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:49 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 15 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:49 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:49 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=11, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:50 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2246'
+@tokative/convex:dev: 2/3/2026, 4:57:50 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":719,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:52 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 12 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:52 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:52 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=9, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:52 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2255'
+@tokative/convex:dev: 2/3/2026, 4:57:52 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":728,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:55 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 12 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:55 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:55 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=8, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:56 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2263'
+@tokative/convex:dev: 2/3/2026, 4:57:56 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":736,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:57:58 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 19 comments'
+@tokative/convex:dev: 2/3/2026, 4:57:58 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:57:58 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=17, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:57:59 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2280'
+@tokative/convex:dev: 2/3/2026, 4:57:59 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":753,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:02 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 16 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:02 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:02 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=7, duplicates=9, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:02 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2287'
+@tokative/convex:dev: 2/3/2026, 4:58:02 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":760,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:05 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 11 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:05 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:05 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=9, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:05 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2296'
+@tokative/convex:dev: 2/3/2026, 4:58:05 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":769,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:08 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 14 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:08 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:08 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=9, duplicates=5, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:08 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2305'
+@tokative/convex:dev: 2/3/2026, 4:58:08 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":778,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:11 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 17 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:11 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:11 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=15, duplicates=2, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:11 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2320'
+@tokative/convex:dev: 2/3/2026, 4:58:11 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":793,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:14 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 20 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:14 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:14 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=14, duplicates=6, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:14 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2334'
+@tokative/convex:dev: 2/3/2026, 4:58:14 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":807,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:17 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 16 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:17 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:17 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=12, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:17 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2346'
+@tokative/convex:dev: 2/3/2026, 4:58:17 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":819,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:20 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 18 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:20 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:21 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=14, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:21 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2360'
+@tokative/convex:dev: 2/3/2026, 4:58:21 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":833,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:23 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 16 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:23 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:24 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=10, duplicates=6, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:24 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2370'
+@tokative/convex:dev: 2/3/2026, 4:58:24 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":843,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:25 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 1 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:25 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:25 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=1, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:28 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 20 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:28 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:29 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=16, duplicates=4, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:29 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2386'
+@tokative/convex:dev: 2/3/2026, 4:58:29 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":859,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:30 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 1 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:30 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:30 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=1, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:33 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 19 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:33 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:33 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=13, duplicates=6, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:33 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2399'
+@tokative/convex:dev: 2/3/2026, 4:58:33 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":872,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:36 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 7 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:36 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:36 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=4, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:37 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2403'
+@tokative/convex:dev: 2/3/2026, 4:58:37 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":876,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:39 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 6 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:39 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:39 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=6, duplicates=0, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:40 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2409'
+@tokative/convex:dev: 2/3/2026, 4:58:40 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":882,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:43 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 20 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:43 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:43 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=15, duplicates=5, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:43 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2424'
+@tokative/convex:dev: 2/3/2026, 4:58:43 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":897,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:46 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 14 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:46 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:46 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=11, duplicates=3, ignored=0, skipped=0'
+@tokative/convex:dev: 2/3/2026, 4:58:46 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Total comments for user: 2435'
+@tokative/convex:dev: 2/3/2026, 4:58:46 PM [CONVEX Q(comments:getCountsByVideo)] [LOG] '[DIAG] getCountsByVideo: Video counts:' '{"7596052026111347998":1354,"7597564564913409310":908,"7600138864153365790":67,"7601967865738153247":19,"7594592696547773727":87}'
+@tokative/convex:dev: 2/3/2026, 4:58:47 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch called with 1 comments'
+@tokative/convex:dev: 2/3/2026, 4:58:47 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch: Unique videoIds in batch:' [ '7597564564913409310' ]
+@tokative/convex:dev: 2/3/2026, 4:58:47 PM [CONVEX M(comments:addBatch)] [LOG] '[DIAG] addBatch result: stored=0, duplicates=1, ignored=0, skipped=0'

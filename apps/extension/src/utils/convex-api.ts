@@ -18,6 +18,7 @@ export interface ConvexSyncResult {
   stored: number;
   duplicates: number;
   ignored: number;
+  missingTiktokUserId: number;
 }
 
 export interface ConvexSettings {

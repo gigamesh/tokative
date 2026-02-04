@@ -16,6 +16,12 @@ export function getAllCommentElements(): Element[] {
 }
 
 export const VIDEO_SELECTORS = {
+  // Displayed comment count (before scraping)
+  commentCount: [
+    '[class*="DivCommentCountContainer"] span',
+    '[data-e2e="comment-count"]',
+  ],
+
   // Comment button to open comments panel
   commentButton: [
     '[data-e2e="comment-icon"]',

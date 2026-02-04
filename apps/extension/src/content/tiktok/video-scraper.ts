@@ -10,6 +10,14 @@ import { addScrapedComments, addVideos } from "../../utils/storage";
 import { querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { VIDEO_SELECTORS } from "./video-selectors";
 
+interface DiagnosticData {
+  displayedCount: number | null;
+  scrapedTotal: number;
+  topLevelCount: number;
+  replyCount: number;
+  incompleteThreads: Array<{ parentId: string; expected: number; got: number }>;
+}
+
 interface RawCommentData {
   commentId: string;
   tiktokUserId: string;
@@ -106,6 +114,73 @@ export function injectReactExtractor(): Promise<void> {
     script.onerror = () => resolve();
     document.documentElement.appendChild(script);
   });
+}
+
+function parseCommentCount(text: string): number | null {
+  if (!text) return null;
+  const cleaned = text.trim().toLowerCase();
+  if (cleaned.includes("k")) {
+    const num = parseFloat(cleaned.replace("k", ""));
+    return Math.round(num * 1000);
+  }
+  if (cleaned.includes("m")) {
+    const num = parseFloat(cleaned.replace("m", ""));
+    return Math.round(num * 1000000);
+  }
+  const num = parseInt(cleaned.replace(/[^0-9]/g, ""), 10);
+  return isNaN(num) ? null : num;
+}
+
+export function getDisplayedCommentCount(): number | null {
+  for (const selector of VIDEO_SELECTORS.commentCount) {
+    const el = document.querySelector(selector);
+    if (el?.textContent) {
+      const count = parseCommentCount(el.textContent);
+      if (count !== null) {
+        log(`[DIAG] Found displayed comment count: ${count} (from "${el.textContent.trim()}")`);
+        return count;
+      }
+    }
+  }
+  log("[DIAG] Could not find displayed comment count");
+  return null;
+}
+
+function logDiagnosticSummary(
+  diagnostics: DiagnosticData,
+  comments: ScrapedComment[],
+): void {
+  const { displayedCount, scrapedTotal, topLevelCount, replyCount, incompleteThreads } = diagnostics;
+
+  const displayedStr = displayedCount !== null ? displayedCount.toString() : "N/A";
+  const capturedPct = scrapedTotal > 0 && displayedCount
+    ? ((scrapedTotal / displayedCount) * 100).toFixed(1)
+    : "N/A";
+
+  console.log(`
+[DIAG] ═══════════════════════════════════════════════════
+[DIAG] Comment Scrape Summary:
+[DIAG]   Displayed: ${displayedStr} | Scraped: ${scrapedTotal}
+[DIAG]   Top-level: ${topLevelCount} | Replies: ${replyCount}
+[DIAG]   Capture rate: ${capturedPct}%
+[DIAG] ───────────────────────────────────────────────────`);
+
+  if (incompleteThreads.length > 0) {
+    const sorted = incompleteThreads
+      .map((t) => ({ ...t, missing: t.expected - t.got }))
+      .sort((a, b) => b.missing - a.missing)
+      .slice(0, 5);
+
+    console.log(`[DIAG] Incomplete threads (top ${sorted.length} by missing replies):`);
+    for (const t of sorted) {
+      console.log(`[DIAG]   ${t.parentId}: expected ${t.expected}, got ${t.got} (missing ${t.missing})`);
+    }
+  } else {
+    console.log(`[DIAG] All reply threads fully expanded`);
+  }
+
+  console.log(`[DIAG] ═══════════════════════════════════════════════════
+`);
 }
 
 export async function extractAllReactData(): Promise<Map<number, CommentReactData>> {
@@ -872,6 +947,7 @@ async function scrollToLoadComments(
 
   let stableIterations = 0;
   let loopIteration = 0;
+  let exitReason = "unknown";
   const allComments: ScrapedComment[] = [];
   const savedCommentIds = new Set<string>();
   let lastIterationTime = Date.now();
@@ -897,6 +973,7 @@ async function scrollToLoadComments(
     await waitWhilePaused();
     if (isCancelled) {
       log("[Tokative] Scrape cancelled, exiting loop");
+      exitReason = "cancelled";
       break;
     }
 
@@ -910,6 +987,7 @@ async function scrollToLoadComments(
       log(
         `[Tokative] Reached maxComments limit (${allComments.length} >= ${maxComments}), breaking`,
       );
+      exitReason = `maxComments reached (${maxComments})`;
       break;
     }
 
@@ -958,16 +1036,6 @@ async function scrollToLoadComments(
       );
       // Report progress immediately after main comments (before potentially slow reply expansion)
       onProgress?.(cumulativeStats);
-    }
-
-    // Early exit if we extracted a small batch (< 20 comments) - indicates we're near the end
-    // Use rawComments (total extracted) not newComments (deduplicated) to avoid false positives
-    // when TikTok's virtualized list recycles previously-seen comments
-    if (rawComments.length > 0 && rawComments.length < 20) {
-      log(
-        `[Tokative] Small batch (${rawComments.length} < 20), likely reached end of comments`,
-      );
-      break;
     }
 
     // Always try to expand reply threads and save replies incrementally
@@ -1034,6 +1102,7 @@ async function scrollToLoadComments(
         log(
           "[Tokative] Stable for 2 iterations at end, assuming all comments loaded. Breaking loop.",
         );
+        exitReason = "stable (no new comments at end)";
         break;
       }
     } else {
@@ -1056,9 +1125,7 @@ async function scrollToLoadComments(
   );
   log(`[Tokative] Total unique comments collected: ${allComments.length}`);
   log(`[Tokative] Final stats: ${JSON.stringify(cumulativeStats)}`);
-  log(
-    `[Tokative] Exit reason: ${isCancelled ? "cancelled" : stableIterations >= 2 ? "stable (no new comments at end)" : `maxComments reached (${maxComments})`}`,
-  );
+  log(`[Tokative] Exit reason: ${exitReason}`);
 
   // Final pass: expand any remaining visible threads and save
   // (Most expansion happens during scroll, this catches any stragglers)
@@ -1563,6 +1630,9 @@ export async function scrapeVideoComments(
   );
   isCancelled = false;
 
+  // Capture displayed comment count before we start scrolling
+  const displayedCount = getDisplayedCommentCount();
+
   onProgress?.({
     videosProcessed: 0,
     totalVideos: 1,
@@ -1641,6 +1711,35 @@ export async function scrapeVideoComments(
     "stats:",
     result.stats,
   );
+
+  // Build and log diagnostic summary
+  const topLevelComments = result.comments.filter((c) => !c.parentCommentId);
+  const replyComments = result.comments.filter((c) => !!c.parentCommentId);
+
+  // Find incomplete threads - where we got fewer replies than expected
+  const incompleteThreads: Array<{ parentId: string; expected: number; got: number }> = [];
+  for (const comment of topLevelComments) {
+    if (comment.replyCount && comment.replyCount > 0) {
+      const actualReplies = replyComments.filter((r) => r.parentCommentId === comment.id).length;
+      if (actualReplies < comment.replyCount) {
+        incompleteThreads.push({
+          parentId: comment.id,
+          expected: comment.replyCount,
+          got: actualReplies,
+        });
+      }
+    }
+  }
+
+  const diagnostics: DiagnosticData = {
+    displayedCount,
+    scrapedTotal: result.comments.length,
+    topLevelCount: topLevelComments.length,
+    replyCount: replyComments.length,
+    incompleteThreads,
+  };
+
+  logDiagnosticSummary(diagnostics, result.comments);
 
   if (isCancelled) {
     onProgress?.({

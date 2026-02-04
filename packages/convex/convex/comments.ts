@@ -145,6 +145,11 @@ export const addBatch = mutation({
     ignoreList: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    // TEMP DIAGNOSTIC
+    const videoIds = [...new Set(args.comments.map(c => c.videoId).filter(Boolean))];
+    console.log(`[DIAG] addBatch called with ${args.comments.length} comments`);
+    console.log(`[DIAG] addBatch: Unique videoIds in batch:`, videoIds);
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -158,14 +163,14 @@ export const addBatch = mutation({
     let stored = 0;
     let duplicates = 0;
     let ignored = 0;
-    let skipped = 0;
+    let missingTiktokUserId = 0;
 
     const profileCache = new Map<string, Awaited<ReturnType<typeof getOrCreateProfile>>>();
     const avatarsToStore: Array<{ profileId: Id<"tiktokProfiles">; tiktokUserId: string; tiktokAvatarUrl: string }> = [];
 
     for (const comment of args.comments) {
       if (!comment.tiktokUserId) {
-        skipped++;
+        missingTiktokUserId++;
         continue;
       }
 
@@ -234,7 +239,10 @@ export const addBatch = mutation({
       });
     }
 
-    return { stored, duplicates, ignored, skipped };
+    // TEMP DIAGNOSTIC
+    console.log(`[DIAG] addBatch result: stored=${stored}, duplicates=${duplicates}, ignored=${ignored}, missingTiktokUserId=${missingTiktokUserId}`);
+
+    return { stored, duplicates, ignored, missingTiktokUserId };
   },
 });
 
@@ -355,6 +363,10 @@ export const getCountsByVideo = query({
         counts[comment.videoId] = (counts[comment.videoId] || 0) + 1;
       }
     }
+
+    // TEMP DIAGNOSTIC
+    console.log(`[DIAG] getCountsByVideo: Total comments for user: ${comments.length}`);
+    console.log(`[DIAG] getCountsByVideo: Video counts:`, JSON.stringify(counts));
 
     return counts;
   },

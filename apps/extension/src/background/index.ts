@@ -364,11 +364,13 @@ async function handleMessage(
     }
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE: {
+      console.log(`[DIAG] handleMessage: SCRAPE_VIDEO_COMMENTS_COMPLETE received`);
       const { comments } = message.payload as { comments: ScrapedComment[] };
       // Capture batch state BEFORE async ops - the responseHandler in scrapeVideoComments
       // resolves synchronously, which can set isBatchScraping=false before we finish here
       const wasBatchScraping = isBatchScraping;
-      await addScrapedComments(comments);
+      // NOTE: Content script already saves incrementally during scraping, so we don't
+      // call addScrapedComments here to avoid duplicate storage attempts
       const videoId = comments[0]?.videoId;
       if (videoId) {
         await updateVideo(videoId, { commentsScraped: true });
@@ -1053,6 +1055,7 @@ async function handleGetVideoComments(
           payload: { videoId, ...progressPayload },
         });
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
+        console.log(`[DIAG] responseHandler: SCRAPE_VIDEO_COMMENTS_COMPLETE received`);
         console.log("[Background] Scrape complete, payload:", msg.payload);
         const { comments: scrapedComments } = msg.payload as {
           comments: ScrapedComment[];
@@ -1063,9 +1066,8 @@ async function handleGetVideoComments(
           "comments array:",
           !!scrapedComments,
         );
-        if (scrapedComments && scrapedComments.length > 0) {
-          addScrapedComments(scrapedComments);
-        }
+        // NOTE: Content script already saves incrementally during scraping, so we don't
+        // call addScrapedComments here to avoid duplicate storage attempts
         updateVideo(videoId, { commentsScraped: true });
         port.postMessage({
           type: MessageType.GET_VIDEO_COMMENTS_COMPLETE,
@@ -1073,8 +1075,9 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
-        closingTabsIntentionally.add(tab.id!);
-        chrome.tabs.remove(tab.id!);
+        // DIAG: Tab auto-close disabled for log inspection
+        // closingTabsIntentionally.add(tab.id!);
+        // chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
         console.log("[Background] Scrape error:", msg.payload);
@@ -1085,8 +1088,9 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScraping();
-        closingTabsIntentionally.add(tab.id!);
-        chrome.tabs.remove(tab.id!);
+        // DIAG: Tab auto-close disabled for log inspection
+        // closingTabsIntentionally.add(tab.id!);
+        // chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       }
     };
@@ -1286,10 +1290,11 @@ async function handleGetBatchComments(
       });
     }
 
-    if (tab?.id) {
-      closingTabsIntentionally.add(tab.id);
-      chrome.tabs.remove(tab.id);
-    }
+    // DIAG: Tab auto-close disabled for log inspection
+    // if (tab?.id) {
+    //   closingTabsIntentionally.add(tab.id);
+    //   chrome.tabs.remove(tab.id);
+    // }
     await focusDashboardTab();
   } catch (error) {
     activeScrapingTabId = null;
@@ -1307,10 +1312,11 @@ async function handleGetBatchComments(
       },
     });
 
-    if (tab?.id) {
-      closingTabsIntentionally.add(tab.id);
-      chrome.tabs.remove(tab.id).catch(() => {});
-    }
+    // DIAG: Tab auto-close disabled for log inspection
+    // if (tab?.id) {
+    //   closingTabsIntentionally.add(tab.id);
+    //   chrome.tabs.remove(tab.id).catch(() => {});
+    // }
     await focusDashboardTab();
   }
 }
