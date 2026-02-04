@@ -1,6 +1,5 @@
-
-import { ScrapedComment } from "@/utils/constants";
 import { getAvatarColor } from "@/utils/avatar";
+import { ScrapedComment } from "@/utils/constants";
 import { useEffect, useRef, useState } from "react";
 
 interface CommentCardProps {
@@ -12,6 +11,7 @@ interface CommentCardProps {
   thumbnailUrl?: string;
   depth?: number;
   isReplying?: boolean;
+  isSearchingMatches?: boolean;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -38,6 +38,7 @@ export function CommentCard({
   thumbnailUrl,
   depth = 0,
   isReplying = false,
+  isSearchingMatches = false,
 }: CommentCardProps) {
   const isReply = depth > 0;
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
@@ -67,7 +68,12 @@ export function CommentCard({
         <input
           type="checkbox"
           checked={selected}
-          onChange={(e) => onSelect(e.target.checked, e.nativeEvent instanceof MouseEvent && e.nativeEvent.shiftKey)}
+          onChange={(e) =>
+            onSelect(
+              e.target.checked,
+              e.nativeEvent instanceof MouseEvent && e.nativeEvent.shiftKey,
+            )
+          }
           className="mt-0.5 w-4 h-4 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500"
         />
 
@@ -91,8 +97,15 @@ export function CommentCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            {isReply && <span className="text-foreground-muted text-sm">↳</span>}
-            <a href={comment.profileUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+            {isReply && (
+              <span className="text-foreground-muted text-sm">↳</span>
+            )}
+            <a
+              href={comment.profileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0"
+            >
               {comment.avatarUrl && !avatarFailed ? (
                 <img
                   src={comment.avatarUrl}
@@ -127,14 +140,19 @@ export function CommentCard({
             {replyStatusText && (
               <span className="text-xs text-red-400">{replyStatusText}</span>
             )}
-            {!isReply && comment.replyCount != null && comment.replyCount > 0 && (
-              <span className="text-xs text-foreground-muted">
-                {comment.replyCount} {comment.replyCount === 1 ? "reply" : "replies"}
-              </span>
-            )}
+            {!isReply &&
+              comment.replyCount != null &&
+              comment.replyCount > 0 && (
+                <span className="text-xs text-foreground-muted">
+                  {comment.replyCount}{" "}
+                  {comment.replyCount === 1 ? "reply" : "replies"}
+                </span>
+              )}
           </div>
 
-          <div className={`flex gap-1.5 text-sm text-foreground-muted ${isCommentExpanded ? "" : ""}`}>
+          <div
+            className={`flex items-center gap-1.5 text-sm text-foreground-muted ${isCommentExpanded ? "" : ""}`}
+          >
             {comment.videoUrl && (
               <a
                 href={comment.videoUrl}
@@ -143,8 +161,18 @@ export function CommentCard({
                 className="flex-shrink-0 text-foreground-muted hover:text-blue-400 transition-colors mt-0.5"
                 title="Open on TikTok"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
                 </svg>
               </a>
             )}
@@ -163,7 +191,6 @@ export function CommentCard({
               {isCommentExpanded ? "Show less" : "Show more"}
             </button>
           )}
-
         </div>
 
         <div className="flex gap-2 flex-shrink-0 self-center items-center">
@@ -201,9 +228,34 @@ export function CommentCard({
               {isReplying ? "Replying..." : "Reply"}
             </button>
           )}
-          {showDeleteConfirm ? (
+          {isSearchingMatches ? (
+            <div className="flex items-center gap-2 px-2 py-1 border border-red-400/50 bg-red-500/10 rounded-lg">
+              <svg
+                className="w-4 h-4 animate-spin text-red-400"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              <span className="text-xs text-red-400">Searching...</span>
+            </div>
+          ) : showDeleteConfirm ? (
             <div className="flex items-center gap-1.5 px-2 py-1 border border-red-400/50 bg-red-500/10 rounded-lg">
-              <span className="text-xs text-red-400 whitespace-nowrap">Are you sure?</span>
+              <span className="text-xs text-red-400 whitespace-nowrap">
+                Are you sure?
+              </span>
               <button
                 onClick={() => {
                   setShowDeleteConfirm(false);
@@ -212,8 +264,18 @@ export function CommentCard({
                 className="p-1 text-red-400 hover:bg-red-500/20 rounded transition-colors"
                 title="Confirm delete"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </button>
               <button
@@ -221,8 +283,18 @@ export function CommentCard({
                 className="p-1 text-foreground-muted hover:bg-surface-secondary rounded transition-colors"
                 title="Cancel"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>

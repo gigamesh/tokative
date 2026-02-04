@@ -101,7 +101,7 @@ export function SettingsTab({
             className="w-5 h-5 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500"
           />
           <div>
-            <span className="text-sm text-foreground">Hide replies</span>
+            <span className="text-sm text-foreground">Hide your replies</span>
             <p className="text-xs text-foreground-muted">
               Don&apos;t show comments sent via this app (also hides the comment
               being replied to)

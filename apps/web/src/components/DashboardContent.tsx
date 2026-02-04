@@ -66,6 +66,7 @@ export function DashboardContent() {
     loadMore,
     hasMore,
     isLoadingMore,
+    findMatchingComments,
   } = useCommentData({ videoIdFilter: selectedPostId });
 
   const comments = useMemo(() => {
@@ -128,6 +129,7 @@ export function DashboardContent() {
   const [selectedCommentIds, setSelectedCommentIds] = useState<Set<string>>(new Set());
   const [selectedVideoIds, setSelectedVideoIds] = useState<Set<string>>(new Set());
   const [selectedComment, setSelectedComment] = useState<ScrapedComment | null>(null);
+  const [searchingMatchesCommentId, setSearchingMatchesCommentId] = useState<string | null>(null);
   const [postLimitInput, setPostLimitInput] = useState(String(postLimit));
   const [commentLimitInput, setCommentLimitInput] = useState(String(commentLimit));
 
@@ -305,32 +307,36 @@ export function DashboardContent() {
   }, [selectedCommentIds, removeComments, showToast]);
 
   const handleRemoveComment = useCallback(
-    (commentId: string) => {
+    async (commentId: string) => {
       const comment = comments.find((c) => c.id === commentId);
       if (!comment) return;
 
-      const matchingComments = comments.filter(
-        (c) => c.id !== commentId && c.comment.trim() === comment.comment.trim()
-      );
+      setSearchingMatchesCommentId(commentId);
 
-      if (matchingComments.length > 0) {
-        setDeleteModal({
-          isOpen: true,
-          commentId,
-          commentText: comment.comment,
-          matchingIds: matchingComments.map((c) => c.id),
-        });
-      } else {
-        removeComments([commentId]);
-        setSelectedCommentIds((prev) => {
-          const next = new Set(prev);
-          next.delete(commentId);
-          return next;
-        });
-        showToast("Deleted 1 comment");
+      try {
+        const matchingIds = await findMatchingComments(comment.comment, commentId);
+
+        if (matchingIds.length > 0) {
+          setDeleteModal({
+            isOpen: true,
+            commentId,
+            commentText: comment.comment,
+            matchingIds,
+          });
+        } else {
+          removeComments([commentId]);
+          setSelectedCommentIds((prev) => {
+            const next = new Set(prev);
+            next.delete(commentId);
+            return next;
+          });
+          showToast("Deleted 1 comment");
+        }
+      } finally {
+        setSearchingMatchesCommentId(null);
       }
     },
-    [comments, removeComments, showToast]
+    [comments, findMatchingComments, removeComments, showToast]
   );
 
   const handleDeleteOne = useCallback(() => {
@@ -560,6 +566,7 @@ export function DashboardContent() {
                   isLoadingMore={isLoadingMore}
                   isInitialLoading={loading}
                   replyingCommentId={replyProgress?.commentId}
+                  searchingMatchesCommentId={searchingMatchesCommentId}
                   headerContent={
                     <>
                       <h2 className="text-lg font-medium text-foreground">Comments</h2>

@@ -376,3 +376,33 @@ export const getCountsByVideo = query({
     return { counts, totalCount: comments.length };
   },
 });
+
+export const findMatchingByText = query({
+  args: {
+    clerkId: v.string(),
+    commentText: v.string(),
+    excludeCommentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) return [];
+
+    const normalizedText = args.commentText.trim();
+    const allUserComments = await ctx.db
+      .query("comments")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    return allUserComments
+      .filter(
+        (c) =>
+          c.commentId !== args.excludeCommentId &&
+          c.comment.trim() === normalizedText
+      )
+      .map((c) => c.commentId);
+  },
+});

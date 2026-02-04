@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery, useConvex } from "convex/react";
 import { useAuth } from "@/providers/ConvexProvider";
 import { api } from "@tokative/convex";
 import { bridge } from "@/utils/extension-bridge";
@@ -25,6 +25,7 @@ interface UseCommentDataOptions {
 export function useCommentData(options: UseCommentDataOptions = {}) {
   const { videoIdFilter } = options;
   const { userId } = useAuth();
+  const convex = useConvex();
   const [state, setState] = useState<CommentDataState>({
     commentLimit: 100,
     postLimit: 50,
@@ -248,6 +249,18 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     }
   }, [paginationStatus, loadMore]);
 
+  const findMatchingComments = useCallback(
+    async (commentText: string, excludeCommentId: string): Promise<string[]> => {
+      if (!userId) return [];
+      return convex.query(api.comments.findMatchingByText, {
+        clerkId: userId,
+        commentText,
+        excludeCommentId,
+      });
+    },
+    [userId, convex]
+  );
+
   const isInitialLoading = state.loading ||
     paginationStatus === "LoadingFirstPage" ||
     (!hasLoadedInitial && paginatedComments === undefined);
@@ -271,5 +284,6 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     loadMore: handleLoadMore,
     hasMore: paginationStatus === "CanLoadMore",
     isLoadingMore: paginationStatus === "LoadingMore",
+    findMatchingComments,
   };
 }

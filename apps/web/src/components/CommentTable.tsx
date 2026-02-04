@@ -80,6 +80,7 @@ interface CommentTableProps {
   isInitialLoading?: boolean;
   replyingCommentId?: string | null;
   headerContent?: React.ReactNode;
+  searchingMatchesCommentId?: string | null;
 }
 
 export function CommentTable({
@@ -99,6 +100,7 @@ export function CommentTable({
   isInitialLoading,
   replyingCommentId,
   headerContent,
+  searchingMatchesCommentId,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -422,6 +424,7 @@ export function CommentTable({
                   }
                   depth={item.depth}
                   isReplying={replyingCommentId === item.id}
+                  isSearchingMatches={searchingMatchesCommentId === item.id}
                 />
               )}
             </div>
