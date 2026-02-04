@@ -429,9 +429,6 @@ export function DashboardContent() {
   const handleRemoveVideosWithComments = useCallback(
     (videoIds: string[]) => {
       const commentIds = getCommentIdsByVideoIds(videoIds);
-      if (commentIds.length > 0) {
-        removeComments(commentIds);
-      }
       removeVideosList(videoIds);
       setSelectedCommentIds((prev) => {
         const next = new Set(prev);
@@ -444,7 +441,7 @@ export function DashboardContent() {
         return next;
       });
     },
-    [getCommentIdsByVideoIds, removeComments, removeVideosList]
+    [getCommentIdsByVideoIds, removeVideosList]
   );
 
   const handleCancelScraping = useCallback(() => {

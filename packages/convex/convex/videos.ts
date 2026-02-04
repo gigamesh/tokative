@@ -184,6 +184,17 @@ export const removeBatch = mutation({
     }
 
     for (const videoId of args.videoIds) {
+      const comments = await ctx.db
+        .query("comments")
+        .withIndex("by_user_and_video", (q) =>
+          q.eq("userId", user._id).eq("videoId", videoId)
+        )
+        .collect();
+
+      for (const comment of comments) {
+        await ctx.db.delete(comment._id);
+      }
+
       const video = await ctx.db
         .query("videos")
         .withIndex("by_user_and_video_id", (q) =>
