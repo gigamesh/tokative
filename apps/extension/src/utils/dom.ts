@@ -150,6 +150,9 @@ export async function scrollIntoViewAndClick(element: Element): Promise<void> {
   }
 }
 
+import { getLoadedConfig } from "../config/loader";
+import { DEFAULT_CONFIG } from "../config/defaults";
+
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -172,16 +175,18 @@ function clamp(value: number, min: number, max: number): number {
 
 export type DelayProfile = "micro" | "short" | "medium" | "long" | "typing";
 
-const DELAY_PROFILES: Record<DelayProfile, { mean: number; stdDev: number; min: number; max: number }> = {
-  micro: { mean: 30, stdDev: 10, min: 10, max: 60 },
-  short: { mean: 100, stdDev: 30, min: 50, max: 180 },
-  medium: { mean: 200, stdDev: 60, min: 100, max: 350 },
-  long: { mean: 400, stdDev: 100, min: 200, max: 700 },
-  typing: { mean: 25, stdDev: 10, min: 10, max: 55 },
-};
+function getDelayProfiles(): Record<string, { mean: number; stdDev: number; min: number; max: number }> {
+  try {
+    return getLoadedConfig().delays.profiles;
+  } catch {
+    return DEFAULT_CONFIG.delays.profiles;
+  }
+}
 
 export function humanDelay(profile: DelayProfile): Promise<void> {
-  const { mean, stdDev, min, max } = DELAY_PROFILES[profile];
+  const profiles = getDelayProfiles();
+  const profileConfig = profiles[profile] || DEFAULT_CONFIG.delays.profiles[profile];
+  const { mean, stdDev, min, max } = profileConfig;
   const delay = clamp(Math.round(gaussianRandom(mean, stdDev)), min, max);
   return sleep(delay);
 }

@@ -101,6 +101,10 @@ export const MessageType = {
 
   // Tab visibility
   ACTIVATE_TAB: "ACTIVATE_TAB",
+
+  // Remote config
+  GET_CONFIG: "GET_CONFIG",
+  REFRESH_CONFIG: "REFRESH_CONFIG",
 } as const;
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
