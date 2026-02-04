@@ -9,6 +9,7 @@ import { humanDelay, humanDelayWithJitter, isVisible } from "../../utils/dom";
 import { addScrapedComments, addVideos } from "../../utils/storage";
 import { querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { getAllCommentElements, VIDEO_SELECTORS } from "./video-selectors";
+import { getLoadedConfig } from "../../config/loader";
 
 interface DiagnosticData {
   displayedCount: number | null;
@@ -181,8 +182,9 @@ export async function extractAllReactData(): Promise<Map<number, CommentReactDat
   const extractEvent = new CustomEvent("tokative-extract");
   document.dispatchEvent(extractEvent);
 
-  // Wait for the extraction to complete - 500ms to allow React to settle
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  // Wait for the extraction to complete - allow React to settle
+  const config = getLoadedConfig();
+  await new Promise((resolve) => setTimeout(resolve, config.delays.reactSettle));
 
   const dataAttr = document.documentElement.getAttribute(
     "data-tokative-comments",
@@ -579,8 +581,9 @@ async function expandAndSaveReplies(
       if (processedThreads.has(parentComment)) continue;
 
       // Fully expand this thread by clicking "View X replies" / "View X more" until done
+      const config = getLoadedConfig();
       let threadClicks = 0;
-      const maxClicksPerThread = 20; // Safety limit per thread
+      const maxClicksPerThread = config.limits.maxClicksPerThread;
       let consecutiveNoNewReplies = 0; // Track clicks that didn't yield new replies
 
       while (!isCancelled && threadClicks < maxClicksPerThread) {
@@ -641,8 +644,8 @@ async function expandAndSaveReplies(
           onProgress?.(cumulativeStats);
         } else {
           consecutiveNoNewReplies++;
-          // If we've clicked 3 times without getting new replies, this thread is stuck
-          if (consecutiveNoNewReplies >= 3) {
+          // If we've clicked N times without getting new replies, this thread is stuck
+          if (consecutiveNoNewReplies >= config.limits.consecutiveNoReplies) {
             log(
               `[Tokative] Thread stuck after ${consecutiveNoNewReplies} clicks with no new replies, moving on`,
             );
@@ -670,8 +673,9 @@ async function expandAndSaveReplies(
 }
 
 async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
+  const config = getLoadedConfig();
   const initialText = clickedButton.textContent?.toLowerCase() || "";
-  const maxWaitTime = 5000;
+  const maxWaitTime = config.timeouts.commentPost;
   const pollInterval = 200; // Slower polling
   let waited = 0;
 
@@ -745,11 +749,13 @@ function hasSkeletonLoaders(scroller: Element): boolean {
  */
 async function waitForSkeletonsToDisappear(
   scroller: Element,
-  timeout: number = 3000,
+  timeout?: number,
 ): Promise<boolean> {
+  const config = getLoadedConfig();
+  const timeoutMs = timeout ?? config.timeouts.skeletonLoader;
   const startTime = Date.now();
   const initialHasSkeletons = hasSkeletonLoaders(scroller);
-  log(`[Tokative] [SKEL] Start: initialHasSkeletons=${initialHasSkeletons}, timeout=${timeout}ms`);
+  log(`[Tokative] [SKEL] Start: initialHasSkeletons=${initialHasSkeletons}, timeout=${timeoutMs}ms`);
 
   return new Promise((resolve) => {
     let sawSkeletons = initialHasSkeletons;
@@ -782,7 +788,7 @@ async function waitForSkeletonsToDisappear(
 
     setTimeout(() => {
       cleanup(sawSkeletons, sawSkeletons ? "timeout_with_skeletons" : "timeout_no_skeletons");
-    }, timeout);
+    }, timeoutMs);
   });
 }
 
@@ -804,11 +810,12 @@ async function scrollAndWaitForContent(
 
   // If we're already at the bottom, scroll UP first to create movement
   // This triggers TikTok's lazy loading which requires actual scroll movement
+  const config = getLoadedConfig();
   if (wasAtBottom) {
     const scrollUpAmount = Math.min(500, scrollTopBefore);
     scroller.scrollTop = scrollTopBefore - scrollUpAmount;
     scroller.dispatchEvent(new Event("scroll", { bubbles: true }));
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, config.delays.scrollUp));
     log(`[Tokative] Was at bottom, scrolled up to ${scroller.scrollTop}`);
   }
 
@@ -835,12 +842,12 @@ async function scrollAndWaitForContent(
   await new Promise((resolve) => setTimeout(resolve, 200));
 
   // Wait for skeletons to appear and disappear (indicates loading)
-  const skeletonsAppeared = await waitForSkeletonsToDisappear(scroller, 3000);
+  const skeletonsAppeared = await waitForSkeletonsToDisappear(scroller);
 
   // If no skeletons appeared, wait a fallback timeout for any delayed content
   if (!skeletonsAppeared) {
-    log(`[Tokative] No skeletons detected, waiting fallback 2000ms`);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    log(`[Tokative] No skeletons detected, waiting fallback ${config.delays.fallbackContent}ms`);
+    await new Promise((resolve) => setTimeout(resolve, config.delays.fallbackContent));
   }
 
   if (isCancelled) {
@@ -1128,7 +1135,8 @@ async function scrollToLoadComments(
 async function waitForCommentContent(
   options: { timeout?: number } = {},
 ): Promise<boolean> {
-  const { timeout = 10000 } = options;
+  const config = getLoadedConfig();
+  const { timeout = config.timeouts.commentLoadWait } = options;
   const startTime = Date.now();
   const pollInterval = 200;
 
@@ -1249,11 +1257,13 @@ function extractThumbnailFromVideoItem(videoItem: Element): string | null {
 
 async function waitForThumbnailToLoad(
   videoItem: Element,
-  timeout: number = 2000,
+  timeout?: number,
 ): Promise<string | null> {
+  const config = getLoadedConfig();
+  const timeoutMs = timeout ?? config.timeouts.thumbnailLoad;
   const startTime = Date.now();
 
-  while (Date.now() - startTime < timeout) {
+  while (Date.now() - startTime < timeoutMs) {
     const thumbnail = extractThumbnailFromVideoItem(videoItem);
     if (thumbnail) {
       return thumbnail;
@@ -1277,12 +1287,13 @@ function extractVideoIdFromVideoItem(videoItem: Element): string | null {
 }
 
 async function closeVideoModal(): Promise<void> {
+  const config = getLoadedConfig();
   log("[Tokative] Closing modal with history.back()");
   window.history.back();
 
   // Wait for the video grid to reappear (confirms we're back on profile)
   const grid = await waitForSelector(VIDEO_SELECTORS.videoGrid, {
-    timeout: 5000,
+    timeout: config.timeouts.modalClose,
   });
   if (grid) {
     log("[Tokative] Back on profile page, video grid found");
@@ -1536,9 +1547,10 @@ export async function scrapeProfileVideoMetadata(
       break;
     }
 
+    const config = getLoadedConfig();
     if (videoItems.length === lastCount) {
       stableIterations++;
-      if (stableIterations >= 3) {
+      if (stableIterations >= config.limits.stableIterationsRequired) {
         break;
       }
     } else {

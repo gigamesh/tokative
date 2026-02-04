@@ -3,6 +3,7 @@ import { humanDelay, humanClick } from "../../utils/dom";
 import { addScrapedComments } from "../../utils/storage";
 import { SELECTORS, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { findRecentlyPostedReplyWithRetry } from "./video-scraper";
+import { getLoadedConfig } from "../../config/loader";
 
 export interface ReplyResult {
   postedReplyId?: string;
@@ -55,8 +56,9 @@ export async function replyToComment(
 
   sendProgress(user.id, "replying", "Waiting for reply input...");
 
+  const config = getLoadedConfig();
   const commentInput = await waitForSelector<HTMLElement>(SELECTORS.commentInput, {
-    timeout: 10000,
+    timeout: config.timeouts.selectorWait,
   });
 
   if (!commentInput) {
@@ -89,7 +91,7 @@ export async function replyToComment(
   sendProgress(user.id, "replying", "Posting reply...");
 
   const postButton = await waitForSelector<HTMLElement>(SELECTORS.commentPostButton, {
-    timeout: 5000,
+    timeout: config.timeouts.commentPost,
   });
 
   console.log("[CommentReplier] Post button found:", !!postButton);
@@ -126,12 +128,12 @@ export async function replyToComment(
     console.log("[CommentReplier] Extracting posted reply...");
 
     // Wait a moment for TikTok to add the reply to DOM/React state
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, config.delays.postReply));
 
     const postedReply = await findRecentlyPostedReplyWithRetry({
       parentCommentId: user.id,
       replyText: replyMessage,
-      maxAgeSeconds: 60,
+      maxAgeSeconds: config.timeouts.replyTimeout / 1000,
     });
 
     if (postedReply) {
@@ -151,6 +153,7 @@ export async function replyToComment(
 }
 
 async function waitForFirstComment(): Promise<Element | null> {
+  const config = getLoadedConfig();
   console.log("[CommentReplier] Waiting for first comment to load...");
 
   return new Promise((resolve) => {
@@ -187,7 +190,7 @@ async function waitForFirstComment(): Promise<Element | null> {
       const items = querySelectorAll(SELECTORS.commentItem);
       console.log("[CommentReplier] Timeout reached. Found", items.length, "comments");
       resolve(items.length > 0 ? items[0] : null);
-    }, 15000);
+    }, config.timeouts.firstCommentWait);
   });
 }
 

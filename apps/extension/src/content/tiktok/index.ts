@@ -2,6 +2,7 @@ import { MessageType, ExtensionMessage, ScrapedComment } from "../../types";
 import { guardExtensionContext } from "../../utils/dom";
 import { replyToComment } from "./comment-replier";
 import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape } from "./video-scraper";
+import { loadConfig } from "../../config/loader";
 
 let port: chrome.runtime.Port | null = null;
 
@@ -12,13 +13,21 @@ function injectMainWorldScript(): void {
   (document.head || document.documentElement).appendChild(script);
 }
 
-function init(): void {
+async function init(): Promise<void> {
   if (!guardExtensionContext()) {
     console.warn("[TikTok] Extension context invalid");
     return;
   }
 
   console.log("[TikTok] Content script initialized");
+
+  // Load config early so it's available for all operations
+  try {
+    const config = await loadConfig();
+    console.log("[TikTok] Config loaded, version:", config.version);
+  } catch (error) {
+    console.warn("[TikTok] Failed to load config, using defaults:", error);
+  }
 
   // Inject main world script early so it's ready for React props extraction
   injectMainWorldScript();

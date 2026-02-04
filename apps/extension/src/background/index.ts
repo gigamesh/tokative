@@ -7,6 +7,7 @@ import {
 } from "../types";
 import { colors } from "@tokative/shared";
 import { setAuthToken } from "../utils/convex-api";
+import { loadConfig, refreshConfig, getLoadedConfig } from "../config/loader";
 import {
   addScrapedComments,
   addToIgnoreList,
@@ -496,6 +497,16 @@ async function handleMessage(
       return { success: true };
     }
 
+    case MessageType.GET_CONFIG: {
+      const config = getLoadedConfig();
+      return { config };
+    }
+
+    case MessageType.REFRESH_CONFIG: {
+      const config = await refreshConfig();
+      return { config };
+    }
+
     default:
       console.log("[Background] Unknown message type:", message.type);
       return null;
@@ -673,8 +684,9 @@ async function forwardToContentScript(
   message: ExtensionMessage,
   responsePort: chrome.runtime.Port,
 ): Promise<void> {
-  const maxRetries = 20;
-  const retryDelay = 2000;
+  const config = getLoadedConfig();
+  const maxRetries = config.limits.contentScriptRetries;
+  const retryDelay = config.limits.contentScriptRetryDelay;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -775,6 +787,7 @@ async function handleReplyToComment(
       await waitForTabLoad(tabId);
     }
 
+    const config = getLoadedConfig();
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         chrome.runtime.onMessage.removeListener(responseHandler);
@@ -782,7 +795,7 @@ async function handleReplyToComment(
           type: MessageType.REPLY_COMMENT_ERROR,
           payload: {
             commentId: comment.id,
-            error: "Reply timed out after 60 seconds",
+            error: `Reply timed out after ${config.timeouts.replyTimeout / 1000} seconds`,
           },
         });
         if (tabCreatedHere && tabId) {
@@ -790,7 +803,7 @@ async function handleReplyToComment(
           chrome.tabs.remove(tabId).catch(() => {});
         }
         resolve({ success: false, error: "Timeout", tabId: existingTabId ? tabId : undefined });
-      }, 60000);
+      }, config.timeouts.replyTimeout);
 
       const responseHandler = (msg: ExtensionMessage) => {
         if (msg.type === MessageType.REPLY_COMMENT_COMPLETE) {
@@ -1377,11 +1390,12 @@ async function scrapeVideoComments(
 }
 
 function waitForTabLoad(tabId: number): Promise<void> {
+  const config = getLoadedConfig();
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(listener);
       reject(new Error("Tab load timeout"));
-    }, 60000);
+    }, config.timeouts.tabLoad);
 
     const listener = (
       updatedTabId: number,
@@ -1502,6 +1516,23 @@ getScrapingState().then((state) => {
       state.tabId,
     );
   }
+});
+
+// Load config on service worker startup
+loadConfig()
+  .then((config) => {
+    console.log("[Background] Config loaded, version:", config.version);
+  })
+  .catch((error) => {
+    console.warn("[Background] Failed to load config:", error);
+  });
+
+// Refresh config on extension install/update
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("[Background] Extension installed/updated, refreshing config");
+  refreshConfig().catch((error) => {
+    console.warn("[Background] Failed to refresh config on install:", error);
+  });
 });
 
 console.log("[Background] Tokative service worker initialized");

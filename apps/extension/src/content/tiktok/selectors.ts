@@ -1,63 +1,29 @@
+import { getLoadedConfig } from "../../config/loader";
+import { DEFAULT_CONFIG } from "../../config/defaults";
+
+function getInboxSelectors(): Record<string, string[]> {
+  try {
+    return getLoadedConfig().selectors.inbox;
+  } catch {
+    return DEFAULT_CONFIG.selectors.inbox;
+  }
+}
+
 export const SELECTORS = {
-  activityButton: [
-    '[data-e2e="nav-activity"]',
-    '[aria-label="Activity"]',
-  ],
-
-  notificationPanel: [
-    '[data-e2e="inbox-notifications"]',
-  ],
-
-  commentsTab: [
-    '[data-e2e="comments"]',
-    'button[role="tab"]:has-text("Comments")',
-  ],
-
-  inboxList: [
-    '[data-e2e="inbox-list"]',
-  ],
-
-  inboxItem: [
-    '[data-e2e="inbox-list-item"]',
-  ],
-
-  inboxTitle: [
-    '[data-e2e="inbox-title"]',
-  ],
-
-  inboxContent: [
-    '[data-e2e="inbox-content"]',
-  ],
-
-  profileLink: [
-    'a[href*="/@"]',
-  ],
-
-  commentItem: [
-    '[data-e2e="comment-level-1"]',
-  ],
-
-  commentUsername: [
-    '[data-e2e="comment-username-1"]',
-  ],
-
-  commentText: [
-    '[data-e2e="comment-level-1"] span[data-e2e="comment-text"]',
-    '[data-e2e="comment-level-1"] > div > span',
-  ],
-
-  commentReplyButton: [
-    '[data-e2e="comment-reply-1"]',
-  ],
-
-  commentInput: [
-    '[data-e2e="comment-input"]',
-    '[data-e2e="comment-input"] [contenteditable="true"]',
-  ],
-
-  commentPostButton: [
-    '[data-e2e="comment-post"]',
-  ],
+  get activityButton() { return getInboxSelectors().activityButton; },
+  get notificationPanel() { return getInboxSelectors().notificationPanel; },
+  get commentsTab() { return getInboxSelectors().commentsTab; },
+  get inboxList() { return getInboxSelectors().inboxList; },
+  get inboxItem() { return getInboxSelectors().inboxItem; },
+  get inboxTitle() { return getInboxSelectors().inboxTitle; },
+  get inboxContent() { return getInboxSelectors().inboxContent; },
+  get profileLink() { return getInboxSelectors().profileLink; },
+  get commentItem() { return getInboxSelectors().commentItem; },
+  get commentUsername() { return getInboxSelectors().commentUsername; },
+  get commentText() { return getInboxSelectors().commentText; },
+  get commentReplyButton() { return getInboxSelectors().commentReplyButton; },
+  get commentInput() { return getInboxSelectors().commentInput; },
+  get commentPostButton() { return getInboxSelectors().commentPostButton; },
 };
 
 export function querySelector<T extends Element>(
@@ -117,7 +83,8 @@ export async function waitForSelector<T extends Element>(
     parent?: Element | Document;
   } = {}
 ): Promise<T | null> {
-  const { timeout = 10000, parent = document } = options;
+  const config = getLoadedConfig();
+  const { timeout = config.timeouts.selectorWait, parent = document } = options;
 
   const existing = querySelector<T>(selectors, parent);
   if (existing) return existing;
