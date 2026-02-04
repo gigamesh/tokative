@@ -426,18 +426,6 @@ export function DashboardContent() {
     [setSelectedPost]
   );
 
-  const handlePostSelectionChange = useCallback(
-    (videoIds: string[], selected: boolean) => {
-      const commentIds = getCommentIdsByVideoIds(videoIds);
-      setSelectedCommentIds((prev) => {
-        const next = new Set(prev);
-        commentIds.forEach((id) => (selected ? next.add(id) : next.delete(id)));
-        return next;
-      });
-    },
-    [getCommentIdsByVideoIds]
-  );
-
   const handleRemoveVideosWithComments = useCallback(
     (videoIds: string[]) => {
       const commentIds = getCommentIdsByVideoIds(videoIds);
@@ -540,7 +528,7 @@ export function DashboardContent() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+          <div className={`${activeTab === "posts" ? "lg:col-span-3" : "lg:col-span-2"}`}>
             <div className={activeTab !== "posts" ? "hidden" : ""}>
               <PostsGrid
                 videos={videos}
@@ -552,7 +540,6 @@ export function DashboardContent() {
                 onGetComments={getCommentsForVideos}
                 onRemoveVideos={handleRemoveVideosWithComments}
                 onViewPostComments={handleViewPostComments}
-                onPostSelectionChange={handlePostSelectionChange}
                 isScraping={isScraping}
                 onCancelScraping={handleCancelScraping}
               />
@@ -623,7 +610,7 @@ export function DashboardContent() {
             </div>
           </div>
 
-          <div className="space-y-6 sticky top-header self-start">
+          <div className={`space-y-6 sticky top-header self-start ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}>
             <ReplyComposer
               selectedComment={selectedComment}
               selectedComments={selectedCommentsForDisplay}
