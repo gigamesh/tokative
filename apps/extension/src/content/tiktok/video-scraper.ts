@@ -8,7 +8,7 @@ import type {
 import { humanDelay, humanDelayWithJitter, isVisible } from "../../utils/dom";
 import { addScrapedComments, addVideos } from "../../utils/storage";
 import { querySelector, querySelectorAll, waitForSelector } from "./selectors";
-import { VIDEO_SELECTORS } from "./video-selectors";
+import { getAllCommentElements, VIDEO_SELECTORS } from "./video-selectors";
 
 interface DiagnosticData {
   displayedCount: number | null;
@@ -319,6 +319,10 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<
   const seenIds = new Set<string>();
   let repliesFound = 0;
 
+  // Get DOM elements to check for static stickers (same ordering as page-script)
+  const commentElements = getAllCommentElements();
+  const stickerSelector = VIDEO_SELECTORS.commentStickerImage[0];
+
   // Use React data directly - it has all the info we need (cid, text, user, reply_id)
   // This avoids index mismatch issues between page-script and content-script
   for (const [index, reactData] of reactDataMap) {
@@ -335,12 +339,22 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<
       repliesFound++;
     }
 
+    // Check for static sticker image in DOM and normalize text
+    let commentText = reactData.text || "";
+    const domElement = commentElements[index];
+    if (domElement && !commentText.includes("[sticker]")) {
+      const hasStickerImage = domElement.querySelector(stickerSelector) !== null;
+      if (hasStickerImage) {
+        commentText = commentText ? `${commentText} [sticker]` : "[sticker]";
+      }
+    }
+
     const comment: RawCommentData = {
       commentId,
       tiktokUserId: reactData.user?.uid || "",
       handle: reactData.user?.unique_id || "",
       displayName: reactData.user?.nickname || reactData.user?.unique_id || "",
-      comment: reactData.text || "",
+      comment: commentText,
       createTime: reactData.create_time || Math.floor(Date.now() / 1000),
       // Prefer URL videoId since that's what web app uses for filtering
       videoId: videoId || reactData.aweme_id || "",

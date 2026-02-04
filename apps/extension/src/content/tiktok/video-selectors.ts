@@ -81,6 +81,10 @@ export const VIDEO_SELECTORS = {
     'span[data-e2e="comment-level-1"]',
   ],
 
+  commentStickerImage: [
+    '[data-e2e="comment-thumbnail"]',
+  ],
+
   commentReplyButton: [
     '[data-e2e="comment-reply-1"]',
   ],
