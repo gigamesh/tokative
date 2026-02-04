@@ -137,18 +137,16 @@ export function getDisplayedCommentCount(): number | null {
     if (el?.textContent) {
       const count = parseCommentCount(el.textContent);
       if (count !== null) {
-        log(`[DIAG] Found displayed comment count: ${count} (from "${el.textContent.trim()}")`);
         return count;
       }
     }
   }
-  log("[DIAG] Could not find displayed comment count");
   return null;
 }
 
 function logDiagnosticSummary(
   diagnostics: DiagnosticData,
-  comments: ScrapedComment[],
+  _comments: ScrapedComment[],
 ): void {
   const { displayedCount, scrapedTotal, topLevelCount, replyCount, incompleteThreads } = diagnostics;
 
@@ -157,13 +155,7 @@ function logDiagnosticSummary(
     ? ((scrapedTotal / displayedCount) * 100).toFixed(1)
     : "N/A";
 
-  console.log(`
-[DIAG] ═══════════════════════════════════════════════════
-[DIAG] Comment Scrape Summary:
-[DIAG]   Displayed: ${displayedStr} | Scraped: ${scrapedTotal}
-[DIAG]   Top-level: ${topLevelCount} | Replies: ${replyCount}
-[DIAG]   Capture rate: ${capturedPct}%
-[DIAG] ───────────────────────────────────────────────────`);
+  log(`[Tokative] Scrape Summary: Displayed=${displayedStr}, Scraped=${scrapedTotal}, TopLevel=${topLevelCount}, Replies=${replyCount}, CaptureRate=${capturedPct}%`);
 
   if (incompleteThreads.length > 0) {
     const sorted = incompleteThreads
@@ -171,16 +163,8 @@ function logDiagnosticSummary(
       .sort((a, b) => b.missing - a.missing)
       .slice(0, 5);
 
-    console.log(`[DIAG] Incomplete threads (top ${sorted.length} by missing replies):`);
-    for (const t of sorted) {
-      console.log(`[DIAG]   ${t.parentId}: expected ${t.expected}, got ${t.got} (missing ${t.missing})`);
-    }
-  } else {
-    console.log(`[DIAG] All reply threads fully expanded`);
+    log(`[Tokative] Incomplete threads (top ${sorted.length}): ${sorted.map(t => `${t.parentId}:${t.got}/${t.expected}`).join(", ")}`);
   }
-
-  console.log(`[DIAG] ═══════════════════════════════════════════════════
-`);
 }
 
 export async function extractAllReactData(): Promise<Map<number, CommentReactData>> {
@@ -727,9 +711,10 @@ async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
 }
 
 interface ScrollResult {
-  scrollMoved: boolean;
-  contentGrew: boolean;
-  foundNewReactData: boolean;
+  lastCommentId: string | null;
+  commentCount: number;
+  hasNewContent: boolean;
+  skeletonsAppeared: boolean;
 }
 
 /**
@@ -741,57 +726,66 @@ function hasSkeletonLoaders(scroller: Element): boolean {
 }
 
 /**
- * Waits for skeleton loaders to disappear, indicating content has loaded.
- * Returns true if skeletons were found and disappeared, false if timeout or no skeletons.
+ * Uses MutationObserver to detect skeleton loaders, even if they appear and disappear quickly.
+ * Returns true if skeletons were observed at any point, false if none appeared within timeout.
  */
 async function waitForSkeletonsToDisappear(
   scroller: Element,
-  timeout: number = 5000,
+  timeout: number = 3000,
 ): Promise<boolean> {
-  const pollInterval = 100;
-  let waited = 0;
+  const startTime = Date.now();
+  const initialHasSkeletons = hasSkeletonLoaders(scroller);
+  log(`[Tokative] [SKEL] Start: initialHasSkeletons=${initialHasSkeletons}, timeout=${timeout}ms`);
 
-  // First check if there are any skeletons
-  if (!hasSkeletonLoaders(scroller)) {
-    return false; // No skeletons found
-  }
+  return new Promise((resolve) => {
+    let sawSkeletons = initialHasSkeletons;
+    let resolved = false;
+    let mutationCount = 0;
 
-  log(`[Tokative] Skeleton loaders detected, waiting for them to disappear...`);
+    const cleanup = (result: boolean, reason: string) => {
+      if (resolved) return;
+      resolved = true;
+      observer.disconnect();
+      const elapsed = Date.now() - startTime;
+      log(`[Tokative] [SKEL] Done: sawSkeletons=${result}, reason=${reason}, elapsed=${elapsed}ms, mutations=${mutationCount}`);
+      resolve(result);
+    };
 
-  while (waited < timeout) {
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
-    waited += pollInterval;
+    const observer = new MutationObserver(() => {
+      mutationCount++;
+      const hasNow = hasSkeletonLoaders(scroller);
+      if (hasNow) {
+        if (!sawSkeletons) {
+          log(`[Tokative] [SKEL] Detected via observer after ${Date.now() - startTime}ms`);
+        }
+        sawSkeletons = true;
+      } else if (sawSkeletons) {
+        cleanup(true, "skeletons_disappeared");
+      }
+    });
 
-    if (!hasSkeletonLoaders(scroller)) {
-      log(`[Tokative] Skeletons disappeared after ${waited}ms`);
-      return true;
-    }
-  }
+    observer.observe(scroller, { childList: true, subtree: true });
 
-  log(`[Tokative] Skeletons still present after ${timeout}ms timeout`);
-  return true; // Skeletons were present (even if they didn't disappear)
+    setTimeout(() => {
+      cleanup(sawSkeletons, sawSkeletons ? "timeout_with_skeletons" : "timeout_no_skeletons");
+    }, timeout);
+  });
 }
 
 async function scrollAndWaitForContent(
   scroller: Element,
-  knownCommentIds: Set<string>,
+  prevLastCommentId: string | null,
+  prevCommentCount: number,
 ): Promise<ScrollResult> {
-  const scrollHeightBefore = scroller.scrollHeight;
   const scrollTopBefore = scroller.scrollTop;
   const clientHeight = scroller.clientHeight;
+  const scrollHeightBefore = scroller.scrollHeight;
 
   // Check if we're already at the bottom before scrolling
   const wasAtBottom = scrollTopBefore + clientHeight >= scrollHeightBefore - 10;
 
-  // Get current React data comment IDs for comparison
-  const reactDataBefore = await extractAllReactData();
-  const reactIdsBefore = new Set(
-    Array.from(reactDataBefore.values()).map((r) => r.cid),
-  );
-  const reactCountBefore = reactDataBefore.size;
-
   log(
-    `[Tokative] scrollAndWait: before scroll - top=${scrollTopBefore}, height=${scrollHeightBefore}, wasAtBottom=${wasAtBottom}, reactCount=${reactCountBefore}`,
+    `[Tokative] scrollAndWait: before scroll - top=${scrollTopBefore}, height=${scrollHeightBefore}, wasAtBottom=${wasAtBottom}, prevLastId=${prevLastCommentId}, prevCount=${prevCommentCount}`,
   );
 
   // If we're already at the bottom, scroll UP first to create movement
@@ -799,110 +793,73 @@ async function scrollAndWaitForContent(
   if (wasAtBottom) {
     const scrollUpAmount = Math.min(500, scrollTopBefore);
     scroller.scrollTop = scrollTopBefore - scrollUpAmount;
-    // Dispatch scroll event to ensure TikTok's listeners are triggered
     scroller.dispatchEvent(new Event("scroll", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 150));
     log(`[Tokative] Was at bottom, scrolled up to ${scroller.scrollTop}`);
   }
 
-  // Now scroll to bottom using scrollBy for more natural behavior
+  // Scroll to bottom using scrollBy for more natural behavior
   const currentPos = scroller.scrollTop;
   const targetPos = scroller.scrollHeight;
   const scrollAmount = targetPos - currentPos;
 
   if (scrollAmount > 0) {
-    // Scroll in chunks to simulate more natural scrolling
     const chunkSize = Math.min(scrollAmount, 800);
     scroller.scrollBy({ top: chunkSize, behavior: "instant" });
     scroller.dispatchEvent(new Event("scroll", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    // Scroll the rest if needed
     if (scrollAmount > chunkSize) {
       scroller.scrollTop = targetPos;
       scroller.dispatchEvent(new Event("scroll", { bubbles: true }));
     }
   } else {
-    // We're already at the target, but still dispatch scroll event
     scroller.dispatchEvent(new Event("scroll", { bubbles: true }));
   }
 
-  // Wait a moment for TikTok to show skeleton loaders (if loading more content)
+  // Wait a moment for TikTok to show skeleton loaders
   await new Promise((resolve) => setTimeout(resolve, 200));
 
-  // Check for skeleton loaders - their presence means content is loading
-  const skeletonsAppeared = await waitForSkeletonsToDisappear(scroller, 5000);
+  // Wait for skeletons to appear and disappear (indicates loading)
+  const skeletonsAppeared = await waitForSkeletonsToDisappear(scroller, 3000);
 
-  // Poll for changes with timeout
-  const maxWaitTime = skeletonsAppeared ? 2000 : 5000; // Shorter wait if we already waited for skeletons
-  const pollInterval = 300;
-  let waited = 0;
-  let scrollMoved = false;
-  let contentGrew = false;
-  let foundNewReactData = false;
-
-  while (waited < maxWaitTime) {
-    if (isCancelled) {
-      log(`[Tokative] Cancelled during scroll wait`);
-      break;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
-    waited += pollInterval;
-
-    if (isCancelled) {
-      log(`[Tokative] Cancelled during scroll wait`);
-      break;
-    }
-
-    const scrollTopAfter = scroller.scrollTop;
-    const scrollHeightAfter = scroller.scrollHeight;
-
-    scrollMoved = Math.abs(scrollTopAfter - scrollTopBefore) > 5;
-    contentGrew = scrollHeightAfter > scrollHeightBefore + 10;
-
-    // Check if React data has new comments we haven't seen
-    const reactDataAfter = await extractAllReactData();
-
-    for (const [, data] of reactDataAfter) {
-      if (
-        data.cid &&
-        !reactIdsBefore.has(data.cid) &&
-        !knownCommentIds.has(data.cid)
-      ) {
-        foundNewReactData = true;
-        break;
-      }
-    }
-
-    // If we found new content, we're done waiting
-    if (foundNewReactData || contentGrew) {
-      log(
-        `[Tokative] Found new content after ${waited}ms (skeletons=${skeletonsAppeared}): contentGrew=${contentGrew}, foundNewReactData=${foundNewReactData}`,
-      );
-      break;
-    }
-
-    // If skeletons appeared and disappeared but no new content yet, keep waiting briefly
-    // If no skeletons appeared at all, we're likely at the end - exit sooner
-    if (!skeletonsAppeared && waited >= 2000) {
-      const atBottom = scrollTopAfter + clientHeight >= scrollHeightAfter - 10;
-      if (atBottom && !scrollMoved && !contentGrew) {
-        log(
-          `[Tokative] No skeletons and at bottom after ${waited}ms - likely end of content`,
-        );
-        break;
-      }
-    }
+  // If no skeletons appeared, wait a fallback timeout for any delayed content
+  if (!skeletonsAppeared) {
+    log(`[Tokative] No skeletons detected, waiting fallback 2000ms`);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
-  const finalHeight = scroller.scrollHeight;
-  const finalTop = scroller.scrollTop;
+  if (isCancelled) {
+    log(`[Tokative] Cancelled during scroll wait`);
+    return {
+      lastCommentId: prevLastCommentId,
+      commentCount: prevCommentCount,
+      hasNewContent: false,
+      skeletonsAppeared,
+    };
+  }
+
+  // Extract current React data to compare with previous state
+  const reactDataAfter = await extractAllReactData();
+  const commentsAfter = Array.from(reactDataAfter.values()).filter((r) => r.cid);
+  const countAfter = commentsAfter.length;
+  const lastIdAfter = commentsAfter.length > 0 ? commentsAfter[commentsAfter.length - 1].cid : null;
+
+  // Determine if new content was loaded by comparing last comment ID and count
+  const idChanged = lastIdAfter !== prevLastCommentId;
+  const countChanged = countAfter !== prevCommentCount;
+  const hasNewContent = idChanged || countChanged;
+
   log(
-    `[Tokative] scrollAndWait complete: ${scrollTopBefore}->${finalTop}, height ${scrollHeightBefore}->${finalHeight}, moved=${scrollMoved}, grew=${contentGrew}, newData=${foundNewReactData}`,
+    `[Tokative] scrollAndWait complete: skeletons=${skeletonsAppeared}, lastId=${prevLastCommentId}->${lastIdAfter}, count=${prevCommentCount}->${countAfter}, hasNewContent=${hasNewContent}`,
   );
 
-  return { scrollMoved, contentGrew, foundNewReactData };
+  return {
+    lastCommentId: lastIdAfter,
+    commentCount: countAfter,
+    hasNewContent,
+    skeletonsAppeared,
+  };
 }
 
 interface ScrapeResult {
@@ -945,12 +902,15 @@ async function scrollToLoadComments(
     };
   }
 
-  let stableIterations = 0;
   let loopIteration = 0;
   let exitReason = "unknown";
   const allComments: ScrapedComment[] = [];
   const savedCommentIds = new Set<string>();
   let lastIterationTime = Date.now();
+
+  // Track last comment ID and count for end detection
+  let lastCommentId: string | null = null;
+  let lastCommentCount = 0;
 
   // Track cumulative stats
   const cumulativeStats: ScrapeStats = {
@@ -1073,45 +1033,35 @@ async function scrollToLoadComments(
     // Scroll down and wait for new content to load
     const scrollResult = await scrollAndWaitForContent(
       scroller,
-      savedCommentIds,
-    );
-    log(
-      `[Tokative] Scroll result: scrollMoved=${scrollResult.scrollMoved}, contentGrew=${scrollResult.contentGrew}, newReactData=${scrollResult.foundNewReactData}`,
+      lastCommentId,
+      lastCommentCount,
     );
 
-    // Track stability: we're done if no new comments AND scroll had no effect
-    const foundNewComments = allComments.length > countBefore;
+    // Update tracked state for next iteration
+    lastCommentId = scrollResult.lastCommentId;
+    lastCommentCount = scrollResult.commentCount;
+
     const addedThisIteration = allComments.length - countBefore;
-
-    // reachedEnd means the scroll produced no signs of more content
-    const reachedEnd =
-      !scrollResult.scrollMoved &&
-      !scrollResult.contentGrew &&
-      !scrollResult.foundNewReactData;
-
     log(
-      `[Tokative] Iteration ${loopIteration} summary: foundNewComments=${foundNewComments} (+${addedThisIteration}), reachedEnd=${reachedEnd}`,
+      `[Tokative] Iteration ${loopIteration} summary: added=${addedThisIteration}, hasNewContent=${scrollResult.hasNewContent}, skeletons=${scrollResult.skeletonsAppeared}, lastId=${lastCommentId}, count=${lastCommentCount}`,
     );
 
-    if (!foundNewComments && reachedEnd) {
-      stableIterations++;
+    // Stop if skeletons appeared but no new content loaded (we've reached the end)
+    if (scrollResult.skeletonsAppeared && !scrollResult.hasNewContent) {
       log(
-        `[Tokative] No new comments and reached end, stableIterations: ${stableIterations}/2`,
+        "[Tokative] Skeletons appeared but no new content - reached end of comments",
       );
-      if (stableIterations >= 2) {
-        log(
-          "[Tokative] Stable for 2 iterations at end, assuming all comments loaded. Breaking loop.",
-        );
-        exitReason = "stable (no new comments at end)";
-        break;
-      }
-    } else {
-      if (stableIterations > 0) {
-        log(
-          `[Tokative] Resetting stable counter (was ${stableIterations}): foundNew=${foundNewComments}, reachedEnd=${reachedEnd}`,
-        );
-      }
-      stableIterations = 0;
+      exitReason = "end of content (no new data after skeletons)";
+      break;
+    }
+
+    // Also stop if no skeletons and no new content (fallback for edge cases)
+    if (!scrollResult.skeletonsAppeared && !scrollResult.hasNewContent && addedThisIteration === 0) {
+      log(
+        "[Tokative] No skeletons, no new content, no new comments - likely at end",
+      );
+      exitReason = "end of content (no activity)";
+      break;
     }
 
     // Small delay between iterations to avoid hammering
