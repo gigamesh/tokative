@@ -187,8 +187,7 @@ export function ReplyComposer({
               <CompactCommentCard
                 key={comment.id}
                 comment={comment}
-                selected={true}
-                onToggle={(selected) => onToggleComment(comment.id, selected)}
+                onRemove={() => onToggleComment(comment.id, false)}
               />
             ))}
           </div>

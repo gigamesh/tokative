@@ -4,8 +4,7 @@ import { useState } from "react";
 
 interface CompactCommentCardProps {
   comment: ScrapedComment;
-  selected: boolean;
-  onToggle: (selected: boolean) => void;
+  onRemove: () => void;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -25,20 +24,12 @@ function formatRelativeTime(dateString: string): string {
 
 export function CompactCommentCard({
   comment,
-  selected,
-  onToggle,
+  onRemove,
 }: CompactCommentCardProps) {
   const [avatarFailed, setAvatarFailed] = useState(false);
 
   return (
     <div className="flex items-center gap-2 px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors">
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={(e) => onToggle(e.target.checked)}
-        className="w-4 h-4 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500 flex-shrink-0"
-      />
-
       {comment.avatarUrl && !avatarFailed ? (
         <img
           src={comment.avatarUrl}
@@ -66,6 +57,16 @@ export function CompactCommentCard({
           {formatRelativeTime(comment.commentTimestamp)}
         </span>
       )}
+
+      <button
+        onClick={onRemove}
+        className="p-0.5 text-red-400/70 hover:text-red-400 transition-colors flex-shrink-0"
+        title="Remove from selection"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
   );
 }
