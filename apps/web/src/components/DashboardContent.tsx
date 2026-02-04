@@ -41,6 +41,14 @@ interface IgnoreListModalState {
 
 export function DashboardContent() {
   const {
+    activeTab,
+    selectedPostId,
+    setTab,
+    setSelectedPost,
+    clearPostFilter,
+  } = useDashboardUrl();
+
+  const {
     comments: allComments,
     commentLimit,
     postLimit,
@@ -58,7 +66,7 @@ export function DashboardContent() {
     loadMore,
     hasMore,
     isLoadingMore,
-  } = useCommentData();
+  } = useCommentData({ videoIdFilter: selectedPostId });
 
   const comments = useMemo(() => {
     if (!hideOwnReplies) return allComments;
@@ -108,14 +116,6 @@ export function DashboardContent() {
     scrapeReport,
     closeScrapeReport,
   } = useVideoData();
-
-  const {
-    activeTab,
-    selectedPostId,
-    setTab,
-    setSelectedPost,
-    clearPostFilter,
-  } = useDashboardUrl();
 
   const {
     ignoreList,

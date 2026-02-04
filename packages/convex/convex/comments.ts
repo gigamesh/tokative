@@ -60,6 +60,7 @@ export const list = query({
 export const listPaginated = query({
   args: {
     clerkId: v.string(),
+    videoId: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
@@ -76,11 +77,19 @@ export const listPaginated = query({
       };
     }
 
-    const result = await ctx.db
-      .query("comments")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .order("desc")
-      .paginate(args.paginationOpts);
+    const result = args.videoId
+      ? await ctx.db
+          .query("comments")
+          .withIndex("by_user_and_video", (q) =>
+            q.eq("userId", user._id).eq("videoId", args.videoId)
+          )
+          .order("desc")
+          .paginate(args.paginationOpts)
+      : await ctx.db
+          .query("comments")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .order("desc")
+          .paginate(args.paginationOpts);
 
     const profileIds = Array.from(new Set(result.page.map((c) => c.tiktokProfileId)));
     const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));

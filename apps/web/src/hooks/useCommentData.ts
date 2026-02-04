@@ -18,7 +18,12 @@ interface CommentDataState {
 
 const PAGE_SIZE = 50;
 
-export function useCommentData() {
+interface UseCommentDataOptions {
+  videoIdFilter?: string | null;
+}
+
+export function useCommentData(options: UseCommentDataOptions = {}) {
+  const { videoIdFilter } = options;
   const { userId } = useAuth();
   const [state, setState] = useState<CommentDataState>({
     commentLimit: 100,
@@ -38,7 +43,9 @@ export function useCommentData() {
     loadMore,
   } = usePaginatedQuery(
     api.comments.listPaginated,
-    userId ? { clerkId: userId } : "skip",
+    userId
+      ? { clerkId: userId, videoId: videoIdFilter ?? undefined }
+      : "skip",
     { initialNumItems: PAGE_SIZE }
   );
 
