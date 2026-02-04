@@ -7,7 +7,7 @@
   "host_permissions": [
     "https://www.tiktok.com/*",
     "http://localhost:3000/*",
-    "https://mmasurka.github.io/*"
+    "https://gigamesh.github.io/*"
   ],
   "background": {
     "service_worker": "background.js",

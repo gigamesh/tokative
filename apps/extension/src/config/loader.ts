@@ -2,7 +2,7 @@ import type { ExtensionConfig } from "./types";
 import { isVersionCompatible } from "./types";
 import { DEFAULT_CONFIG } from "./defaults";
 
-const CONFIG_URL = "https://mmasurka.github.io/tiktok-buddy/config.json";
+const CONFIG_URL = "https://gigamesh.github.io/tokative/config.json";
 const CACHE_KEY = "tokative_remote_config";
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const FETCH_TIMEOUT_MS = 5000;
