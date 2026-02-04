@@ -133,8 +133,8 @@ describe("Comment Storage (Convex-backed)", () => {
       ];
       mockedConvexApi.fetchIgnoreList.mockResolvedValue(ignoreList);
       mockedConvexApi.syncComments.mockResolvedValue({
-        stored: 2,
-        duplicates: 0,
+        new: 2,
+        preexisting: 0,
         ignored: 1,
       });
 
@@ -143,7 +143,7 @@ describe("Comment Storage (Convex-backed)", () => {
 
       expect(mockedConvexApi.fetchIgnoreList).toHaveBeenCalled();
       expect(mockedConvexApi.syncComments).toHaveBeenCalledWith(newComments, ["spam"]);
-      expect(result).toEqual({ stored: 2, duplicates: 0, ignored: 1 });
+      expect(result).toEqual({ new: 2, preexisting: 0, ignored: 1 });
     });
   });
 

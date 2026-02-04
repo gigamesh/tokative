@@ -15,8 +15,8 @@ const STORAGE_KEYS = {
 // ===== CONVEX-FIRST (user data) =====
 
 export interface AddCommentsResult {
-  stored: number;
-  duplicates: number;
+  new: number;
+  preexisting: number;
   ignored: number;
 }
 

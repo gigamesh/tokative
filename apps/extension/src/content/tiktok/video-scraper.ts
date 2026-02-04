@@ -632,11 +632,11 @@ async function expandAndSaveReplies(
 
         if (newReplies.length > 0) {
           const result = await addScrapedComments(newReplies);
-          cumulativeStats.stored += result.stored;
-          cumulativeStats.duplicates += result.duplicates;
+          cumulativeStats.new += result.new;
+          cumulativeStats.preexisting += result.preexisting;
           cumulativeStats.ignored += result.ignored;
           log(
-            `[Tokative] Replies: +${result.stored} stored, ${result.duplicates} dupes, ${result.ignored} ignored`,
+            `[Tokative] Replies: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored`,
           );
           consecutiveNoNewReplies = 0; // Reset counter
           // Report progress during reply expansion
@@ -941,7 +941,7 @@ async function scrollToLoadComments(
     });
     return {
       comments: [],
-      stats: { found: 0, stored: 0, duplicates: 0, ignored: 0 },
+      stats: { found: 0, new: 0, preexisting: 0, ignored: 0 },
     };
   }
 
@@ -955,8 +955,8 @@ async function scrollToLoadComments(
   // Track cumulative stats
   const cumulativeStats: ScrapeStats = {
     found: 0,
-    stored: 0,
-    duplicates: 0,
+    new: 0,
+    preexisting: 0,
     ignored: 0,
   };
 
@@ -1028,11 +1028,11 @@ async function scrollToLoadComments(
 
     if (newComments.length > 0) {
       const result = await addScrapedComments(newComments);
-      cumulativeStats.stored += result.stored;
-      cumulativeStats.duplicates += result.duplicates;
+      cumulativeStats.new += result.new;
+      cumulativeStats.preexisting += result.preexisting;
       cumulativeStats.ignored += result.ignored;
       log(
-        `[Tokative] Storage result: +${result.stored} stored, ${result.duplicates} dupes, ${result.ignored} ignored (totals: ${cumulativeStats.stored}/${cumulativeStats.found})`,
+        `[Tokative] Storage result: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored (totals: ${cumulativeStats.new}/${cumulativeStats.found})`,
       );
       // Report progress immediately after main comments (before potentially slow reply expansion)
       onProgress?.(cumulativeStats);
@@ -1646,7 +1646,7 @@ export async function scrapeVideoComments(
   log("[Tokative] Panel opened:", panelOpened);
   if (!panelOpened) {
     log("[Tokative] ERROR: Could not open comments panel");
-    const emptyStats = { found: 0, stored: 0, duplicates: 0, ignored: 0 };
+    const emptyStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
@@ -1675,7 +1675,7 @@ export async function scrapeVideoComments(
   log("[Tokative] Comment content loaded:", contentLoaded);
   if (!contentLoaded) {
     log("[Tokative] ERROR: Comments failed to load");
-    const emptyStats = { found: 0, stored: 0, duplicates: 0, ignored: 0 };
+    const emptyStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
@@ -1699,7 +1699,7 @@ export async function scrapeVideoComments(
       totalVideos: 1,
       commentsFound: stats.found,
       status: "scraping" as const,
-      message: `Found ${stats.found}, stored ${stats.stored}`,
+      message: `Found ${stats.found}, new ${stats.new}`,
       stats,
     };
     log("[Tokative] Calling onProgress with:", JSON.stringify(progress));
@@ -1747,7 +1747,7 @@ export async function scrapeVideoComments(
       totalVideos: 1,
       commentsFound: result.stats.found,
       status: "cancelled",
-      message: `Cancelled: ${result.stats.stored} stored, ${result.stats.ignored} ignored, ${result.stats.duplicates} duplicates`,
+      message: `Cancelled: ${result.stats.new} new, ${result.stats.ignored} ignored, ${result.stats.preexisting} preexisting`,
       stats: result.stats,
     });
     return result;
@@ -1758,7 +1758,7 @@ export async function scrapeVideoComments(
     totalVideos: 1,
     commentsFound: result.stats.found,
     status: "complete",
-    message: `Done: ${result.stats.stored} stored, ${result.stats.ignored} ignored, ${result.stats.duplicates} duplicates`,
+    message: `Done: ${result.stats.new} new, ${result.stats.ignored} ignored, ${result.stats.preexisting} preexisting`,
     stats: result.stats,
   });
 

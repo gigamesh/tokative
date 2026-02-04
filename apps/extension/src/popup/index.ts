@@ -92,11 +92,9 @@ function renderSpinnerWithText(container: HTMLElement, text: string): void {
 
 function renderStatsTable(
   container: HTMLElement,
-  stats: { found: number; stored: number; ignored: number; duplicates: number },
+  stats: { found: number; new: number; ignored: number; preexisting: number },
   isComplete: boolean
 ): void {
-  const skipped = stats.ignored + stats.duplicates;
-
   container.innerHTML = "";
 
   // Show spinner header when scraping is in progress
@@ -120,8 +118,9 @@ function renderStatsTable(
 
   const rows = [
     { label: "Found", value: stats.found, className: "" },
-    { label: "Stored", value: stats.stored, className: "green" },
-    { label: "Skipped", value: skipped, className: "gray" },
+    { label: "New", value: stats.new, className: "green" },
+    { label: "Preexisting", value: stats.preexisting, className: "gray" },
+    { label: "Ignored", value: stats.ignored, className: "gray" },
   ];
 
   rows.forEach(({ label, value, className }) => {
@@ -146,7 +145,7 @@ function renderStatsTable(
   if (isComplete) {
     const note = document.createElement("div");
     note.className = "stats-note";
-    note.innerHTML = `<strong>Skipped:</strong> Already stored or in ignore list.<br><strong>Note:</strong> TikTok's count may include deleted comments.`;
+    note.innerHTML = `<strong>Preexisting:</strong> Already stored.<br><strong>Ignored:</strong> Matched ignore list.<br><strong>Note:</strong> TikTok's count may include deleted comments.`;
     container.appendChild(note);
   }
 }
@@ -441,7 +440,7 @@ async function init(): Promise<void> {
 
     // Comment scraping messages
     if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
-      const progress = message.payload as { message?: string; stats?: { found: number; stored: number; ignored: number; duplicates: number } };
+      const progress = message.payload as { message?: string; stats?: { found: number; new: number; ignored: number; preexisting: number } };
       isCommentScraping = true;
       updateScrapeButtonState(scrapeCommentsBtn, true, "Scrape Comments");
       if (commentScrapeStatusEl) {
@@ -453,7 +452,7 @@ async function init(): Promise<void> {
         }
       }
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-      const payload = message.payload as { comments?: unknown[]; stats?: { found: number; stored: number; ignored: number; duplicates: number } };
+      const payload = message.payload as { comments?: unknown[]; stats?: { found: number; new: number; ignored: number; preexisting: number } };
       isCommentScraping = false;
       updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
       if (commentScrapeStatusEl) {

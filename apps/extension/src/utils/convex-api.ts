@@ -15,8 +15,8 @@ const STORAGE_KEYS = {
 let tokenRequestInProgress: Promise<string | null> | null = null;
 
 export interface ConvexSyncResult {
-  stored: number;
-  duplicates: number;
+  new: number;
+  preexisting: number;
   ignored: number;
   missingTiktokUserId: number;
 }

@@ -16,9 +16,9 @@ import {
 
 interface ScrapeStats {
   found: number;
-  stored: number;
+  new: number;
   ignored: number;
-  duplicates: number;
+  preexisting: number;
 }
 
 interface ScrapeReport {

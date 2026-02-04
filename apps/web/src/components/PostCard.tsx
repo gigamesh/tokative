@@ -72,8 +72,9 @@ export function PostCard({
             {progress?.stats ? (
               <div className="text-white text-xs space-y-0.5">
                 <p>Found: {progress.stats.found}</p>
+                <p>New: {progress.stats.new}</p>
+                <p>Preexisting: {progress.stats.preexisting}</p>
                 <p>Ignored: {progress.stats.ignored}</p>
-                <p>Stored: {progress.stats.stored}</p>
               </div>
             ) : (
               <p className="text-white text-xs">{progress?.message || "Loading..."}</p>

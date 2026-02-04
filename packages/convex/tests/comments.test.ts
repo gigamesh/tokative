@@ -108,8 +108,8 @@ describe("comments", () => {
         ],
       });
 
-      expect(result.stored).toBe(2);
-      expect(result.duplicates).toBe(0);
+      expect(result.new).toBe(2);
+      expect(result.preexisting).toBe(0);
       expect(result.ignored).toBe(0);
     });
 
@@ -124,8 +124,8 @@ describe("comments", () => {
         comments: [makeComment({ commentId: "dup-1", comment: "Duplicate" })],
       });
 
-      expect(result.stored).toBe(0);
-      expect(result.duplicates).toBe(1);
+      expect(result.new).toBe(0);
+      expect(result.preexisting).toBe(1);
 
       const comments = await t.query(api.comments.list, { clerkId });
       expect(comments).toHaveLength(1);
@@ -143,7 +143,7 @@ describe("comments", () => {
         ignoreList: ["buy my"],
       });
 
-      expect(result.stored).toBe(2);
+      expect(result.new).toBe(2);
       expect(result.ignored).toBe(1);
 
       const comments = await t.query(api.comments.list, { clerkId });
@@ -159,7 +159,7 @@ describe("comments", () => {
       });
 
       expect(result.ignored).toBe(1);
-      expect(result.stored).toBe(0);
+      expect(result.new).toBe(0);
     });
   });
 

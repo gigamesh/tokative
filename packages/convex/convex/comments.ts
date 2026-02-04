@@ -160,8 +160,8 @@ export const addBatch = mutation({
     }
 
     const ignoreTexts = (args.ignoreList ?? []).map((t) => t.toLowerCase());
-    let stored = 0;
-    let duplicates = 0;
+    let newCount = 0;
+    let preexisting = 0;
     let ignored = 0;
     let missingTiktokUserId = 0;
 
@@ -191,7 +191,7 @@ export const addBatch = mutation({
         .unique();
 
       if (existing) {
-        duplicates++;
+        preexisting++;
         continue;
       }
 
@@ -228,7 +228,7 @@ export const addBatch = mutation({
         replyCount: comment.replyCount,
         source: comment.source,
       });
-      stored++;
+      newCount++;
     }
 
     for (const avatar of avatarsToStore) {
@@ -240,9 +240,9 @@ export const addBatch = mutation({
     }
 
     // TEMP DIAGNOSTIC
-    console.log(`[DIAG] addBatch result: stored=${stored}, duplicates=${duplicates}, ignored=${ignored}, missingTiktokUserId=${missingTiktokUserId}`);
+    console.log(`[DIAG] addBatch result: new=${newCount}, preexisting=${preexisting}, ignored=${ignored}, missingTiktokUserId=${missingTiktokUserId}`);
 
-    return { stored, duplicates, ignored, missingTiktokUserId };
+    return { new: newCount, preexisting, ignored, missingTiktokUserId };
   },
 });
 

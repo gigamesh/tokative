@@ -6,9 +6,9 @@ interface ScrapeReportModalProps {
   onClose: () => void;
   stats: {
     found: number;
-    stored: number;
+    new: number;
     ignored: number;
-    duplicates: number;
+    preexisting: number;
   };
 }
 
@@ -17,8 +17,6 @@ export function ScrapeReportModal({
   onClose,
   stats,
 }: ScrapeReportModalProps) {
-  const skipped = stats.ignored + stats.duplicates;
-
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <h3 className="text-lg font-medium text-foreground mb-4">Scraping Complete</h3>
@@ -29,19 +27,26 @@ export function ScrapeReportModal({
           <span className="text-foreground font-medium">{stats.found}</span>
         </div>
         <div className="flex justify-between items-center py-2 border-b border-border">
-          <span className="text-foreground-muted">Stored</span>
-          <span className="text-green-400 font-medium">{stats.stored}</span>
+          <span className="text-foreground-muted">New</span>
+          <span className="text-green-400 font-medium">{stats.new}</span>
         </div>
         <div className="flex justify-between items-center py-2 border-b border-border">
-          <span className="text-foreground-muted">Skipped</span>
-          <span className="text-foreground-muted font-medium">{skipped}</span>
+          <span className="text-foreground-muted">Preexisting</span>
+          <span className="text-foreground-muted font-medium">{stats.preexisting}</span>
+        </div>
+        <div className="flex justify-between items-center py-2 border-b border-border">
+          <span className="text-foreground-muted">Ignored</span>
+          <span className="text-foreground-muted font-medium">{stats.ignored}</span>
         </div>
       </div>
 
       <div className="text-xs text-foreground-muted space-y-2 mb-6">
         <p>
-          <strong className="text-foreground-muted">Skipped:</strong> Comments
-          previously stored or matching text in your{" "}
+          <strong className="text-foreground-muted">Preexisting:</strong> Comments
+          already stored.
+        </p>
+        <p>
+          <strong className="text-foreground-muted">Ignored:</strong> Comments matching text in your{" "}
           <Link href="/dashboard?tab=settings" onClick={onClose}>
             ignore list
           </Link>

@@ -1143,7 +1143,7 @@ async function handleGetBatchComments(
   let tab: chrome.tabs.Tab | null = null;
 
   // Cumulative stats across all videos
-  const cumulativeStats = { found: 0, stored: 0, duplicates: 0, ignored: 0 };
+  const cumulativeStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
 
   // Get the total comment limit for the entire batch
   const totalCommentLimit = await getCommentLimit();
@@ -1237,8 +1237,8 @@ async function handleGetBatchComments(
 
       totalComments += result.commentCount;
       cumulativeStats.found += result.stats.found;
-      cumulativeStats.stored += result.stats.stored;
-      cumulativeStats.duplicates += result.stats.duplicates;
+      cumulativeStats.new += result.stats.new;
+      cumulativeStats.preexisting += result.stats.preexisting;
       cumulativeStats.ignored += result.stats.ignored;
       completedVideos++;
       await updateVideo(video.videoId, { commentsScraped: true });
@@ -1323,7 +1323,7 @@ async function handleGetBatchComments(
 
 interface VideoScrapeResult {
   commentCount: number;
-  stats: { found: number; stored: number; duplicates: number; ignored: number };
+  stats: { found: number; new: number; preexisting: number; ignored: number };
 }
 
 async function scrapeVideoComments(
@@ -1357,8 +1357,8 @@ async function scrapeVideoComments(
           comments: ScrapedComment[];
           stats?: {
             found: number;
-            stored: number;
-            duplicates: number;
+            new: number;
+            preexisting: number;
             ignored: number;
           };
         };
@@ -1371,7 +1371,7 @@ async function scrapeVideoComments(
         chrome.runtime.onMessage.removeListener(responseHandler);
         resolve({
           commentCount: comments?.length || 0,
-          stats: stats || { found: 0, stored: 0, duplicates: 0, ignored: 0 },
+          stats: stats || { found: 0, new: 0, preexisting: 0, ignored: 0 },
         });
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
         console.log("[Background] Batch scrape error:", msg.payload);
