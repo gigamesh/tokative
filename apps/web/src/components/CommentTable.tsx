@@ -372,9 +372,7 @@ export function CommentTable({
                 }}
                 className="w-4 h-4 rounded border-border bg-surface-secondary text-tiktok-red focus:ring-tiktok-red"
               />
-              {selectedIds.size > 0
-                ? `${selectedIds.size} selected`
-                : `Select all (${filteredComments.length})`}
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
             </label>
           </div>
 

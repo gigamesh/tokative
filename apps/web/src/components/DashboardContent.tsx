@@ -123,7 +123,7 @@ export function DashboardContent() {
     removeFromIgnoreList,
   } = useIgnoreList();
 
-  const { commentCountsByVideo } = useCommentCounts();
+  const { commentCountsByVideo, totalCount: totalCommentCount } = useCommentCounts();
 
   const [selectedCommentIds, setSelectedCommentIds] = useState<Set<string>>(new Set());
   const [selectedVideoIds, setSelectedVideoIds] = useState<Set<string>>(new Set());
@@ -535,7 +535,7 @@ export function DashboardContent() {
             activeTab={activeTab}
             onTabChange={setTab}
             postCount={videos.length}
-            commentCount={comments.length}
+            commentCount={totalCommentCount}
           />
         </div>
 

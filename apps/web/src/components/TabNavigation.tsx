@@ -29,7 +29,7 @@ export function TabNavigation({
           }}
         >
           Posts
-          <span className="ml-2 text-xs text-foreground-muted">({postCount})</span>
+          <span className="ml-2 text-xs text-foreground-muted">({postCount.toLocaleString()})</span>
         </button>
         <button
           onClick={() => onTabChange("comments")}
@@ -43,7 +43,7 @@ export function TabNavigation({
           }}
         >
           Comments
-          <span className="ml-2 text-xs text-foreground-muted">({commentCount})</span>
+          <span className="ml-2 text-xs text-foreground-muted">({commentCount.toLocaleString()})</span>
         </button>
         <button
           onClick={() => onTabChange("settings")}

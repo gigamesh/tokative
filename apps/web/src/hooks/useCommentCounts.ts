@@ -8,18 +8,19 @@ import { api } from "@tokative/convex";
 export function useCommentCounts() {
   const { userId } = useAuth();
 
-  const countsRecord = useQuery(
+  const result = useQuery(
     api.comments.getCountsByVideo,
     userId ? { clerkId: userId } : "skip"
   );
 
   const commentCountsByVideo = useMemo(() => {
-    if (!countsRecord) return new Map<string, number>();
-    return new Map(Object.entries(countsRecord));
-  }, [countsRecord]);
+    if (!result) return new Map<string, number>();
+    return new Map(Object.entries(result.counts));
+  }, [result]);
 
   return {
     commentCountsByVideo,
-    loading: countsRecord === undefined,
+    totalCount: result?.totalCount ?? 0,
+    loading: result === undefined,
   };
 }

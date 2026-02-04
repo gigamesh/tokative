@@ -349,7 +349,7 @@ export const getCountsByVideo = query({
       .unique();
 
     if (!user) {
-      return {};
+      return { counts: {}, totalCount: 0 };
     }
 
     const comments = await ctx.db
@@ -364,10 +364,6 @@ export const getCountsByVideo = query({
       }
     }
 
-    // TEMP DIAGNOSTIC
-    console.log(`[DIAG] getCountsByVideo: Total comments for user: ${comments.length}`);
-    console.log(`[DIAG] getCountsByVideo: Video counts:`, JSON.stringify(counts));
-
-    return counts;
+    return { counts, totalCount: comments.length };
   },
 });
