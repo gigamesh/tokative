@@ -165,7 +165,7 @@ export default function OnboardingPage() {
             <a
               href="/downloads/tokative-extension.zip"
               download
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-brand text-white font-medium rounded-lg transition-all hover:shadow-lg hover:shadow-accent-pink/25"
             >
               <svg
                 className="w-5 h-5"

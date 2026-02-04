@@ -11,6 +11,10 @@
   --text-secondary: #404040;
   --text-muted: #737373;
   --border-default: #d1d5db;
+
+  /* Brand accent */
+  --accent-cyan: #25F4EE;
+  --accent-pink: #FE2C55;
 }
 
 .dark {
@@ -31,6 +35,17 @@ body {
 }
 
 @layer utilities {
+  .bg-gradient-brand {
+    background: linear-gradient(to right, var(--accent-cyan), var(--accent-pink));
+  }
+
+  .text-gradient-brand {
+    background: linear-gradient(to right, var(--accent-cyan), var(--text-primary), var(--accent-pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
   }

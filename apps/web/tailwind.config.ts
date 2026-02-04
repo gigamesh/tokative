@@ -14,6 +14,10 @@ const config: Config = {
         header: "57px",
       },
       colors: {
+        accent: {
+          cyan: "var(--accent-cyan)",
+          pink: "var(--accent-pink)",
+        },
         brand: {
           primary: colors.brand.primary,
           "primary-hover": colors.brand.primaryHover,

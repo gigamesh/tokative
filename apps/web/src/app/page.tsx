@@ -3,8 +3,8 @@
 import { Header } from "@/components/Header";
 import { useAuth } from "@/providers/ConvexProvider";
 import { useUser } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
 import { api } from "@tokative/convex";
+import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,7 +18,7 @@ export default function Home() {
   const getOrCreate = useMutation(api.users.getOrCreate);
   const accessStatus = useQuery(
     api.users.getAccessStatus,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function Home() {
   if (!isLoaded || isInitializing) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
-        <div className="text-foreground-muted">Loading...</div>
+        <div className="w-5 h-5 border-2 border-foreground-muted/30 border-t-foreground-muted rounded-full animate-spin" />
       </div>
     );
   }
@@ -65,120 +65,99 @@ export default function Home() {
   if (userId) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
-        <div className="text-foreground-muted">Redirecting...</div>
+        <div className="w-5 h-5 border-2 border-foreground-muted/30 border-t-foreground-muted rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface overflow-hidden">
       <Header />
-      <main className="max-w-4xl mx-auto px-4 py-20">
-        <div className="text-center">
-          <h1 className="text-5xl font-bold text-foreground mb-6">Tokative</h1>
-          <p className="text-xl text-foreground-muted mb-8 max-w-2xl mx-auto">
-            Scrape comments from TikTok videos and manage your engagement. Reply
-            to your audience efficiently with bulk messaging tools.
-          </p>
-          <Link
-            href="/sign-in"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-medium rounded-lg transition-colors"
-          >
-            Get Started
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M14 5l7 7m0 0l-7 7m7-7H3"
-              />
-            </svg>
-          </Link>
-        </div>
+      <main className="max-w-5xl mx-auto px-6 relative">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-r from-accent-cyan/20 via-transparent to-accent-pink/20 blur-3xl rounded-full pointer-events-none" />
 
-        <div className="mt-24 grid md:grid-cols-3 gap-8">
-          <FeatureCard
-            icon={
-              <svg
-                className="w-8 h-8"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+        <section className="pt-32 pb-16 relative">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-6xl sm:text-7xl font-bold tracking-tight">
+              <span className="text-gradient-brand">Tokative</span>
+            </h1>
+            <p className="mt-6 text-lg sm:text-xl text-foreground-muted leading-relaxed max-w-xl mx-auto text-balance">
+              Manage TikTok engagement at scale. Collect comments, reply in
+              bulk, and track everything in one place.
+            </p>
+            <div className="mt-10">
+              <Link
+                href="/sign-in"
+                className="group inline-flex items-center gap-2 px-6 py-3 bg-gradient-brand text-white text-sm font-medium rounded-full transition-all hover:shadow-lg hover:shadow-accent-pink/25 hover:scale-105"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                Get Started
+                <svg
+                  className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                   strokeWidth={2}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-            }
-            title="Scrape Comments"
-            description="Collect comments from any TikTok video with the Chrome extension. Filter out spam automatically."
-          />
-          <FeatureCard
-            icon={
-              <svg
-                className="w-8 h-8"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-            }
-            title="Bulk Reply"
-            description="Send personalized replies to multiple comments at once. Save time on engagement."
-          />
-          <FeatureCard
-            icon={
-              <svg
-                className="w-8 h-8"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-            }
-            title="Track Progress"
-            description="See which comments you've replied to. Organize by video and manage your workflow."
-          />
-        </div>
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17 8l4 4m0 0l-4 4m4-4H3"
+                  />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-8 relative">
+          <div className="grid sm:grid-cols-3 gap-16 sm:gap-12">
+            <FeatureCard
+              number="01"
+              title="Collect"
+              description="Gather comments from any TikTok video with our Chrome extension. Automatic spam filtering included."
+              accent="cyan"
+            />
+            <FeatureCard
+              number="02"
+              title="Reply"
+              description="Send personalized responses to multiple comments at once. Engage your audience efficiently."
+              accent="pink"
+            />
+            <FeatureCard
+              number="03"
+              title="Track"
+              description="Monitor your progress across videos. See what you've replied to and what's pending."
+              accent="cyan"
+            />
+          </div>
+        </section>
       </main>
     </div>
   );
 }
 
 function FeatureCard({
-  icon,
+  number,
   title,
   description,
+  accent,
 }: {
-  icon: React.ReactNode;
+  number: string;
   title: string;
   description: string;
+  accent: "cyan" | "pink";
 }) {
+  const accentColor = accent === "cyan" ? "text-accent-cyan" : "text-accent-pink";
+
   return (
-    <div className="p-6 bg-surface-elevated rounded-lg">
-      <div className="text-blue-400 mb-4">{icon}</div>
-      <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
-      <p className="text-foreground-muted text-sm">{description}</p>
+    <div className="group">
+      <div className="text-center">
+        <span className={`text-xs font-mono ${accentColor}`}>{number}</span>
+        <h3 className="mt-2 text-lg font-semibold text-foreground">{title}</h3>
+      </div>
+      <p className="mt-3 text-foreground-muted leading-relaxed text-center">
+        {description}
+      </p>
     </div>
   );
 }
