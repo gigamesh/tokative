@@ -1264,6 +1264,7 @@ async function handleGetBatchComments(
     activeScrapingTabId = null;
     isBatchScraping = false;
     await clearScrapingState();
+    broadcastScrapingState();
     clearBadge();
 
     const wasCancelled = batchCancelled;
@@ -1301,6 +1302,7 @@ async function handleGetBatchComments(
     isBatchScraping = false;
     batchCancelled = false;
     await clearScrapingState();
+    broadcastScrapingState();
     clearBadge();
 
     port.postMessage({
