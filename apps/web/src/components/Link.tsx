@@ -1,3 +1,4 @@
+import { ExternalLink } from "@/components/ExternalLink";
 import NextLink from "next/link";
 import { ComponentProps } from "react";
 
@@ -13,15 +14,13 @@ export function Link({ external, className = "", ...props }: LinkProps) {
 
   if (external) {
     return (
-      <a
+      <ExternalLink
         href={props.href as string}
-        target="_blank"
-        rel="noopener noreferrer"
         className={combinedClassName}
         onClick={props.onClick as React.MouseEventHandler<HTMLAnchorElement>}
       >
         {props.children}
-      </a>
+      </ExternalLink>
     );
   }
 

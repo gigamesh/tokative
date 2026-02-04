@@ -1518,6 +1518,37 @@ getScrapingState().then((state) => {
   }
 });
 
+// Inject content scripts into already-open tabs
+async function injectContentScripts(): Promise<void> {
+  try {
+    const dashboardTabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+    for (const tab of dashboardTabs) {
+      if (tab.id) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["content/dashboard-bridge.js"],
+        }).catch((err) => {
+          console.log("[Background] Could not inject into tab:", tab.id, err.message);
+        });
+      }
+    }
+
+    const tiktokTabs = await chrome.tabs.query({ url: "https://www.tiktok.com/*" });
+    for (const tab of tiktokTabs) {
+      if (tab.id) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["content/tiktok.js"],
+        }).catch((err) => {
+          console.log("[Background] Could not inject into tab:", tab.id, err.message);
+        });
+      }
+    }
+  } catch (error) {
+    console.warn("[Background] Failed to inject content scripts:", error);
+  }
+}
+
 // Load config on service worker startup
 loadConfig()
   .then((config) => {
@@ -1527,8 +1558,11 @@ loadConfig()
     console.warn("[Background] Failed to load config:", error);
   });
 
+// Inject content scripts on every service worker startup (handles re-enable)
+injectContentScripts();
+
 // Refresh config on extension install/update
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
   console.log("[Background] Extension installed/updated, refreshing config");
   refreshConfig().catch((error) => {
     console.warn("[Background] Failed to refresh config on install:", error);

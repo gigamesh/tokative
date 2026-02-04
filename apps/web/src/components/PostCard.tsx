@@ -1,4 +1,4 @@
-
+import { ExternalLink } from "@/components/ExternalLink";
 import { ScrapedVideo, GetVideoCommentsProgress } from "@/utils/constants";
 
 interface PostCardProps {
@@ -46,10 +46,8 @@ export function PostCard({
         />
       </div>
 
-      <a
+      <ExternalLink
         href={video.videoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
         className="absolute top-2 right-2 z-10 p-1.5 bg-black/60 hover:bg-black/80 rounded-md transition-colors"
         title="Open on TikTok"
@@ -57,7 +55,7 @@ export function PostCard({
         <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
         </svg>
-      </a>
+      </ExternalLink>
 
       {commentCount > 0 && (
         <div className="absolute bottom-2 right-2 z-10 bg-green-500/90 text-white text-xs px-2 py-1 rounded-full font-medium">

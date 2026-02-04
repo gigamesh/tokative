@@ -2,21 +2,59 @@
 
 import { Header } from "@/components/Header";
 import { useAuth } from "@/providers/ConvexProvider";
+import { useUser } from "@clerk/nextjs";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@tokative/convex";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const { userId, isLoaded } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
+  const [isInitializing, setIsInitializing] = useState(false);
+
+  const getOrCreate = useMutation(api.users.getOrCreate);
+  const accessStatus = useQuery(
+    api.users.getAccessStatus,
+    userId ? { clerkId: userId } : "skip"
+  );
 
   useEffect(() => {
-    if (isLoaded && userId) {
-      router.replace("/dashboard");
-    }
-  }, [isLoaded, userId, router]);
+    const initializeUser = async () => {
+      if (!isLoaded || !userId || !user) return;
 
-  if (!isLoaded) {
+      const email = user.primaryEmailAddress?.emailAddress;
+
+      if (accessStatus === undefined) {
+        return;
+      }
+
+      if (accessStatus === null) {
+        setIsInitializing(true);
+        await getOrCreate({ clerkId: userId, email });
+        setIsInitializing(false);
+        return;
+      }
+
+      if (!accessStatus.isAllowed) {
+        router.replace("/not-authorized");
+        return;
+      }
+
+      if (!accessStatus.hasCompletedOnboarding) {
+        router.replace("/onboarding");
+        return;
+      }
+
+      router.replace("/dashboard");
+    };
+
+    initializeUser();
+  }, [isLoaded, userId, user, accessStatus, router, getOrCreate]);
+
+  if (!isLoaded || isInitializing) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
         <div className="text-foreground-muted">Loading...</div>
@@ -27,7 +65,7 @@ export default function Home() {
   if (userId) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
-        <div className="text-foreground-muted">Redirecting to dashboard...</div>
+        <div className="text-foreground-muted">Redirecting...</div>
       </div>
     );
   }

@@ -15,10 +15,13 @@ export function useExtensionStatus() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    let lastResponseTime = 0;
+
     const handleMessage = (event: MessageEvent) => {
       if (event.source !== window) return;
       if (event.data?.source !== EXTENSION_SOURCE) return;
 
+      lastResponseTime = Date.now();
       setIsExtensionInstalled(true);
 
       if (event.data?.type === MessageType.BRIDGE_READY) {
@@ -31,6 +34,10 @@ export function useExtensionStatus() {
     window.postMessage({ type: MessageType.CHECK_BRIDGE }, "*");
 
     const interval = setInterval(() => {
+      // If no response in the last 3 seconds, mark as disconnected
+      if (lastResponseTime > 0 && Date.now() - lastResponseTime > 3000) {
+        setIsExtensionConnected(false);
+      }
       window.postMessage({ type: MessageType.CHECK_BRIDGE }, "*");
     }, 2000);
 

@@ -18,6 +18,10 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY as string}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignInUrl="/onboarding"
+      afterSignUpUrl="/onboarding"
     >
       <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
         {children}

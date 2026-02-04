@@ -9,6 +9,7 @@
  */
 
 import type * as comments from "../comments.js";
+import type * as constants from "../constants.js";
 import type * as http from "../http.js";
 import type * as ignoreList from "../ignoreList.js";
 import type * as imageStorage from "../imageStorage.js";
@@ -17,6 +18,7 @@ import type * as settings from "../settings.js";
 import type * as tiktokProfiles from "../tiktokProfiles.js";
 import type * as users from "../users.js";
 import type * as videos from "../videos.js";
+import type * as whitelist from "../whitelist.js";
 
 import type {
   ApiFromModules,
@@ -26,6 +28,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   comments: typeof comments;
+  constants: typeof constants;
   http: typeof http;
   ignoreList: typeof ignoreList;
   imageStorage: typeof imageStorage;
@@ -34,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   tiktokProfiles: typeof tiktokProfiles;
   users: typeof users;
   videos: typeof videos;
+  whitelist: typeof whitelist;
 }>;
 
 /**

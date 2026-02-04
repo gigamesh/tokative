@@ -1,4 +1,4 @@
-
+import { ExternalLink } from "@/components/ExternalLink";
 import { ScrapedVideo } from "@/utils/constants";
 
 interface SelectedPostContextProps {
@@ -14,10 +14,8 @@ export function SelectedPostContext({
 }: SelectedPostContextProps) {
   return (
     <div className="flex items-center gap-4 p-3 bg-surface-secondary/50 rounded-lg border border-border">
-      <a
+      <ExternalLink
         href={video.videoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
         className="flex-shrink-0 w-12 h-[72px] rounded overflow-hidden bg-surface-secondary"
       >
         {video.thumbnailUrl ? (
@@ -44,17 +42,15 @@ export function SelectedPostContext({
             </svg>
           </div>
         )}
-      </a>
+      </ExternalLink>
 
       <div className="flex-1 min-w-0">
-        <a
+        <ExternalLink
           href={`https://tiktok.com/@${video.profileHandle}`}
-          target="_blank"
-          rel="noopener noreferrer"
           className="text-sm text-foreground-secondary hover:text-foreground transition-colors"
         >
           Post by @{video.profileHandle}
-        </a>
+        </ExternalLink>
         <p className="text-xs text-foreground-muted mt-0.5">
           {commentCount} comment{commentCount !== 1 ? "s" : ""} shown
         </p>

@@ -1,3 +1,4 @@
+import { ExternalLink } from "@/components/ExternalLink";
 import { getAvatarColor } from "@/utils/avatar";
 import { ScrapedComment } from "@/utils/constants";
 import { useEffect, useRef, useState } from "react";
@@ -78,12 +79,7 @@ export function CommentCard({
         />
 
         {thumbnailUrl && !isReply && (
-          <a
-            href={comment.videoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-shrink-0"
-          >
+          <ExternalLink href={comment.videoUrl} className="flex-shrink-0">
             <img
               src={thumbnailUrl}
               alt="Video thumbnail"
@@ -92,7 +88,7 @@ export function CommentCard({
                 (e.target as HTMLImageElement).style.display = "none";
               }}
             />
-          </a>
+          </ExternalLink>
         )}
 
         <div className="flex-1 min-w-0">
@@ -100,12 +96,7 @@ export function CommentCard({
             {isReply && (
               <span className="text-foreground-muted text-sm">↳</span>
             )}
-            <a
-              href={comment.profileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-shrink-0"
-            >
+            <ExternalLink href={comment.profileUrl} className="flex-shrink-0">
               {comment.avatarUrl && !avatarFailed ? (
                 <img
                   src={comment.avatarUrl}
@@ -123,15 +114,13 @@ export function CommentCard({
                   {comment.handle.charAt(0).toUpperCase()}
                 </div>
               )}
-            </a>
-            <a
+            </ExternalLink>
+            <ExternalLink
               href={comment.profileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
               className="font-medium text-sm text-foreground hover:text-blue-400 transition-colors"
             >
               @{comment.handle}
-            </a>
+            </ExternalLink>
             {comment.commentTimestamp && (
               <span className="text-xs text-foreground-muted">
                 {formatRelativeTime(comment.commentTimestamp)}
@@ -154,10 +143,8 @@ export function CommentCard({
             className={`flex items-center gap-1.5 text-sm text-foreground-muted ${isCommentExpanded ? "" : ""}`}
           >
             {comment.videoUrl && (
-              <a
+              <ExternalLink
                 href={comment.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="flex-shrink-0 text-foreground-muted hover:text-blue-400 transition-colors mt-0.5"
                 title="Open on TikTok"
               >
@@ -174,7 +161,7 @@ export function CommentCard({
                     d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                   />
                 </svg>
-              </a>
+              </ExternalLink>
             )}
             <span
               ref={commentRef}

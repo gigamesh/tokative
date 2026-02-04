@@ -8,13 +8,16 @@
     "clean": "rm -rf dist",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "zip": "node scripts/zip.js",
+    "build:release": "npm run build && npm run zip"
   },
   "dependencies": {
     "@tokative/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.268",
+    "archiver": "^7.0.0",
     "chokidar": "^3.6.0",
     "esbuild": "^0.20.0",
     "jsdom": "^24.0.0",

@@ -17,7 +17,6 @@ import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModa
 import { BulkReplyReportModal } from "@/components/BulkReplyReportModal";
 import { Toast } from "@/components/Toast";
 import { Spinner } from "@/components/Spinner";
-import { SetupBanner } from "@/components/SetupBanner";
 import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { useMessaging } from "@/hooks/useMessaging";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
@@ -480,7 +479,6 @@ export function DashboardContent() {
       <Header showConnectionStatus />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        <SetupBanner />
 
         {scrapingState?.isPaused && (
           <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">

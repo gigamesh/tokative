@@ -3,7 +3,14 @@ import { guardExtensionContext } from "../utils/dom";
 
 const BRIDGE_ID = "tokative-bridge";
 
-let port: chrome.runtime.Port | null = null;
+declare global {
+  interface Window {
+    __tokativeBridge?: {
+      cleanup: () => void;
+      handler: (event: MessageEvent) => void;
+    };
+  }
+}
 
 function initBridge(): void {
   if (!guardExtensionContext()) {
@@ -11,8 +18,18 @@ function initBridge(): void {
     return;
   }
 
-  if (document.getElementById(BRIDGE_ID)) {
-    return;
+  // Clean up any existing bridge from previous injection (e.g., after extension re-enable)
+  if (window.__tokativeBridge) {
+    console.log("[Bridge] Cleaning up previous bridge instance");
+    window.removeEventListener("message", window.__tokativeBridge.handler);
+    window.__tokativeBridge.cleanup();
+    window.__tokativeBridge = undefined;
+  }
+
+  // Remove existing marker
+  const existingMarker = document.getElementById(BRIDGE_ID);
+  if (existingMarker) {
+    existingMarker.remove();
   }
 
   const marker = document.createElement("div");
@@ -20,7 +37,7 @@ function initBridge(): void {
   marker.style.display = "none";
   document.body.appendChild(marker);
 
-  port = chrome.runtime.connect({ name: "dashboard" });
+  let port: chrome.runtime.Port | null = chrome.runtime.connect({ name: "dashboard" });
 
   port.onMessage.addListener((message: ExtensionMessage) => {
     window.postMessage(
@@ -37,10 +54,92 @@ function initBridge(): void {
     port = null;
   });
 
+  const handleWindowMessage = (event: MessageEvent): void => {
+    if (event.source !== window) return;
+    if (event.data?.source === EXTENSION_SOURCE) return;
+    if (!event.data?.type) return;
+
+    const message = event.data as ExtensionMessage;
+
+    // Handle auth token response from the web app (source: "dashboard")
+    if (message.type === MessageType.AUTH_TOKEN_RESPONSE && event.data?.source === "dashboard") {
+      console.log("[Bridge] Forwarding auth token to background");
+      chrome.runtime.sendMessage(message).catch((error) => {
+        console.error("[Bridge] Error forwarding auth token:", error);
+      });
+      return;
+    }
+
+    if (message.type === MessageType.CHECK_BRIDGE) {
+      // Only respond if extension context is still valid
+      if (guardExtensionContext()) {
+        window.postMessage(
+          {
+            type: MessageType.BRIDGE_READY,
+            source: EXTENSION_SOURCE,
+          },
+          "*"
+        );
+      }
+      return;
+    }
+
+    if (!guardExtensionContext()) {
+      window.postMessage(
+        {
+          type: "EXTENSION_CONTEXT_INVALID",
+          source: EXTENSION_SOURCE,
+        },
+        "*"
+      );
+      return;
+    }
+
+    if (isPortMessage(message.type)) {
+      if (!port) {
+        console.log("[Bridge] Reconnecting port...");
+        port = chrome.runtime.connect({ name: "dashboard" });
+        port.onMessage.addListener((msg: ExtensionMessage) => {
+          window.postMessage({ ...msg, source: EXTENSION_SOURCE }, "*");
+        });
+        port.onDisconnect.addListener(() => {
+          console.log("[Bridge] Port disconnected, will reconnect on next message");
+          port = null;
+        });
+      }
+      port.postMessage(message);
+    } else {
+      chrome.runtime.sendMessage(message)
+        .then((response) => {
+          if (response) {
+            window.postMessage(
+              {
+                type: getResponseType(message.type),
+                payload: response,
+                source: EXTENSION_SOURCE,
+              },
+              "*"
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("[Bridge] Error sending message:", error);
+          window.postMessage(
+            {
+              type: getResponseType(message.type),
+              payload: { error: error.message || "Extension communication error" },
+              source: EXTENSION_SOURCE,
+            },
+            "*"
+          );
+        });
+    }
+  };
+
   window.addEventListener("message", handleWindowMessage);
 
   // Listen for messages from background script (via chrome.tabs.sendMessage)
-  chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
+  const runtimeMessageHandler = (message: ExtensionMessage) => {
     console.log("[Bridge] Received from background:", message.type);
     window.postMessage(
       {
@@ -49,7 +148,17 @@ function initBridge(): void {
       },
       "*"
     );
-  });
+  };
+  chrome.runtime.onMessage.addListener(runtimeMessageHandler);
+
+  // Store references for cleanup by next injection
+  window.__tokativeBridge = {
+    handler: handleWindowMessage,
+    cleanup: () => {
+      port?.disconnect();
+      chrome.runtime.onMessage.removeListener(runtimeMessageHandler);
+    },
+  };
 
   window.postMessage(
     {
@@ -60,85 +169,6 @@ function initBridge(): void {
   );
 
   console.log("[Bridge] Dashboard bridge initialized");
-}
-
-function handleWindowMessage(event: MessageEvent): void {
-  if (event.source !== window) return;
-  if (event.data?.source === "tokative-extension") return;
-  if (!event.data?.type) return;
-
-  const message = event.data as ExtensionMessage;
-
-  // Handle auth token response from the web app (source: "dashboard")
-  if (message.type === MessageType.AUTH_TOKEN_RESPONSE && event.data?.source === "dashboard") {
-    console.log("[Bridge] Forwarding auth token to background");
-    chrome.runtime.sendMessage(message).catch((error) => {
-      console.error("[Bridge] Error forwarding auth token:", error);
-    });
-    return;
-  }
-
-  if (!guardExtensionContext()) {
-    window.postMessage(
-      {
-        type: "EXTENSION_CONTEXT_INVALID",
-        source: EXTENSION_SOURCE,
-      },
-      "*"
-    );
-    return;
-  }
-
-  if (message.type === MessageType.CHECK_BRIDGE) {
-    window.postMessage(
-      {
-        type: MessageType.BRIDGE_READY,
-        source: EXTENSION_SOURCE,
-      },
-      "*"
-    );
-    return;
-  }
-
-  if (isPortMessage(message.type)) {
-    if (!port) {
-      console.log("[Bridge] Reconnecting port...");
-      port = chrome.runtime.connect({ name: "dashboard" });
-      port.onMessage.addListener((msg: ExtensionMessage) => {
-        window.postMessage({ ...msg, source: EXTENSION_SOURCE }, "*");
-      });
-      port.onDisconnect.addListener(() => {
-        console.log("[Bridge] Port disconnected, will reconnect on next message");
-        port = null;
-      });
-    }
-    port.postMessage(message);
-  } else {
-    chrome.runtime.sendMessage(message)
-      .then((response) => {
-        if (response) {
-          window.postMessage(
-            {
-              type: getResponseType(message.type),
-              payload: response,
-              source: EXTENSION_SOURCE,
-            },
-            "*"
-          );
-        }
-      })
-      .catch((error) => {
-        console.error("[Bridge] Error sending message:", error);
-        window.postMessage(
-          {
-            type: getResponseType(message.type),
-            payload: { error: error.message || "Extension communication error" },
-            source: EXTENSION_SOURCE,
-          },
-          "*"
-        );
-      });
-  }
 }
 
 function isPortMessage(type: MessageType): boolean {
