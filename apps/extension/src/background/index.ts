@@ -8,7 +8,6 @@ import {
 import { colors } from "@tokative/shared";
 import { setAuthToken } from "../utils/convex-api";
 import { loadConfig, refreshConfig, getLoadedConfig } from "../config/loader";
-import type { RemoteConfig } from "../config/types";
 import {
   addScrapedComments,
   addToIgnoreList,

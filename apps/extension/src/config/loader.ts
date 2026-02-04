@@ -1,4 +1,4 @@
-import type { RemoteConfig } from "./types";
+import type { ExtensionConfig } from "./types";
 import { isVersionCompatible } from "./types";
 import { DEFAULT_CONFIG } from "./defaults";
 
@@ -8,11 +8,11 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const FETCH_TIMEOUT_MS = 5000;
 
 interface CachedConfig {
-  config: RemoteConfig;
+  config: ExtensionConfig;
   fetchedAt: number;
 }
 
-let memoryCache: RemoteConfig | null = null;
+let memoryCache: ExtensionConfig | null = null;
 
 function getExtensionVersion(): string {
   try {
@@ -39,7 +39,7 @@ async function getCachedConfig(): Promise<CachedConfig | null> {
   return null;
 }
 
-async function setCachedConfig(config: RemoteConfig): Promise<void> {
+async function setCachedConfig(config: ExtensionConfig): Promise<void> {
   try {
     const cached: CachedConfig = {
       config,
@@ -51,7 +51,7 @@ async function setCachedConfig(config: RemoteConfig): Promise<void> {
   }
 }
 
-function validateConfig(data: unknown): data is RemoteConfig {
+function validateConfig(data: unknown): data is ExtensionConfig {
   if (typeof data !== "object" || data === null) return false;
 
   const config = data as Record<string, unknown>;
@@ -66,7 +66,7 @@ function validateConfig(data: unknown): data is RemoteConfig {
   return true;
 }
 
-function mergeWithDefaults(remote: Partial<RemoteConfig>): RemoteConfig {
+function mergeWithDefaults(remote: Partial<ExtensionConfig>): ExtensionConfig {
   return {
     ...DEFAULT_CONFIG,
     ...remote,
@@ -85,7 +85,7 @@ function mergeWithDefaults(remote: Partial<RemoteConfig>): RemoteConfig {
   };
 }
 
-async function fetchRemoteConfig(): Promise<RemoteConfig | null> {
+async function fetchExtensionConfig(): Promise<ExtensionConfig | null> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
@@ -130,7 +130,7 @@ async function fetchRemoteConfig(): Promise<RemoteConfig | null> {
   }
 }
 
-export async function loadConfig(): Promise<RemoteConfig> {
+export async function loadConfig(): Promise<ExtensionConfig> {
   if (memoryCache) {
     return memoryCache;
   }
@@ -142,7 +142,7 @@ export async function loadConfig(): Promise<RemoteConfig> {
     return cached.config;
   }
 
-  const remote = await fetchRemoteConfig();
+  const remote = await fetchExtensionConfig();
   if (remote) {
     console.log("[Config] Fetched remote config, version:", remote.version);
     await setCachedConfig(remote);
@@ -155,7 +155,7 @@ export async function loadConfig(): Promise<RemoteConfig> {
   return DEFAULT_CONFIG;
 }
 
-export async function refreshConfig(): Promise<RemoteConfig> {
+export async function refreshConfig(): Promise<ExtensionConfig> {
   memoryCache = null;
   try {
     await chrome.storage.local.remove(CACHE_KEY);
@@ -165,7 +165,7 @@ export async function refreshConfig(): Promise<RemoteConfig> {
   return loadConfig();
 }
 
-export function getLoadedConfig(): RemoteConfig {
+export function getLoadedConfig(): ExtensionConfig {
   return memoryCache || DEFAULT_CONFIG;
 }
 

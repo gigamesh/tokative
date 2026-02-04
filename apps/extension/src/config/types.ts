@@ -1,4 +1,4 @@
-export interface RemoteConfig {
+export interface ExtensionConfig {
   version: string;
   minExtensionVersion: string;
 
