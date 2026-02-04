@@ -45,21 +45,21 @@ describe("randomDelay", () => {
   });
 
   it("delays within the specified range", async () => {
-    (Math.random as ReturnType<typeof vi.spyOn>).mockReturnValue(0.5);
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
     const promise = randomDelay(100, 200);
     vi.advanceTimersByTime(150);
     await promise;
   });
 
   it("uses minimum delay when random is 0", async () => {
-    (Math.random as ReturnType<typeof vi.spyOn>).mockReturnValue(0);
+    vi.spyOn(Math, "random").mockReturnValue(0);
     const promise = randomDelay(100, 200);
     vi.advanceTimersByTime(100);
     await promise;
   });
 
   it("uses maximum delay when random is 1", async () => {
-    (Math.random as ReturnType<typeof vi.spyOn>).mockReturnValue(0.99999);
+    vi.spyOn(Math, "random").mockReturnValue(0.99999);
     const promise = randomDelay(100, 200);
     vi.advanceTimersByTime(200);
     await promise;

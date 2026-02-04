@@ -146,7 +146,7 @@ export const addBatch = mutation({
   },
   handler: async (ctx, args) => {
     // TEMP DIAGNOSTIC
-    const videoIds = [...new Set(args.comments.map(c => c.videoId).filter(Boolean))];
+    const videoIds = Array.from(new Set(args.comments.map(c => c.videoId).filter(Boolean)));
     console.log(`[DIAG] addBatch called with ${args.comments.length} comments`);
     console.log(`[DIAG] addBatch: Unique videoIds in batch:`, videoIds);
 

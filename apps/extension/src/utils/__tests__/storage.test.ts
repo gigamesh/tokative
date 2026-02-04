@@ -136,6 +136,7 @@ describe("Comment Storage (Convex-backed)", () => {
         new: 2,
         preexisting: 0,
         ignored: 1,
+        missingTiktokUserId: 0,
       });
 
       const newComments = [createComment({ id: "1" }), createComment({ id: "2" })];
@@ -143,7 +144,7 @@ describe("Comment Storage (Convex-backed)", () => {
 
       expect(mockedConvexApi.fetchIgnoreList).toHaveBeenCalled();
       expect(mockedConvexApi.syncComments).toHaveBeenCalledWith(newComments, ["spam"]);
-      expect(result).toEqual({ new: 2, preexisting: 0, ignored: 1 });
+      expect(result).toEqual({ new: 2, preexisting: 0, ignored: 1, missingTiktokUserId: 0 });
     });
   });
 

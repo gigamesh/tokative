@@ -42,6 +42,51 @@ let isBatchScraping = false;
 let batchCancelled = false;
 const closingTabsIntentionally = new Set<number>();
 
+// Message types that should be forwarded directly to dashboard
+const FORWARD_TO_DASHBOARD_MESSAGES: Set<MessageType> = new Set([
+  MessageType.SCRAPE_VIDEOS_PROGRESS,
+  MessageType.SCRAPE_VIDEOS_ERROR,
+  MessageType.GET_VIDEO_COMMENTS_PROGRESS,
+  MessageType.GET_VIDEO_COMMENTS_COMPLETE,
+  MessageType.GET_VIDEO_COMMENTS_ERROR,
+  MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
+  MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
+  MessageType.REPLY_COMMENT_PROGRESS,
+  MessageType.REPLY_COMMENT_COMPLETE,
+  MessageType.REPLY_COMMENT_ERROR,
+  MessageType.COMMENTS_UPDATED,
+]);
+
+async function cleanupScrapingSession(): Promise<void> {
+  activeScrapingTabId = null;
+  isBatchScraping = false;
+  await clearScrapingState();
+  broadcastScrapingState();
+  clearBadge();
+}
+
+async function updateAndBroadcastScrapingState(
+  state: Partial<Parameters<typeof saveScrapingState>[0]>
+): Promise<void> {
+  await saveScrapingState(state);
+  broadcastScrapingState();
+}
+
+async function getDashboardTab(): Promise<chrome.tabs.Tab | null> {
+  try {
+    const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+    return tabs.length > 0 && tabs[0].id ? tabs[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Unknown error";
+}
+
 async function getDashboardTabIndex(): Promise<number | undefined> {
   try {
     const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
@@ -56,11 +101,11 @@ async function getDashboardTabIndex(): Promise<number | undefined> {
 
 async function focusDashboardTab(): Promise<void> {
   try {
-    const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
-    if (tabs.length > 0 && tabs[0].id) {
-      await chrome.tabs.update(tabs[0].id, { active: true });
-      if (tabs[0].windowId) {
-        await chrome.windows.update(tabs[0].windowId, { focused: true });
+    const tab = await getDashboardTab();
+    if (tab?.id) {
+      await chrome.tabs.update(tab.id, { active: true });
+      if (tab.windowId) {
+        await chrome.windows.update(tab.windowId, { focused: true });
       }
     }
   } catch {
@@ -94,10 +139,7 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   if (activeScrapingTabId && tabId === activeScrapingTabId) {
     console.log("[Background] Scraping tab was closed by user");
     const wasBatchScraping = isBatchScraping;
-    activeScrapingTabId = null;
-    isBatchScraping = false;
-    await clearScrapingState();
-    clearBadge();
+    await cleanupScrapingSession();
 
     const errorType = wasBatchScraping
       ? MessageType.GET_BATCH_COMMENTS_ERROR
@@ -143,21 +185,19 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     // Pause scraping when leaving the TikTok tab (for both single and batch scraping)
     console.log("[Background] Scraping tab lost focus, pausing");
     chrome.tabs.sendMessage(scrapingTabId, { type: MessageType.SCRAPE_PAUSE });
-    await saveScrapingState({
+    await updateAndBroadcastScrapingState({
       isPaused: true,
       status: "paused",
       message: "Paused - TikTok tab must be active",
     });
-    broadcastScrapingState();
   } else {
     console.log("[Background] Scraping tab regained focus, resuming");
     chrome.tabs.sendMessage(scrapingTabId, { type: MessageType.SCRAPE_RESUME });
-    await saveScrapingState({
+    await updateAndBroadcastScrapingState({
       isPaused: false,
       status: "scraping",
       message: "Scraping comments...",
     });
-    broadcastScrapingState();
   }
 });
 
@@ -209,6 +249,12 @@ async function handleMessage(
   sender: chrome.runtime.MessageSender,
 ): Promise<unknown> {
   console.log("[Background] Message received:", message.type);
+
+  // Handle simple message forwarding to dashboard
+  if (FORWARD_TO_DASHBOARD_MESSAGES.has(message.type)) {
+    broadcastToDashboard(message);
+    return { success: true };
+  }
 
   switch (message.type) {
     case MessageType.GET_SCRAPED_COMMENTS: {
@@ -329,13 +375,6 @@ async function handleMessage(
       return { success: true };
     }
 
-    // Forward video scraping messages from content script to dashboard
-    case MessageType.SCRAPE_VIDEOS_PROGRESS:
-    case MessageType.SCRAPE_VIDEOS_ERROR: {
-      broadcastToDashboard(message);
-      return { success: true };
-    }
-
     case MessageType.SCRAPE_VIDEOS_COMPLETE: {
       const { videos, limitReached } = message.payload as {
         videos: ScrapedVideo[];
@@ -346,20 +385,6 @@ async function handleMessage(
         type: MessageType.SCRAPE_VIDEOS_COMPLETE,
         payload: { totalAdded: added, videos, limitReached },
       });
-      return { success: true };
-    }
-
-    // Forward get video comments messages
-    case MessageType.GET_VIDEO_COMMENTS_PROGRESS:
-    case MessageType.GET_VIDEO_COMMENTS_COMPLETE:
-    case MessageType.GET_VIDEO_COMMENTS_ERROR: {
-      broadcastToDashboard(message);
-      return { success: true };
-    }
-
-    // Handle popup-triggered comment scraping
-    case MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS: {
-      broadcastToDashboard(message);
       return { success: true };
     }
 
@@ -383,19 +408,6 @@ async function handleMessage(
       return { success: true };
     }
 
-    case MessageType.SCRAPE_VIDEO_COMMENTS_ERROR: {
-      broadcastToDashboard(message);
-      return { success: true };
-    }
-
-    // Forward reply messages from content script to dashboard
-    case MessageType.REPLY_COMMENT_PROGRESS:
-    case MessageType.REPLY_COMMENT_COMPLETE:
-    case MessageType.REPLY_COMMENT_ERROR: {
-      broadcastToDashboard(message);
-      return { success: true };
-    }
-
     // Handle cancel from popup/dashboard via regular messaging
     case MessageType.SCRAPE_VIDEO_COMMENTS_STOP: {
       console.log(
@@ -412,12 +424,6 @@ async function handleMessage(
         type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
         payload: { comments: [], cancelled: true },
       });
-      return { success: true };
-    }
-
-    // Storage updates - broadcast to dashboard for real-time UI updates
-    case MessageType.COMMENTS_UPDATED: {
-      broadcastToDashboard(message);
       return { success: true };
     }
 
@@ -460,11 +466,11 @@ async function handleMessage(
     }
 
     case MessageType.OPEN_DASHBOARD_TAB: {
-      const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
-      if (tabs.length > 0 && tabs[0].id) {
-        await chrome.tabs.update(tabs[0].id, { active: true });
-        if (tabs[0].windowId) {
-          await chrome.windows.update(tabs[0].windowId, { focused: true });
+      const tab = await getDashboardTab();
+      if (tab?.id) {
+        await chrome.tabs.update(tab.id, { active: true });
+        if (tab.windowId) {
+          await chrome.windows.update(tab.windowId, { focused: true });
         }
       } else {
         await chrome.tabs.create({
@@ -581,12 +587,7 @@ async function handlePortMessage(
       } catch (error) {
         port.postMessage({
           type: MessageType.SCRAPE_VIDEOS_ERROR,
-          payload: {
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to start scraping",
-          },
+          payload: { error: getErrorMessage(error) },
         });
       }
       break;
@@ -825,7 +826,7 @@ async function handleReplyToComment(
       });
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = getErrorMessage(error);
     port.postMessage({
       type: MessageType.REPLY_COMMENT_ERROR,
       payload: {
@@ -995,7 +996,7 @@ async function handleGetVideoComments(
 
     activeScrapingTabId = tab.id;
     isBatchScraping = false;
-    await saveScrapingState({
+    await updateAndBroadcastScrapingState({
       isActive: true,
       isPaused: false,
       videoId,
@@ -1004,17 +1005,15 @@ async function handleGetVideoComments(
       status: "loading",
       message: "Opening video...",
     });
-    broadcastScrapingState();
 
     updateBadge("...", colors.status.info);
 
     await waitForTabLoad(tab.id);
 
-    await saveScrapingState({
+    await updateAndBroadcastScrapingState({
       status: "scraping",
       message: "Scraping comments...",
     });
-    broadcastScrapingState();
 
     port.postMessage({
       type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
@@ -1022,13 +1021,6 @@ async function handleGetVideoComments(
     });
 
     const commentLimit = await getCommentLimit();
-
-    const cleanupScraping = async () => {
-      activeScrapingTabId = null;
-      await clearScrapingState();
-      broadcastScrapingState();
-      clearBadge();
-    };
 
     const responseHandler = async (msg: ExtensionMessage) => {
       console.log(
@@ -1043,11 +1035,10 @@ async function handleGetVideoComments(
         };
         const count = payload.commentsFound || 0;
         console.log("[Background] Progress update, commentsFound:", count);
-        await saveScrapingState({
+        await updateAndBroadcastScrapingState({
           commentsFound: count,
           message: payload.message || "Scraping...",
         });
-        broadcastScrapingState();
         updateBadge(count.toString(), colors.status.info);
         const progressPayload = (msg.payload || {}) as Record<string, unknown>;
         port.postMessage({
@@ -1074,7 +1065,7 @@ async function handleGetVideoComments(
           payload: { videoId, commentCount: scrapedComments?.length || 0 },
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
-        await cleanupScraping();
+        await cleanupScrapingSession();
         // DIAG: Tab auto-close disabled for log inspection
         // closingTabsIntentionally.add(tab.id!);
         // chrome.tabs.remove(tab.id!);
@@ -1087,7 +1078,7 @@ async function handleGetVideoComments(
           payload: { videoId, ...errorPayload },
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
-        await cleanupScraping();
+        await cleanupScrapingSession();
         // DIAG: Tab auto-close disabled for log inspection
         // closingTabsIntentionally.add(tab.id!);
         // chrome.tabs.remove(tab.id!);
@@ -1102,16 +1093,10 @@ async function handleGetVideoComments(
       payload: { maxComments: commentLimit },
     });
   } catch (error) {
-    activeScrapingTabId = null;
-    await clearScrapingState();
-    broadcastScrapingState();
-    clearBadge();
+    await cleanupScrapingSession();
     port.postMessage({
       type: MessageType.GET_VIDEO_COMMENTS_ERROR,
-      payload: {
-        videoId,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      payload: { videoId, error: getErrorMessage(error) },
     });
   }
 }
@@ -1261,11 +1246,7 @@ async function handleGetBatchComments(
       }
     }
 
-    activeScrapingTabId = null;
-    isBatchScraping = false;
-    await clearScrapingState();
-    broadcastScrapingState();
-    clearBadge();
+    await cleanupScrapingSession();
 
     const wasCancelled = batchCancelled;
     batchCancelled = false; // Reset for next batch
@@ -1298,17 +1279,13 @@ async function handleGetBatchComments(
     // }
     await focusDashboardTab();
   } catch (error) {
-    activeScrapingTabId = null;
-    isBatchScraping = false;
     batchCancelled = false;
-    await clearScrapingState();
-    broadcastScrapingState();
-    clearBadge();
+    await cleanupScrapingSession();
 
     port.postMessage({
       type: MessageType.GET_BATCH_COMMENTS_ERROR,
       payload: {
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: getErrorMessage(error),
         completedVideos,
         totalComments,
       },
@@ -1451,8 +1428,8 @@ chrome.webRequest.onCompleted.addListener(
       console.log(`[Background] Rate limit detected: ${errorMsg}`);
 
       // For 429 errors during active scraping, pause and set resume time
-      const shouldPause = is429 && activeScrapingTabId;
-      const resumeAt = shouldPause ? new Date(Date.now() + 60000).toISOString() : null;
+      const shouldPause = is429 && activeScrapingTabId !== null;
+      const resumeAt = shouldPause ? new Date(Date.now() + 60000).toISOString() : undefined;
 
       const state = await recordRateLimitError(errorMsg, {
         isPausedFor429: shouldPause,

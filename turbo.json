@@ -18,6 +18,9 @@
     },
     "clean": {
       "cache": false
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
     }
   }
 }

@@ -142,7 +142,7 @@ function handleWindowMessage(event: MessageEvent): void {
 }
 
 function isPortMessage(type: MessageType): boolean {
-  return [
+  const portMessages: MessageType[] = [
     MessageType.REPLY_COMMENT,
     MessageType.BULK_REPLY_START,
     MessageType.BULK_REPLY_STOP,
@@ -151,7 +151,8 @@ function isPortMessage(type: MessageType): boolean {
     MessageType.GET_VIDEO_COMMENTS,
     MessageType.GET_BATCH_COMMENTS,
     MessageType.SCRAPE_VIDEO_COMMENTS_STOP,
-  ].includes(type);
+  ];
+  return portMessages.includes(type);
 }
 
 function getResponseType(requestType: MessageType): MessageType {

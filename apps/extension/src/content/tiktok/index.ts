@@ -59,7 +59,6 @@ function handleMessage(
             payload: {
               commentId: comment.id,
               postedReplyId: result.postedReplyId,
-              postedReply: result.postedReply,
             },
           });
           sendResponse({ success: true, postedReplyId: result.postedReplyId });
