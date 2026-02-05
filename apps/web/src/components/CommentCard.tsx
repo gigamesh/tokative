@@ -14,6 +14,7 @@ interface CommentCardProps {
   depth?: number;
   isReplying?: boolean;
   isSearchingMatches?: boolean;
+  transparent?: boolean;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -41,6 +42,7 @@ export function CommentCard({
   depth = 0,
   isReplying = false,
   isSearchingMatches = false,
+  transparent = false,
 }: CommentCardProps) {
   const isReply = depth > 0;
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
@@ -62,7 +64,9 @@ export function CommentCard({
     <div
       className={`px-3 py-2 rounded-lg border transition-colors ${
         selected
-          ? "border-accent-cyan-muted bg-accent-cyan-muted/10"
+          ? "border-accent-cyan-muted-half bg-accent-cyan-muted/10"
+          : transparent
+          ? "border-border bg-transparent hover:border-foreground-muted"
           : "border-border bg-surface-elevated hover:border-foreground-muted"
       } ${isReply ? "ml-10 border-l-2 border-l-border" : ""}`}
     >

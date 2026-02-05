@@ -22,6 +22,7 @@
   --accent-cyan-solid: #00aeb2;
   --accent-cyan-solid-hover: #00d8d5;
   --accent-cyan-muted: #00d8d5;
+  --accent-cyan-muted-half: rgba(0, 216, 213, 0.5);
   --accent-cyan-checkbox: #008b8f;
 }
 
@@ -41,6 +42,7 @@
   --accent-cyan-solid: #00aeb2;
   --accent-cyan-solid-hover: #00d8d5;
   --accent-cyan-muted: #25F4EE;
+  --accent-cyan-muted-half: rgba(37, 244, 238, 0.5);
   --accent-cyan-checkbox: #008b8f;
 }
 

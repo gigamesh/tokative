@@ -75,7 +75,7 @@ export function CommenterCard({
     <div
       className={`rounded-lg border transition-colors ${
         someSelected || allSelected
-          ? "border-accent-cyan-muted bg-accent-cyan-muted/5"
+          ? "border-accent-cyan-muted-half bg-accent-cyan-muted/5"
           : "border-border bg-surface-elevated"
       }`}
     >
@@ -161,7 +161,7 @@ export function CommenterCard({
       </div>
 
       {expanded && (
-        <div className="border-t border-border px-3 py-2 space-y-2 max-h-96 overflow-y-auto">
+        <div className="border-t border-border px-3 py-2 space-y-2 max-h-96 overflow-y-auto bg-surface-secondary rounded-b-lg">
           {commenter.comments.map((comment) => (
             <CommentCard
               key={comment.id}
@@ -173,6 +173,7 @@ export function CommenterCard({
               thumbnailUrl={comment.videoId ? videoThumbnails.get(comment.videoId) : undefined}
               isReplying={replyingCommentId === comment.id}
               isSearchingMatches={searchingMatchesCommentId === comment.id}
+              transparent
             />
           ))}
         </div>

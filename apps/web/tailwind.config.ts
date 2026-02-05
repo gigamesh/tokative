@@ -34,6 +34,7 @@ const config: Config = {
             solid: "var(--accent-cyan-solid)",
             "solid-hover": "var(--accent-cyan-solid-hover)",
             muted: "var(--accent-cyan-muted)",
+            "muted-half": "var(--accent-cyan-muted-half)",
           },
           pink: {
             50: "#fff0f3",

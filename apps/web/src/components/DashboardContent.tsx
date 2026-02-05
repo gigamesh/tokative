@@ -134,6 +134,8 @@ export function DashboardContent() {
     hasMore: hasMoreCommenters,
     loadMore: loadMoreCommenters,
     isLoadingMore: isLoadingMoreCommenters,
+    search: commenterSearch,
+    setSearch: setCommenterSearch,
   } = useCommenterData();
 
   const [selectedCommentIds, setSelectedCommentIds] = useState<Set<string>>(new Set());
@@ -625,6 +627,8 @@ export function DashboardContent() {
                   onLoadMore={loadMoreCommenters}
                   hasMore={hasMoreCommenters}
                   isLoadingMore={isLoadingMoreCommenters}
+                  search={commenterSearch}
+                  onSearchChange={setCommenterSearch}
                   headerContent={
                     <h2 className="text-lg font-medium text-foreground">Commenters</h2>
                   }

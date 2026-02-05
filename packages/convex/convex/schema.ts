@@ -17,9 +17,11 @@ export default defineSchema({
     avatarUrl: v.optional(v.string()),
     firstSeenAt: v.number(),
     lastSeenAt: v.number(),
+    commentCount: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
-    .index("by_user_and_tiktok_id", ["userId", "tiktokUserId"]),
+    .index("by_user_and_tiktok_id", ["userId", "tiktokUserId"])
+    .index("by_user_and_comment_count", ["userId", "commentCount"]),
 
   comments: defineTable({
     userId: v.id("users"),
@@ -41,7 +43,8 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_and_video", ["userId", "videoId"])
-    .index("by_user_and_comment_id", ["userId", "commentId"]),
+    .index("by_user_and_comment_id", ["userId", "commentId"])
+    .index("by_user_and_profile", ["userId", "tiktokProfileId"]),
 
   videos: defineTable({
     userId: v.id("users"),

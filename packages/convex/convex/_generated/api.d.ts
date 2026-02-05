@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as commentHelpers from "../commentHelpers.js";
 import type * as commenters from "../commenters.js";
 import type * as comments from "../comments.js";
 import type * as constants from "../constants.js";
@@ -28,6 +29,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  commentHelpers: typeof commentHelpers;
   commenters: typeof commenters;
   comments: typeof comments;
   constants: typeof constants;

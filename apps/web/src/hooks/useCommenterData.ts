@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { useCallback, useMemo, useState } from "react";
+import { usePaginatedQuery, useQuery } from "convex/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/providers/ConvexProvider";
 import { api } from "@tokative/convex";
 import { ScrapedComment } from "@/utils/constants";
@@ -18,36 +18,71 @@ export interface CommenterData {
 }
 
 const PAGE_SIZE = 30;
+const DEBOUNCE_MS = 300;
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export function useCommenterData() {
   const { userId } = useAuth();
-  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, DEBOUNCE_MS);
 
-  const allCommenters = useQuery(
-    api.commenters.list,
+  const {
+    results,
+    status,
+    loadMore: convexLoadMore,
+  } = usePaginatedQuery(
+    api.commenters.listPaginated,
+    userId
+      ? {
+          clerkId: userId,
+          search: debouncedSearch || undefined,
+        }
+      : "skip",
+    { initialNumItems: PAGE_SIZE }
+  );
+
+  const commenterCount = useQuery(
+    api.commenters.getCount,
     userId ? { clerkId: userId } : "skip"
-  ) as CommenterData[] | undefined;
+  );
 
-  const loading = allCommenters === undefined;
-  const totalCommenterCount = allCommenters?.length ?? 0;
+  const loading = status === "LoadingFirstPage";
+  const isLoadingMore = status === "LoadingMore";
+  const hasMore = status === "CanLoadMore";
 
   const commenters = useMemo(() => {
-    if (!allCommenters) return [];
-    return allCommenters.slice(0, displayCount);
-  }, [allCommenters, displayCount]);
-
-  const hasMore = allCommenters ? displayCount < allCommenters.length : false;
+    return (results ?? []) as CommenterData[];
+  }, [results]);
 
   const loadMore = useCallback(() => {
-    setDisplayCount((prev) => prev + PAGE_SIZE);
-  }, []);
+    if (hasMore && !isLoadingMore) {
+      convexLoadMore(PAGE_SIZE);
+    }
+  }, [hasMore, isLoadingMore, convexLoadMore]);
 
   return {
     commenters,
     loading,
-    totalCommenterCount,
+    totalCommenterCount: commenterCount ?? 0,
     hasMore,
     loadMore,
-    isLoadingMore: false,
+    isLoadingMore,
+    search,
+    setSearch,
   };
 }

@@ -65,6 +65,8 @@ interface CommenterTableProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
+  search: string;
+  onSearchChange: (search: string) => void;
 }
 
 export function CommenterTable({
@@ -82,8 +84,9 @@ export function CommenterTable({
   onLoadMore,
   hasMore,
   isLoadingMore,
+  search,
+  onSearchChange,
 }: CommenterTableProps) {
-  const [search, setSearch] = useState("");
   const [expandedCommenterIds, setExpandedCommenterIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
@@ -99,50 +102,42 @@ export function CommenterTable({
     });
   }, []);
 
-  const filteredCommenters = useMemo(() => {
-    if (!search) return commenters;
-    const searchLower = search.toLowerCase();
-    return commenters.filter((c) =>
-      c.handle.toLowerCase().includes(searchLower)
-    );
-  }, [commenters, search]);
-
-  const filteredCommentIds = useMemo(() => {
+  const allCommentIds = useMemo(() => {
     const ids: string[] = [];
-    for (const commenter of filteredCommenters) {
+    for (const commenter of commenters) {
       for (const comment of commenter.comments) {
         ids.push(comment.id);
       }
     }
     return ids;
-  }, [filteredCommenters]);
+  }, [commenters]);
 
-  const filteredSelectedCount = filteredCommentIds.filter((id) =>
+  const selectedCount = allCommentIds.filter((id) =>
     selectedCommentIds.has(id)
   ).length;
 
-  const allFilteredSelected =
-    filteredCommentIds.length > 0 &&
-    filteredSelectedCount === filteredCommentIds.length;
+  const allSelected =
+    allCommentIds.length > 0 &&
+    selectedCount === allCommentIds.length;
 
-  const someFilteredSelected =
-    filteredSelectedCount > 0 &&
-    filteredSelectedCount < filteredCommentIds.length;
+  const someSelected =
+    selectedCount > 0 &&
+    selectedCount < allCommentIds.length;
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
-      for (const id of filteredCommentIds) {
+      for (const id of allCommentIds) {
         onSelectComment(id, checked);
       }
     },
-    [filteredCommentIds, onSelectComment]
+    [allCommentIds, onSelectComment]
   );
 
   const handleEndReached = useCallback(() => {
-    if (hasMore && !isLoadingMore && onLoadMore && !search) {
+    if (hasMore && !isLoadingMore && onLoadMore) {
       onLoadMore();
     }
-  }, [hasMore, isLoadingMore, onLoadMore, search]);
+  }, [hasMore, isLoadingMore, onLoadMore]);
 
   return (
     <div className="space-y-4">
@@ -155,12 +150,12 @@ export function CommenterTable({
                 type="text"
                 placeholder="Search by handle..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => onSearchChange(e.target.value)}
                 className="px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg min-w-80 text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted"
               />
               {search && (
                 <button
-                  onClick={() => setSearch("")}
+                  onClick={() => onSearchChange("")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground transition-colors"
                   aria-label="Clear search"
                 >
@@ -188,9 +183,9 @@ export function CommenterTable({
             <label className="flex items-center gap-2 text-sm text-foreground-muted cursor-pointer">
               <input
                 type="checkbox"
-                checked={allFilteredSelected}
+                checked={allSelected}
                 ref={(el) => {
-                  if (el) el.indeterminate = someFilteredSelected;
+                  if (el) el.indeterminate = someSelected;
                 }}
                 onChange={(e) => handleSelectAll(e.target.checked)}
                 className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
@@ -212,15 +207,15 @@ export function CommenterTable({
 
       {isLoading ? (
         <CommenterTableSkeleton count={5} />
-      ) : filteredCommenters.length === 0 ? (
+      ) : commenters.length === 0 ? (
         <div className="text-center py-12 text-foreground-muted">
-          {commenters.length === 0
-            ? "No comments scraped yet. Start scraping to see commenters here."
-            : "No commenters match your search."}
+          {search
+            ? "No commenters match your search."
+            : "No comments scraped yet. Start scraping to see commenters here."}
         </div>
       ) : (
         <Virtuoso
-          data={filteredCommenters}
+          data={commenters}
           useWindowScroll
           overscan={10}
           endReached={handleEndReached}

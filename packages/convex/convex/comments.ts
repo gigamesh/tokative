@@ -4,6 +4,12 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { getOrCreate as getOrCreateProfile } from "./tiktokProfiles";
+import {
+  insertCommentsBatch,
+  deleteComment,
+  deleteCommentsBatch,
+  CommentInsertData,
+} from "./commentHelpers";
 
 export const list = query({
   args: { clerkId: v.string() },
@@ -169,13 +175,13 @@ export const addBatch = mutation({
     }
 
     const ignoreTexts = (args.ignoreList ?? []).map((t) => t.toLowerCase());
-    let newCount = 0;
     let preexisting = 0;
     let ignored = 0;
     let missingTiktokUserId = 0;
 
     const profileCache = new Map<string, Awaited<ReturnType<typeof getOrCreateProfile>>>();
     const avatarsToStore: Array<{ profileId: Id<"tiktokProfiles">; tiktokUserId: string; tiktokAvatarUrl: string }> = [];
+    const commentsToInsert: Array<{ tiktokProfileId: Id<"tiktokProfiles">; data: CommentInsertData }> = [];
 
     for (const comment of args.comments) {
       if (!comment.tiktokUserId) {
@@ -223,22 +229,25 @@ export const addBatch = mutation({
         }
       }
 
-      await ctx.db.insert("comments", {
-        userId: user._id,
+      commentsToInsert.push({
         tiktokProfileId: profileResult.profileId,
-        commentId: comment.commentId,
-        comment: comment.comment,
-        scrapedAt: comment.scrapedAt,
-        videoUrl: comment.videoUrl,
-        commentTimestamp: comment.commentTimestamp,
-        videoId: comment.videoId,
-        parentCommentId: comment.parentCommentId,
-        isReply: comment.isReply,
-        replyCount: comment.replyCount,
-        source: comment.source,
+        data: {
+          commentId: comment.commentId,
+          comment: comment.comment,
+          scrapedAt: comment.scrapedAt,
+          videoUrl: comment.videoUrl,
+          commentTimestamp: comment.commentTimestamp,
+          videoId: comment.videoId,
+          parentCommentId: comment.parentCommentId,
+          isReply: comment.isReply,
+          replyCount: comment.replyCount,
+          source: comment.source,
+        },
       });
-      newCount++;
     }
+
+    // Use helper to insert comments and update profile counts
+    const newCount = await insertCommentsBatch(ctx, user._id, commentsToInsert);
 
     for (const avatar of avatarsToStore) {
       await ctx.scheduler.runAfter(0, internal.imageStorage.storeAvatar, {
@@ -314,7 +323,8 @@ export const remove = mutation({
       .unique();
 
     if (comment) {
-      await ctx.db.delete(comment._id);
+      // Use helper to delete comment and update profile count
+      await deleteComment(ctx, comment._id);
     }
   },
 });
@@ -334,6 +344,7 @@ export const removeBatch = mutation({
       throw new Error("User not found");
     }
 
+    const commentDocIds: Id<"comments">[] = [];
     for (const commentId of args.commentIds) {
       const comment = await ctx.db
         .query("comments")
@@ -343,9 +354,12 @@ export const removeBatch = mutation({
         .unique();
 
       if (comment) {
-        await ctx.db.delete(comment._id);
+        commentDocIds.push(comment._id);
       }
     }
+
+    // Use helper to delete comments and update profile counts
+    await deleteCommentsBatch(ctx, commentDocIds);
   },
 });
 

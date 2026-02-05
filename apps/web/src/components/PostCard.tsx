@@ -30,9 +30,9 @@ export function PostCard({
     <div
       className={`group relative rounded-lg overflow-hidden ring-2 transition-colors ${
         isLoading
-          ? "ring-accent-cyan-muted/30 border border-accent-cyan-muted"
+          ? "ring-accent-cyan-muted/30 border border-accent-cyan-muted-half"
           : selected
-          ? "ring-accent-cyan-muted/30 border border-accent-cyan-muted"
+          ? "ring-accent-cyan-muted/30 border border-accent-cyan-muted-half"
           : "ring-transparent border border-border hover:border-foreground-muted"
       }`}
     >
