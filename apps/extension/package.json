@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build.js",
+    "build:prod": "DASHBOARD_URL=https://tokative.social node scripts/build.js",
     "dev": "node scripts/dev.js",
     "clean": "rm -rf dist",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "zip": "node scripts/zip.js",
-    "build:release": "npm run build && npm run zip"
+    "build:release": "npm run build:prod && npm run zip"
   },
   "dependencies": {
     "@tokative/shared": "workspace:*"

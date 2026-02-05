@@ -28,6 +28,7 @@ const buildOptions = {
   minify: !isWatch,
   define: {
     "CONVEX_SITE_URL_PLACEHOLDER": JSON.stringify(env.CONVEX_SITE_URL),
+    "DASHBOARD_URL_PLACEHOLDER": JSON.stringify(env.DASHBOARD_URL),
   },
 };
 
@@ -41,7 +42,28 @@ async function copyPublicFiles() {
 
   const files = fs.readdirSync(publicDir);
   for (const file of files) {
-    fs.copyFileSync(path.join(publicDir, file), path.join(distDir, file));
+    if (file === "manifest.json") {
+      // Process manifest.json to inject dashboard URL
+      const manifest = JSON.parse(fs.readFileSync(path.join(publicDir, file), "utf8"));
+      const dashboardPattern = env.DASHBOARD_URL + "/*";
+
+      // Update host_permissions
+      manifest.host_permissions = manifest.host_permissions.map((perm) =>
+        perm === "http://localhost:3000/*" ? dashboardPattern : perm
+      );
+
+      // Update content_scripts matches
+      manifest.content_scripts = manifest.content_scripts.map((script) => ({
+        ...script,
+        matches: script.matches.map((match) =>
+          match === "http://localhost:3000/*" ? dashboardPattern : match
+        ),
+      }));
+
+      fs.writeFileSync(path.join(distDir, file), JSON.stringify(manifest, null, 2));
+    } else {
+      fs.copyFileSync(path.join(publicDir, file), path.join(distDir, file));
+    }
   }
 }
 

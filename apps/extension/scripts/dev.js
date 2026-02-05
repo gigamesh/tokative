@@ -132,6 +132,7 @@ const buildOptions = {
   define: {
     "process.env.NODE_ENV": '"development"',
     CONVEX_SITE_URL_PLACEHOLDER: JSON.stringify(env.CONVEX_SITE_URL),
+    DASHBOARD_URL_PLACEHOLDER: JSON.stringify(env.DASHBOARD_URL),
   },
 };
 

@@ -23,6 +23,11 @@ function getRequiredEnv(name) {
   return value;
 }
 
+function getEnvWithDefault(name, defaultValue) {
+  return process.env[name] || defaultValue;
+}
+
 module.exports = {
   CONVEX_SITE_URL: getRequiredEnv("CONVEX_SITE_URL"),
+  DASHBOARD_URL: getEnvWithDefault("DASHBOARD_URL", "http://localhost:3000"),
 };

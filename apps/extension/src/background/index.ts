@@ -8,6 +8,10 @@ import {
 import { colors } from "@tokative/shared";
 import { setAuthToken } from "../utils/convex-api";
 import { loadConfig, refreshConfig, getLoadedConfig } from "../config/loader";
+
+declare const DASHBOARD_URL_PLACEHOLDER: string;
+const DASHBOARD_URL = DASHBOARD_URL_PLACEHOLDER;
+const DASHBOARD_URL_PATTERN = DASHBOARD_URL + "/*";
 import {
   addScrapedComments,
   addToIgnoreList,
@@ -75,7 +79,7 @@ async function updateAndBroadcastScrapingState(
 
 async function getDashboardTab(): Promise<chrome.tabs.Tab | null> {
   try {
-    const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+    const tabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
     return tabs.length > 0 && tabs[0].id ? tabs[0] : null;
   } catch {
     return null;
@@ -90,7 +94,7 @@ function getErrorMessage(error: unknown): string {
 
 async function getDashboardTabIndex(): Promise<number | undefined> {
   try {
-    const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+    const tabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
     if (tabs.length > 0 && tabs[0].index !== undefined) {
       return tabs[0].index + 1;
     }
@@ -453,7 +457,7 @@ async function handleMessage(
 
     case MessageType.GET_AUTH_TOKEN: {
       // Request token from dashboard - forward to dashboard tabs
-      const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+      const tabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
       for (const tab of tabs) {
         if (tab.id) {
           chrome.tabs
@@ -475,7 +479,7 @@ async function handleMessage(
         }
       } else {
         await chrome.tabs.create({
-          url: "http://localhost:3000",
+          url: DASHBOARD_URL,
           active: true,
         });
       }
@@ -725,7 +729,7 @@ async function broadcastToDashboard(message: ExtensionMessage): Promise<void> {
   // Only use tabs API as backup if port wasn't available
   if (!sentViaPort) {
     try {
-      const tabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+      const tabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
       for (const tab of tabs) {
         if (tab.id) {
           chrome.tabs.sendMessage(tab.id, message).catch(() => {
@@ -1521,7 +1525,7 @@ getScrapingState().then((state) => {
 // Inject content scripts into already-open tabs
 async function injectContentScripts(): Promise<void> {
   try {
-    const dashboardTabs = await chrome.tabs.query({ url: "http://localhost:3000/*" });
+    const dashboardTabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
     for (const tab of dashboardTabs) {
       if (tab.id) {
         chrome.scripting.executeScript({

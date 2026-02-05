@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
+    "build:extension": "pnpm --filter @tokative/extension build:release",
     "dev": "turbo dev",
     "dev:convex": "cd packages/convex && npx convex dev",
     "deploy:convex:dev": "cd packages/convex && npx convex dev --once",
