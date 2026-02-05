@@ -192,7 +192,7 @@ export default function OnboardingPage() {
           <Section number={2} title="Install in Chrome">
             <ol className="space-y-4 text-foreground-muted">
               <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-sm rounded-full flex items-center justify-center">
+                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
                   1
                 </span>
                 <span>
@@ -201,7 +201,7 @@ export default function OnboardingPage() {
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-sm rounded-full flex items-center justify-center">
+                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
                   2
                 </span>
                 <span>
@@ -212,7 +212,7 @@ export default function OnboardingPage() {
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-sm rounded-full flex items-center justify-center">
+                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
                   3
                 </span>
                 <span>
@@ -222,7 +222,7 @@ export default function OnboardingPage() {
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-sm rounded-full flex items-center justify-center">
+                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
                   4
                 </span>
                 <span>
@@ -232,7 +232,7 @@ export default function OnboardingPage() {
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-sm rounded-full flex items-center justify-center">
+                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
                   5
                 </span>
                 <span>
@@ -273,7 +273,7 @@ function Section({
   return (
     <div className="bg-surface-elevated rounded-lg p-6">
       <div className="flex items-center gap-3 mb-4">
-        <span className="w-8 h-8 bg-blue-600 text-white font-bold rounded-full flex items-center justify-center">
+        <span className="w-8 h-8 bg-accent-cyan-solid text-white font-bold rounded-full flex items-center justify-center">
           {number}
         </span>
         <h2 className="text-xl font-semibold text-foreground">{title}</h2>

@@ -30,9 +30,9 @@ export function PostCard({
     <div
       className={`group relative rounded-lg overflow-hidden ring-2 transition-colors ${
         isLoading
-          ? "ring-blue-500/30 border border-blue-500"
+          ? "ring-accent-cyan-muted/30 border border-accent-cyan-muted"
           : selected
-          ? "ring-blue-500/30 border border-blue-500"
+          ? "ring-accent-cyan-muted/30 border border-accent-cyan-muted"
           : "ring-transparent border border-border hover:border-foreground-muted"
       }`}
     >
@@ -42,7 +42,7 @@ export function PostCard({
           checked={selected}
           onChange={(e) => onSelect(e.target.checked)}
           onClick={(e) => e.stopPropagation()}
-          className="w-5 h-5 rounded border-border bg-surface-secondary/80 text-blue-500 focus:ring-blue-500 cursor-pointer"
+          className="w-5 h-5 rounded border-border bg-surface-secondary/80 text-accent-cyan-solid focus:ring-accent-cyan-solid cursor-pointer"
         />
       </div>
 
@@ -58,7 +58,7 @@ export function PostCard({
       </ExternalLink>
 
       {commentCount > 0 && (
-        <div className="absolute bottom-2 right-2 z-10 bg-green-500/90 text-white text-xs px-2 py-1 rounded-full font-medium">
+        <div className="absolute bottom-2 right-2 z-10 bg-accent-cyan-solid text-white text-xs px-2 py-1 rounded-full font-medium">
           {commentCount}
         </div>
       )}
@@ -66,7 +66,7 @@ export function PostCard({
       {isLoading && (
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
           <div className="text-center px-2">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-8 h-8 border-2 border-accent-cyan-muted border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             {progress?.stats ? (
               <div className="text-white text-xs space-y-0.5">
                 <p>Found: {progress.stats.found}</p>

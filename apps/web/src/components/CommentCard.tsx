@@ -62,7 +62,7 @@ export function CommentCard({
     <div
       className={`px-3 py-2 rounded-lg border transition-colors ${
         selected
-          ? "border-blue-500 bg-blue-500/10"
+          ? "border-accent-cyan-muted bg-accent-cyan-muted/10"
           : "border-border bg-surface-elevated hover:border-foreground-muted"
       } ${isReply ? "ml-10 border-l-2 border-l-border" : ""}`}
     >
@@ -76,7 +76,7 @@ export function CommentCard({
               e.nativeEvent instanceof MouseEvent && e.nativeEvent.shiftKey,
             )
           }
-          className="mt-0.5 w-4 h-4 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500"
+          className="mt-0.5 w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
         />
 
         {thumbnailUrl && !isReply && (
@@ -118,7 +118,7 @@ export function CommentCard({
             </ExternalLink>
             <ExternalLink
               href={comment.profileUrl}
-              className="font-medium text-sm text-foreground hover:text-blue-400 transition-colors"
+              className="font-medium text-sm text-foreground hover:text-accent-cyan-text transition-colors"
             >
               @{comment.handle}
             </ExternalLink>
@@ -146,7 +146,7 @@ export function CommentCard({
             {comment.videoUrl && (
               <ExternalLink
                 href={comment.videoUrl}
-                className="flex-shrink-0 text-foreground-muted hover:text-blue-400 transition-colors mt-0.5"
+                className="flex-shrink-0 text-foreground-muted hover:text-accent-cyan-text transition-colors mt-0.5"
                 title="Open on TikTok"
               >
                 <svg
@@ -174,7 +174,7 @@ export function CommentCard({
           {(isTruncated || isCommentExpanded) && (
             <button
               onClick={() => setIsCommentExpanded(!isCommentExpanded)}
-              className="text-xs text-blue-400 hover:underline"
+              className="text-xs text-accent-cyan-text hover:underline"
             >
               {isCommentExpanded ? "Show less" : "Show more"}
             </button>

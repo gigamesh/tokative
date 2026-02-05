@@ -7,7 +7,7 @@ type LinkProps = ComponentProps<typeof NextLink> & {
 };
 
 export function Link({ external, className = "", ...props }: LinkProps) {
-  const baseClassName = "text-blue-400 hover:text-blue-300 hover:underline";
+  const baseClassName = "text-accent-cyan-text hover:text-accent-cyan-text-hover hover:underline";
   const combinedClassName = className
     ? `${baseClassName} ${className}`
     : baseClassName;

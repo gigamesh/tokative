@@ -122,10 +122,10 @@ export function SetupBanner() {
 
   if (setupState === "needs_connection") {
     return (
-      <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+      <div className="mb-6 p-4 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg">
         <div className="flex items-start gap-3">
           <svg
-            className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5"
+            className="w-5 h-5 text-accent-cyan-text flex-shrink-0 mt-0.5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -138,13 +138,13 @@ export function SetupBanner() {
             />
           </svg>
           <div className="flex-1">
-            <h3 className="text-blue-400 font-medium mb-1">Almost there!</h3>
-            <p className="text-blue-400/80 text-sm mb-3">
+            <h3 className="text-accent-cyan-text font-medium mb-1">Almost there!</h3>
+            <p className="text-accent-cyan-text/80 text-sm mb-3">
               Open the Tokative extension and click "Connect to Dashboard"
             </p>
             <button
               onClick={recheckConnection}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-accent-cyan-solid hover:bg-accent-cyan-solid-hover text-white font-medium rounded-md transition-colors text-sm"
             >
               I've connected
               <svg

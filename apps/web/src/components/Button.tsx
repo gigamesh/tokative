@@ -24,7 +24,7 @@ const variantStyles: Record<ButtonVariant, string> = {
   primary:
     "bg-gradient-brand text-white dark:text-black hover:shadow-lg hover:shadow-accent-pink/25 disabled:bg-none disabled:!bg-surface-secondary disabled:text-foreground-muted disabled:shadow-none",
   secondary:
-    "bg-blue-600 text-white hover:bg-blue-500 disabled:bg-surface-secondary disabled:text-foreground-muted",
+    "bg-accent-cyan-solid text-white hover:bg-accent-cyan-solid-hover disabled:bg-surface-secondary disabled:text-foreground-muted",
   outline:
     "border border-border text-foreground-secondary hover:text-foreground hover:border-foreground-muted disabled:opacity-50",
   ghost:
@@ -32,7 +32,7 @@ const variantStyles: Record<ButtonVariant, string> = {
   danger:
     "bg-red-600 text-white hover:bg-red-500 disabled:bg-surface-secondary disabled:text-foreground-muted",
   soft:
-    "text-blue-400 border border-blue-400/50 bg-blue-500/10 hover:bg-blue-500/20 hover:border-blue-400 disabled:opacity-40 disabled:bg-transparent disabled:text-foreground-muted disabled:border-border disabled:hover:bg-transparent",
+    "text-accent-cyan-solid border border-accent-cyan-solid bg-accent-cyan-500/10 hover:bg-accent-cyan-500/20 hover:border-accent-cyan-solid-hover disabled:opacity-40 disabled:bg-transparent disabled:text-foreground-muted disabled:border-border disabled:hover:bg-transparent",
   "soft-danger":
     "text-red-400 border border-red-400/50 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 disabled:opacity-40 disabled:bg-transparent disabled:text-foreground-muted disabled:border-border disabled:hover:bg-transparent",
 };

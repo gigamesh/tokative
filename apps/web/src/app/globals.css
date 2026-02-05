@@ -12,9 +12,17 @@
   --text-muted: #737373;
   --border-default: #d1d5db;
 
-  /* Brand accent */
+  /* Brand accent - base values */
   --accent-cyan: #25F4EE;
   --accent-pink: #FE2C55;
+
+  /* Semantic accent tokens - darker in light mode for contrast */
+  --accent-cyan-text: #00aeb2;
+  --accent-cyan-text-hover: #008b8f;
+  --accent-cyan-solid: #00aeb2;
+  --accent-cyan-solid-hover: #00d8d5;
+  --accent-cyan-muted: #00d8d5;
+  --accent-cyan-checkbox: #008b8f;
 }
 
 .dark {
@@ -26,12 +34,24 @@
   --text-secondary: #e5e5e5;
   --text-muted: #888888;
   --border-default: #374151;
+
+  /* Semantic accent tokens - lighter in dark mode */
+  --accent-cyan-text: #25F4EE;
+  --accent-cyan-text-hover: #67fffc;
+  --accent-cyan-solid: #00aeb2;
+  --accent-cyan-solid-hover: #00d8d5;
+  --accent-cyan-muted: #25F4EE;
+  --accent-cyan-checkbox: #008b8f;
 }
 
 body {
   color: var(--text-primary);
   background: var(--bg-primary);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent-cyan-checkbox);
 }
 
 @layer utilities {

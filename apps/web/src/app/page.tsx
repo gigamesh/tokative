@@ -148,7 +148,7 @@ function FeatureCard({
   description: string;
   accent: "cyan" | "pink";
 }) {
-  const accentColor = accent === "cyan" ? "text-accent-cyan" : "text-accent-pink";
+  const accentColor = accent === "cyan" ? "text-accent-cyan-text" : "text-accent-pink";
 
   return (
     <div className="group">

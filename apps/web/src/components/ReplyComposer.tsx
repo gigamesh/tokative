@@ -144,7 +144,7 @@ export function ReplyComposer({
       <div className="flex items-center justify-between">
         <h3 className="font-medium text-foreground">Reply Composer</h3>
         {selectedCount > 0 && (
-          <span className="text-sm bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+          <span className="text-sm bg-accent-cyan-muted/20 text-accent-cyan-text px-2 py-0.5 rounded-full">
             {selectedCount} selected
           </span>
         )}
@@ -265,7 +265,7 @@ export function ReplyComposer({
                   value={message}
                   onChange={(e) => updateMessage(index, e.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-foreground placeholder-foreground-muted focus:outline-none focus:border-blue-500 resize-y text-sm min-h-[100px]"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted resize-y text-sm min-h-[100px]"
                 />
                 <button
                   type="button"

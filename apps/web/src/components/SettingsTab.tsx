@@ -65,7 +65,7 @@ export function SettingsTab({
               onChange={(e) => onPostLimitChange(e.target.value)}
               onBlur={onPostLimitBlur}
               min={1}
-              className="w-24 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
+              className="w-24 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
             />
             <p className="text-xs text-foreground-muted mt-1">
               Max posts to scrape from profile
@@ -81,7 +81,7 @@ export function SettingsTab({
               onChange={(e) => onCommentLimitChange(e.target.value)}
               onBlur={onCommentLimitBlur}
               min={1}
-              className="w-24 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
+              className="w-24 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
             />
             <p className="text-xs text-foreground-muted mt-1">
               Max comments per scrape
@@ -99,7 +99,7 @@ export function SettingsTab({
             type="checkbox"
             checked={hideOwnReplies}
             onChange={(e) => onHideOwnRepliesChange(e.target.checked)}
-            className="w-5 h-5 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500"
+            className="w-5 h-5 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
           />
           <div>
             <span className="text-sm text-foreground">Hide your replies</span>
@@ -114,7 +114,7 @@ export function SettingsTab({
             type="checkbox"
             checked={deleteMissingComments === true}
             onChange={(e) => onDeleteMissingCommentsChange(e.target.checked)}
-            className="w-5 h-5 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500"
+            className="w-5 h-5 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
           />
           <div>
             <span className="text-sm text-foreground">
@@ -144,7 +144,7 @@ export function SettingsTab({
             onChange={(e) => setNewIgnoreText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Enter text to ignore..."
-            className="flex-1 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-blue-500"
+            className="flex-1 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted"
           />
           <Button
             variant="secondary"

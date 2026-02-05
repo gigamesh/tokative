@@ -311,7 +311,7 @@ export function CommentTable({
                 placeholder="Search comments..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg min-w-80 text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-blue-500"
+                className="px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg min-w-80 text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted"
               />
               {search && (
                 <button
@@ -339,7 +339,7 @@ export function CommentTable({
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as FilterStatus)}
-              className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
+              className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
             >
               <option value="all">All</option>
               <option value="not_replied">Not Replied</option>
@@ -350,7 +350,7 @@ export function CommentTable({
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortOption)}
-              className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
+              className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
             >
               <option value="newest">Newest Comments</option>
               <option value="oldest">Oldest Comments</option>
@@ -372,7 +372,7 @@ export function CommentTable({
                   const filteredIds = filteredComments.map((c) => c.id);
                   onSelectFiltered(filteredIds, e.target.checked);
                 }}
-                className="w-4 h-4 rounded border-border bg-surface-secondary text-tiktok-red focus:ring-tiktok-red"
+                className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
               />
               {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
             </label>

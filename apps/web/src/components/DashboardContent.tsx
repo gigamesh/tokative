@@ -491,13 +491,13 @@ export function DashboardContent() {
         )}
 
         {batchProgress && !scrapingState?.isPaused && (
-          <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg flex items-center gap-3">
+          <div className="mb-6 p-4 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
             <Spinner size="md" />
             <div>
-              <span className="text-blue-400 font-medium">
+              <span className="text-accent-cyan-text font-medium">
                 Scraping post {batchProgress.currentVideoIndex}/{batchProgress.totalVideos}
               </span>
-              <span className="text-blue-400/80 ml-2">({batchProgress.totalComments} comments)</span>
+              <span className="text-accent-cyan-text/80 ml-2">({batchProgress.totalComments} comments)</span>
             </div>
           </div>
         )}

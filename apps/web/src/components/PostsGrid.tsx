@@ -133,7 +133,7 @@ export function PostsGrid({
               if (el) el.indeterminate = someSelected;
             }}
             onChange={handleSelectAll}
-            className="w-4 h-4 rounded border-border bg-surface-secondary text-blue-500 focus:ring-blue-500 cursor-pointer"
+            className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid cursor-pointer"
           />
           <span className="text-sm text-foreground-muted">
             {selectedVideoIds.size > 0
