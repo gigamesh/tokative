@@ -11,6 +11,28 @@ import { useCallback, useEffect, useState } from "react";
 
 type CheckState = "checking" | "needs_onboarding" | "redirecting";
 
+type BrowserCheck = {
+  isChrome: boolean;
+  isDesktop: boolean;
+};
+
+function checkBrowserRequirements(): BrowserCheck {
+  if (typeof window === "undefined") {
+    return { isChrome: true, isDesktop: true };
+  }
+
+  const ua = navigator.userAgent;
+
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const isDesktop = !isMobile;
+
+  const isChromium = /Chrome|Chromium|Edg|OPR|Brave/i.test(ua) && !/Safari/i.test(ua) ||
+                     (/Chrome/i.test(ua) && /Safari/i.test(ua));
+  const isChrome = isChromium && !(/Edg|OPR|Brave/i.test(ua));
+
+  return { isChrome: isChromium, isDesktop };
+}
+
 export default function OnboardingPage() {
   const { userId, isLoaded } = useAuth();
   const { user } = useUser();
@@ -23,6 +45,11 @@ export default function OnboardingPage() {
   );
 
   const [checkState, setCheckState] = useState<CheckState>("checking");
+  const [browserCheck, setBrowserCheck] = useState<BrowserCheck | null>(null);
+
+  useEffect(() => {
+    setBrowserCheck(checkBrowserRequirements());
+  }, []);
 
   const completeAndRedirect = useCallback(async () => {
     if (!userId) return;
@@ -123,9 +150,42 @@ export default function OnboardingPage() {
     };
   }, [checkState, completeAndRedirect]);
 
+  const showBrowserWarningLoading = browserCheck && (!browserCheck.isChrome || !browserCheck.isDesktop);
+
   if (checkState === "checking" || checkState === "redirecting") {
     return (
-      <div className="min-h-content bg-surface flex justify-center pt-[20vh] p-4">
+      <div className="min-h-content bg-surface flex flex-col items-center pt-[20vh] p-4">
+        {showBrowserWarningLoading && (
+          <div className="mb-8 max-w-md p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+            <div className="flex gap-3">
+              <svg
+                className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <div>
+                <p className="font-medium text-amber-500">
+                  {!browserCheck.isDesktop
+                    ? "Desktop browser required"
+                    : "Google Chrome required"}
+                </p>
+                <p className="text-sm text-foreground-muted mt-1">
+                  {!browserCheck.isDesktop
+                    ? "Tokative requires a desktop browser to install the Chrome extension. Please visit this page on your computer."
+                    : "Tokative requires Google Chrome (or a Chromium-based browser like Edge or Brave) to install the extension."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="text-center">
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6">
             <span className="text-gradient-brand">Tokative</span>
@@ -143,9 +203,43 @@ export default function OnboardingPage() {
     );
   }
 
+  const showBrowserWarning = browserCheck && (!browserCheck.isChrome || !browserCheck.isDesktop);
+
   return (
     <div className="min-h-screen bg-surface text-balance">
       <div className="max-w-2xl mx-auto px-4 py-6">
+        {showBrowserWarning && (
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+            <div className="flex gap-3">
+              <svg
+                className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <div>
+                <p className="font-medium text-amber-500">
+                  {!browserCheck.isDesktop
+                    ? "Desktop browser required"
+                    : "Google Chrome required"}
+                </p>
+                <p className="text-sm text-foreground-muted mt-1">
+                  {!browserCheck.isDesktop
+                    ? "Tokative requires a desktop browser to install the Chrome extension. Please visit this page on your computer."
+                    : "Tokative requires Google Chrome (or a Chromium-based browser like Edge or Brave) to install the extension."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-6">
           <p className="text-foreground-muted mb-1">Welcome to</p>
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-2">
