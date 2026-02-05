@@ -1,9 +1,11 @@
 const fs = require("fs");
 const path = require("path");
 
-const envPath = path.join(__dirname, "..", ".env");
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, "utf8");
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Environment file not found: ${filePath}`);
+  }
+  const envContent = fs.readFileSync(filePath, "utf8");
   for (const line of envContent.split("\n")) {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith("#")) {
@@ -14,6 +16,14 @@ if (fs.existsSync(envPath)) {
     }
   }
 }
+
+// Use .env.production for prod builds, .env for dev builds
+const isProd = process.env.BUILD_ENV === "production";
+const envFile = isProd ? ".env.production" : ".env";
+const envPath = path.join(__dirname, "..", envFile);
+
+console.log(`Loading environment from ${envFile}`);
+loadEnvFile(envPath);
 
 function getRequiredEnv(name) {
   const value = process.env[name];
