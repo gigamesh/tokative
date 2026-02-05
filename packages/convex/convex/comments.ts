@@ -57,7 +57,6 @@ export const list = query({
         isReply: c.isReply,
         replyCount: c.replyCount,
         source: c.source,
-        _creationTime: c._creationTime,
         _convexId: c._id,
       };
     });
@@ -87,14 +86,16 @@ export const listPaginated = query({
     const result = args.videoId
       ? await ctx.db
           .query("comments")
-          .withIndex("by_user_and_video", (q) =>
+          .withIndex("by_user_video_and_timestamp", (q) =>
             q.eq("userId", user._id).eq("videoId", args.videoId)
           )
           .order("desc")
           .paginate(args.paginationOpts)
       : await ctx.db
           .query("comments")
-          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .withIndex("by_user_and_timestamp", (q) =>
+            q.eq("userId", user._id)
+          )
           .order("desc")
           .paginate(args.paginationOpts);
 
@@ -125,7 +126,6 @@ export const listPaginated = query({
         isReply: c.isReply,
         replyCount: c.replyCount,
         source: c.source,
-        _creationTime: c._creationTime,
         _convexId: c._id,
       };
     });

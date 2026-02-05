@@ -1,6 +1,6 @@
 import { ScrapedComment } from "@/utils/constants";
 import { X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -67,7 +67,7 @@ interface DisplayComment extends ScrapedComment {
 }
 
 type FilterStatus = "all" | "replied" | "not_replied" | "failed";
-type SortOption = "newest" | "oldest" | "recent_scrape";
+type SortOption = "newest" | "oldest";
 
 interface CommentTableProps {
   comments: ScrapedComment[];
@@ -110,7 +110,7 @@ export function CommentTable({
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
-  const [sort, setSort] = useState<SortOption>("recent_scrape");
+  const [sort, setSort] = useState<SortOption>("newest");
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
     new Set(),
@@ -125,17 +125,6 @@ export function CommentTable({
       return next;
     });
   };
-
-  useEffect(() => {
-    if (
-      (sort === "newest" || sort === "oldest") &&
-      hasMore &&
-      !isLoadingMore &&
-      onLoadMore
-    ) {
-      onLoadMore();
-    }
-  }, [sort, hasMore, isLoadingMore, onLoadMore]);
 
   const filteredComments = useMemo(() => {
     const videoFiltered = videoIdFilter
@@ -178,25 +167,13 @@ export function CommentTable({
 
     // Sort top-level comments
     const sortedTopLevel = filteredTopLevel.sort((a, b) => {
-      if (sort === "newest") {
-        const aTime = a.commentTimestamp
-          ? new Date(a.commentTimestamp).getTime()
-          : 0;
-        const bTime = b.commentTimestamp
-          ? new Date(b.commentTimestamp).getTime()
-          : 0;
-        return bTime - aTime;
-      }
-      if (sort === "oldest") {
-        const aTime = a.commentTimestamp
-          ? new Date(a.commentTimestamp).getTime()
-          : 0;
-        const bTime = b.commentTimestamp
-          ? new Date(b.commentTimestamp).getTime()
-          : 0;
-        return aTime - bTime;
-      }
-      return (b._creationTime ?? 0) - (a._creationTime ?? 0);
+      const aTime = a.commentTimestamp
+        ? new Date(a.commentTimestamp).getTime()
+        : 0;
+      const bTime = b.commentTimestamp
+        ? new Date(b.commentTimestamp).getTime()
+        : 0;
+      return sort === "newest" ? bTime - aTime : aTime - bTime;
     });
 
     // Build set of parent commentIds that made it through filtering
@@ -364,7 +341,6 @@ export function CommentTable({
             >
               <option value="newest">Newest Comments</option>
               <option value="oldest">Oldest Comments</option>
-              <option value="recent_scrape">Recently Scraped</option>
             </select>
           </div>
         </div>

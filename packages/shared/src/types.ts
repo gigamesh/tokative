@@ -130,7 +130,6 @@ export interface ScrapedComment {
   isReply?: boolean;
   replyCount?: number;
   source?: "app" | "scraped";
-  _creationTime?: number;
 }
 
 export interface ExtensionMessage<T = unknown> {

@@ -44,7 +44,9 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_and_video", ["userId", "videoId"])
     .index("by_user_and_comment_id", ["userId", "commentId"])
-    .index("by_user_and_profile", ["userId", "tiktokProfileId"]),
+    .index("by_user_and_profile", ["userId", "tiktokProfileId"])
+    .index("by_user_and_timestamp", ["userId", "commentTimestamp"])
+    .index("by_user_video_and_timestamp", ["userId", "videoId", "commentTimestamp"]),
 
   videos: defineTable({
     userId: v.id("users"),
