@@ -24,7 +24,7 @@ export function TabNavigation({
           className={`relative px-5 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors ${
             activeTab === "posts"
               ? "bg-surface-elevated text-foreground border-border z-10"
-              : "bg-surface-secondary/50 text-foreground-muted border-white/10 hover:text-foreground-secondary hover:bg-surface-secondary"
+              : "bg-surface-secondary/50 text-foreground-muted border-border hover:text-foreground-secondary hover:bg-surface-secondary"
           }`}
           style={{
             marginBottom: activeTab === "posts" ? "-1px" : "0",
@@ -38,7 +38,7 @@ export function TabNavigation({
           className={`relative px-5 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors ${
             activeTab === "comments"
               ? "bg-surface-elevated text-foreground border-border z-10"
-              : "bg-surface-secondary/50 text-foreground-muted border-white/10 hover:text-foreground-secondary hover:bg-surface-secondary"
+              : "bg-surface-secondary/50 text-foreground-muted border-border hover:text-foreground-secondary hover:bg-surface-secondary"
           }`}
           style={{
             marginBottom: activeTab === "comments" ? "-1px" : "0",
@@ -52,7 +52,7 @@ export function TabNavigation({
           className={`relative px-5 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors ${
             activeTab === "commenters"
               ? "bg-surface-elevated text-foreground border-border z-10"
-              : "bg-surface-secondary/50 text-foreground-muted border-white/10 hover:text-foreground-secondary hover:bg-surface-secondary"
+              : "bg-surface-secondary/50 text-foreground-muted border-border hover:text-foreground-secondary hover:bg-surface-secondary"
           }`}
           style={{
             marginBottom: activeTab === "commenters" ? "-1px" : "0",
@@ -66,7 +66,7 @@ export function TabNavigation({
           className={`relative px-5 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors flex items-center gap-2 ${
             activeTab === "settings"
               ? "bg-surface-elevated text-foreground border-border z-10"
-              : "bg-surface-secondary/50 text-foreground-muted border-white/10 hover:text-foreground-secondary hover:bg-surface-secondary"
+              : "bg-surface-secondary/50 text-foreground-muted border-border hover:text-foreground-secondary hover:bg-surface-secondary"
           }`}
           style={{
             marginBottom: activeTab === "settings" ? "-1px" : "0",
