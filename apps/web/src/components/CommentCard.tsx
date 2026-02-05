@@ -66,8 +66,8 @@ export function CommentCard({
         selected
           ? "border-accent-cyan-muted-half bg-accent-cyan-muted/10"
           : transparent
-          ? "border-border bg-transparent hover:border-foreground-muted"
-          : "border-border bg-surface-elevated hover:border-foreground-muted"
+            ? "border-border bg-transparent hover:border-foreground-muted"
+            : "border-border bg-surface-elevated hover:border-foreground-muted"
       } ${isReply ? "ml-10 border-l-2 border-l-border" : ""}`}
     >
       <div className="flex items-start gap-2">
@@ -145,12 +145,12 @@ export function CommentCard({
           </div>
 
           <div
-            className={`flex items-center gap-1.5 text-sm text-foreground-muted ${isCommentExpanded ? "" : ""}`}
+            className={`flex gap-2 text-sm text-foreground-muted mt-1 ${isCommentExpanded ? "" : ""}`}
           >
             {comment.videoUrl && (
               <ExternalLink
                 href={comment.videoUrl}
-                className="flex-shrink-0 text-foreground-muted hover:text-accent-cyan-text transition-colors mt-0.5"
+                className="flex-shrink-0 text-foreground-secondary hover:text-accent-cyan-text transition-colors mt-0.5"
                 title="Open on TikTok"
               >
                 <svg
@@ -178,7 +178,7 @@ export function CommentCard({
           {(isTruncated || isCommentExpanded) && (
             <button
               onClick={() => setIsCommentExpanded(!isCommentExpanded)}
-              className="text-xs text-accent-cyan-text hover:underline"
+              className="text-xs text-foreground-secondary hover:text-foreground underline decoration-foreground-muted transition-colors"
             >
               {isCommentExpanded ? "Show less" : "Show more"}
             </button>
