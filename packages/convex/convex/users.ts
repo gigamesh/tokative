@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { WHITELISTED_EMAILS } from "./constants";
+import { isEmailWhitelisted } from "./constants";
 
 export const getOrCreate = mutation({
   args: {
@@ -43,8 +43,7 @@ export const getAccessStatus = query({
     }
 
     const email = user.email ?? "";
-    const emailList = WHITELISTED_EMAILS.map((e) => e.toLowerCase());
-    const isAllowed = emailList.length === 0 || emailList.includes(email.toLowerCase());
+    const isAllowed = isEmailWhitelisted(email);
 
     return {
       isAllowed,
