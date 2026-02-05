@@ -1,6 +1,6 @@
 import { ScrapedComment } from "@/utils/constants";
 import { X } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -110,7 +110,7 @@ export function CommentTable({
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
-  const [sort, setSort] = useState<SortOption>("newest");
+  const [sort, setSort] = useState<SortOption>("recent_scrape");
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
     new Set(),
@@ -125,6 +125,17 @@ export function CommentTable({
       return next;
     });
   };
+
+  useEffect(() => {
+    if (
+      (sort === "newest" || sort === "oldest") &&
+      hasMore &&
+      !isLoadingMore &&
+      onLoadMore
+    ) {
+      onLoadMore();
+    }
+  }, [sort, hasMore, isLoadingMore, onLoadMore]);
 
   const filteredComments = useMemo(() => {
     const videoFiltered = videoIdFilter
@@ -185,7 +196,7 @@ export function CommentTable({
           : 0;
         return aTime - bTime;
       }
-      return new Date(b.scrapedAt).getTime() - new Date(a.scrapedAt).getTime();
+      return (b._creationTime ?? 0) - (a._creationTime ?? 0);
     });
 
     // Build set of parent commentIds that made it through filtering
@@ -228,9 +239,9 @@ export function CommentTable({
     );
 
     for (const parent of topLevel) {
-      result.push({ ...parent, depth: 0 });
-
       const replies = repliesMap.get(parent.commentId!) || [];
+
+      result.push({ ...parent, depth: 0, replyCount: replies.length });
 
       if (replies.length > 0) {
         result.push({ ...replies[0], depth: 1 });

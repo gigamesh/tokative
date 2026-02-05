@@ -57,6 +57,7 @@ export const list = query({
         isReply: c.isReply,
         replyCount: c.replyCount,
         source: c.source,
+        _creationTime: c._creationTime,
         _convexId: c._id,
       };
     });
@@ -124,6 +125,7 @@ export const listPaginated = query({
         isReply: c.isReply,
         replyCount: c.replyCount,
         source: c.source,
+        _creationTime: c._creationTime,
         _convexId: c._id,
       };
     });
