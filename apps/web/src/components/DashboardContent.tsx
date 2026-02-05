@@ -1,22 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
+import { BulkReplyReportModal } from "@/components/BulkReplyReportModal";
+import { Button } from "@/components/Button";
+import { CommentNotFoundModal } from "@/components/CommentNotFoundModal";
 import { CommentTable, CommentTableSkeleton } from "@/components/CommentTable";
-import { Header } from "@/components/Header";
-import { ReplyComposer } from "@/components/ReplyComposer";
+import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
+import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
 import { PostsGrid } from "@/components/PostsGrid";
-import { TabNavigation } from "@/components/TabNavigation";
+import { ReplyComposer } from "@/components/ReplyComposer";
+import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
 import { SettingsTab } from "@/components/SettingsTab";
-import { TabContentContainer } from "@/components/TabContentContainer";
-import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
-import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
-import { ScrapeReportModal } from "@/components/ScrapeReportModal";
-import { CommentNotFoundModal } from "@/components/CommentNotFoundModal";
-import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
-import { BulkReplyReportModal } from "@/components/BulkReplyReportModal";
-import { Toast } from "@/components/Toast";
 import { Spinner } from "@/components/Spinner";
+import { TabContentContainer } from "@/components/TabContentContainer";
+import { TabNavigation } from "@/components/TabNavigation";
+import { Toast } from "@/components/Toast";
 import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { useMessaging } from "@/hooks/useMessaging";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
@@ -476,8 +476,6 @@ export function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header showConnectionStatus />
-
       <main className="max-w-7xl mx-auto px-4 py-6">
 
         {scrapingState?.isPaused && (
@@ -579,12 +577,9 @@ export function DashboardContent() {
                       )}
                       {selectedPostId && !selectedVideo && (
                         <div className="mt-3">
-                          <button
-                            onClick={clearPostFilter}
-                            className="text-sm text-blue-500 hover:text-blue-400"
-                          >
+                          <Button variant="ghost" size="sm" onClick={clearPostFilter}>
                             Clear post filter
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </>

@@ -3,6 +3,7 @@ import { ScrapedComment } from "@/utils/constants";
 import { ReplyProgress, BulkReplyProgress } from "@tokative/shared";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
 import { Spinner } from "./Spinner";
 
@@ -155,12 +156,9 @@ export function ReplyComposer({
             <span className="text-sm text-foreground-muted">
               Replying to @{selectedComment.handle}
             </span>
-            <button
-              onClick={onClearSelection}
-              className="text-xs text-foreground-muted hover:text-foreground"
-            >
+            <Button variant="ghost" size="sm" onClick={onClearSelection} className="text-xs">
               Clear
-            </button>
+            </Button>
           </div>
           <p className="text-xs text-foreground-muted truncate">
             "{selectedComment.comment}"
@@ -172,12 +170,9 @@ export function ReplyComposer({
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs text-foreground-muted">Selected comments</span>
-            <button
-              onClick={onClearSelection}
-              className="text-xs text-foreground-muted hover:text-foreground"
-            >
+            <Button variant="ghost" size="sm" onClick={onClearSelection} className="text-xs">
               Clear all
-            </button>
+            </Button>
           </div>
           <div
             ref={scrollContainerRef}
@@ -216,12 +211,14 @@ export function ReplyComposer({
         <div className="p-3 bg-surface border border-border rounded-lg space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-foreground">Bulk Reply Progress</span>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onStopBulkReply}
               className="text-xs text-red-400 hover:text-red-300"
             >
               Stop
-            </button>
+            </Button>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-foreground-muted">
@@ -371,13 +368,14 @@ export function ReplyComposer({
       </button>
 
       <div className="relative group">
-        <button
+        <Button
+          variant="secondary"
+          fullWidth
           onClick={handleSend}
           disabled={disabled || !canSend}
-          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-surface-secondary disabled:text-foreground-muted text-white rounded-lg font-medium transition-colors text-sm"
         >
           {disabled ? "Replying..." : "Reply"}
-        </button>
+        </Button>
         {hasVariationMismatch && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-elevated text-foreground-secondary text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
             Select at least {messages.length} comments or remove reply

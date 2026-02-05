@@ -1,4 +1,5 @@
 import { AuthBridge } from "@/components/AuthBridge";
+import { Header } from "@/components/Header";
 import { ConvexClientProvider } from "@/providers/ConvexProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import type { Metadata } from "next";
@@ -26,6 +27,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ConvexClientProvider>
             <AuthBridge />
+            <Header />
             {children}
           </ConvexClientProvider>
         </ThemeProvider>

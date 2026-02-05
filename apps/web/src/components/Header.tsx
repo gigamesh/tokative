@@ -5,15 +5,14 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/providers/ConvexProvider";
 import { SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-interface HeaderProps {
-  showConnectionStatus?: boolean;
-}
-
-export function Header({ showConnectionStatus = false }: HeaderProps) {
+export function Header() {
   const { userId, isLoaded } = useAuth();
   const isSignedIn = !!userId;
+  const pathname = usePathname();
+  const showConnectionStatus = pathname === "/dashboard";
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -34,14 +33,14 @@ export function Header({ showConnectionStatus = false }: HeaderProps) {
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link
           href="/"
-          className="text-sm font-medium text-foreground hover:opacity-70 transition-opacity"
+          className="text-lg font-semibold text-gradient-brand hover:opacity-80 transition-opacity"
         >
           Tokative
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {showConnectionStatus && <ConnectionStatus />}
           <ThemeToggle />
           {isLoaded &&

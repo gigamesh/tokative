@@ -40,10 +40,14 @@ body {
   }
 
   .text-gradient-brand {
-    background: linear-gradient(to right, var(--accent-cyan), var(--text-primary), var(--accent-pink));
+    background: linear-gradient(to right, var(--accent-cyan), var(--accent-pink));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  .min-h-content {
+    min-height: calc(100vh - 57px);
   }
 
   .scrollbar-thin {

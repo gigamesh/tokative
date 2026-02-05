@@ -1,4 +1,4 @@
-
+import { Button } from "./Button";
 import { Modal } from "./Modal";
 
 interface DeleteConfirmationModalProps {
@@ -35,24 +35,15 @@ export function DeleteConfirmationModal({
       </p>
       <p className="text-foreground-muted mb-6">Delete all of them?</p>
       <div className="flex gap-3 justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 text-sm text-foreground-muted hover:text-foreground-secondary transition-colors"
-        >
+        <Button variant="ghost" onClick={onClose}>
           Cancel
-        </button>
-        <button
-          onClick={onDeleteOne}
-          className="px-4 py-2 text-sm text-foreground-muted hover:text-foreground transition-colors"
-        >
+        </Button>
+        <Button variant="ghost" onClick={onDeleteOne}>
           Just this one
-        </button>
-        <button
-          onClick={onDeleteAll}
-          className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors"
-        >
+        </Button>
+        <Button variant="danger" onClick={onDeleteAll}>
           Delete all {matchCount + 1}
-        </button>
+        </Button>
       </div>
     </Modal>
   );

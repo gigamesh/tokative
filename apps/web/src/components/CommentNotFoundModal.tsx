@@ -1,4 +1,4 @@
-
+import { Button } from "./Button";
 import { Modal } from "./Modal";
 
 interface CommentNotFoundModalProps {
@@ -22,18 +22,12 @@ export function CommentNotFoundModal({
         Would you like to remove it from your list?
       </p>
       <div className="flex gap-3 justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 text-sm text-foreground-muted hover:text-foreground transition-colors"
-        >
+        <Button variant="ghost" onClick={onClose}>
           Keep it
-        </button>
-        <button
-          onClick={onDelete}
-          className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors"
-        >
+        </Button>
+        <Button variant="danger" onClick={onDelete}>
           Remove comment
-        </button>
+        </Button>
       </div>
     </Modal>
   );

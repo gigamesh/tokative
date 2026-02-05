@@ -1,11 +1,10 @@
 "use client";
 
-import { Header } from "@/components/Header";
+import { LinkButton } from "@/components/Button";
 import { useAuth } from "@/providers/ConvexProvider";
 import { useUser } from "@clerk/nextjs";
 import { api } from "@tokative/convex";
 import { useMutation, useQuery } from "convex/react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -56,7 +55,7 @@ export default function Home() {
 
   if (!isLoaded || isInitializing) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
+      <div className="min-h-content bg-surface flex justify-center pt-[20vh]">
         <div className="w-5 h-5 border-2 border-foreground-muted/30 border-t-foreground-muted rounded-full animate-spin" />
       </div>
     );
@@ -64,7 +63,7 @@ export default function Home() {
 
   if (userId) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
+      <div className="min-h-content bg-surface flex justify-center pt-[20vh]">
         <div className="w-5 h-5 border-2 border-foreground-muted/30 border-t-foreground-muted rounded-full animate-spin" />
       </div>
     );
@@ -72,7 +71,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-surface overflow-hidden">
-      <Header />
       <main className="max-w-5xl mx-auto px-6 relative">
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-r from-accent-cyan/20 via-transparent to-accent-pink/20 blur-3xl rounded-full pointer-events-none" />
 
@@ -86,9 +84,12 @@ export default function Home() {
               bulk, and track everything in one place.
             </p>
             <div className="mt-10">
-              <Link
+              <LinkButton
                 href="/sign-in"
-                className="group inline-flex items-center gap-2 px-6 py-3 bg-gradient-brand text-white text-sm font-medium rounded-full transition-all hover:shadow-lg hover:shadow-accent-pink/25 hover:scale-105"
+                variant="primary"
+                size="lg"
+                pill
+                className="group hover:scale-105"
               >
                 Get Started
                 <svg
@@ -104,7 +105,7 @@ export default function Home() {
                     d="M17 8l4 4m0 0l-4 4m4-4H3"
                   />
                 </svg>
-              </Link>
+              </LinkButton>
             </div>
           </div>
         </section>

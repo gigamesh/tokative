@@ -1,3 +1,4 @@
+import { Button } from "./Button";
 import { IgnoreListEntry } from "@/utils/constants";
 import { useState } from "react";
 
@@ -145,13 +146,13 @@ export function SettingsTab({
             placeholder="Enter text to ignore..."
             className="flex-1 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-blue-500"
           />
-          <button
+          <Button
+            variant="secondary"
             onClick={handleAddIgnoreText}
             disabled={!newIgnoreText.trim()}
-            className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-surface-secondary disabled:text-foreground-muted text-white rounded-lg transition-colors"
           >
             Add
-          </button>
+          </Button>
         </div>
 
         {ignoreList.length === 0 ? (

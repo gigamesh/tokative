@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, LinkButton } from "@/components/Button";
 import { useAuth } from "@/providers/ConvexProvider";
 import { EXTENSION_SOURCE, MessageType } from "@/utils/constants";
 import { useUser } from "@clerk/nextjs";
@@ -124,11 +125,13 @@ export default function OnboardingPage() {
 
   if (checkState === "checking" || checkState === "redirecting") {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+      <div className="min-h-content bg-surface flex justify-center pt-[20vh] p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-6">Tokative</h1>
+          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6">
+            <span className="text-gradient-brand">Tokative</span>
+          </h1>
           <div className="flex items-center justify-center gap-3">
-            <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-accent-pink border-t-transparent rounded-full animate-spin" />
             <span className="text-foreground-muted">
               {checkState === "redirecting"
                 ? "Taking you to the dashboard..."
@@ -144,8 +147,9 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-surface text-balance">
       <div className="max-w-2xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-foreground mb-4">
-            Welcome to Tokative
+          <p className="text-lg text-foreground-muted mb-2">Welcome to</p>
+          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-4">
+            <span className="text-gradient-brand">Tokative</span>
           </h1>
  <p className="text-foreground-muted">
             If you already installed the Tokative browser extension, enable it
@@ -162,10 +166,11 @@ export default function OnboardingPage() {
               The Tokative Chrome extension allows you to scrape comments and
               send replies directly on TikTok.
             </p>
-            <a
+            <LinkButton
               href="/downloads/tokative-extension.zip"
               download
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-brand text-white font-medium rounded-lg transition-all hover:shadow-lg hover:shadow-accent-pink/25"
+              variant="primary"
+              size="lg"
             >
               <svg
                 className="w-5 h-5"
@@ -181,7 +186,7 @@ export default function OnboardingPage() {
                 />
               </svg>
               Download Extension
-            </a>
+            </LinkButton>
           </Section>
 
           <Section number={2} title="Install in Chrome">
@@ -242,12 +247,13 @@ export default function OnboardingPage() {
             <p className="text-foreground mb-4">
               After installing the extension, refresh this page to continue.
             </p>
-            <button
+            <Button
+              variant="secondary"
+              size="lg"
               onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
             >
               Refresh Page
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { SignOutButton } from "@clerk/nextjs";
 import { useUser } from "@clerk/nextjs";
 
@@ -8,7 +9,7 @@ export default function NotAuthorizedPage() {
   const email = user?.primaryEmailAddress?.emailAddress;
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+    <div className="min-h-content bg-surface flex justify-center pt-[20vh] p-4">
       <div className="max-w-md w-full text-center">
         <div className="bg-surface-elevated rounded-lg p-8 shadow-lg">
           <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -48,9 +49,9 @@ export default function NotAuthorizedPage() {
           </p>
 
           <SignOutButton>
-            <button className="w-full px-4 py-3 bg-surface hover:bg-surface-hover border border-border rounded-lg text-foreground font-medium transition-colors">
+            <Button variant="outline" size="lg" fullWidth>
               Sign Out
-            </button>
+            </Button>
           </SignOutButton>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { Button } from "./Button";
 import { Link } from "./Link";
 import { Modal } from "./Modal";
 
@@ -32,18 +33,12 @@ export function AddToIgnoreListModal({
         &ldquo;{truncatedText}&rdquo;
       </p>
       <div className="flex gap-3 justify-end">
-        <button
-          onClick={onSkip}
-          className="px-4 py-2 text-sm text-foreground-muted hover:text-foreground transition-colors"
-        >
+        <Button variant="ghost" onClick={onSkip}>
           No, skip
-        </button>
-        <button
-          onClick={onConfirm}
-          className="px-4 py-2 text-sm bg-tiktok-red hover:bg-red-500 text-white rounded-lg transition-colors"
-        >
+        </Button>
+        <Button variant="secondary" onClick={onConfirm}>
           Yes, add to ignore list
-        </button>
+        </Button>
       </div>
       <p className="text-sm text-foreground-muted mt-4 text-center">
         You can manage your ignore list in the{" "}

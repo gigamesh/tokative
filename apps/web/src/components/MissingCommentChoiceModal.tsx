@@ -1,3 +1,4 @@
+import { Button } from "./Button";
 import { Modal } from "./Modal";
 
 interface MissingCommentChoiceModalProps {
@@ -21,18 +22,12 @@ export function MissingCommentChoiceModal({
         How would you like to handle these?
       </p>
       <div className="flex gap-3 justify-end">
-        <button
-          onClick={onSkip}
-          className="px-4 py-2 text-sm text-foreground-muted hover:text-foreground border border-border hover:border-foreground-muted rounded-lg transition-colors"
-        >
+        <Button variant="outline" onClick={onSkip}>
           Skip (keep in list)
-        </button>
-        <button
-          onClick={onDelete}
-          className="px-4 py-2 text-sm bg-tiktok-red hover:bg-tiktok-red/80 text-white rounded-lg transition-colors"
-        >
+        </Button>
+        <Button variant="secondary" onClick={onDelete}>
           Delete (remove from list)
-        </button>
+        </Button>
       </div>
       <p className="text-xs text-foreground-muted mt-4 text-center">
         You can change this later in Settings

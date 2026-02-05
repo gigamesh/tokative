@@ -1,3 +1,4 @@
+import { Button } from "./Button";
 import { Link } from "./Link";
 import { Modal } from "./Modal";
 
@@ -60,12 +61,9 @@ export function ScrapeReportModal({
       </div>
 
       <div className="flex justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 text-sm bg-tiktok-red hover:bg-tiktok-red/80 text-white rounded-lg transition-colors"
-        >
+        <Button variant="secondary" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
     </Modal>
   );

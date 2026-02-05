@@ -1,3 +1,4 @@
+import { Button } from "@/components/Button";
 import { ExternalLink } from "@/components/ExternalLink";
 import { getAvatarColor } from "@/utils/avatar";
 import { ScrapedComment } from "@/utils/constants";
@@ -182,38 +183,33 @@ export function CommentCard({
 
         <div className="flex gap-2 flex-shrink-0 self-center items-center">
           {comment.videoUrl && (
-            <button
+            <Button
+              variant="soft"
+              size="sm"
               onClick={onReply}
               disabled={isReplying}
-              className={`px-3 py-1.5 text-sm border rounded-lg transition-colors flex items-center gap-2 ${
-                isReplying
-                  ? "text-blue-400/60 border-blue-400/30 bg-blue-500/5 cursor-not-allowed"
-                  : "text-blue-400 border-blue-400/50 bg-blue-500/10 hover:bg-blue-500/20 hover:border-blue-400"
-              }`}
+              icon={
+                isReplying ? (
+                  <svg className="animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                ) : undefined
+              }
             >
-              {isReplying && (
-                <svg
-                  className="w-4 h-4 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              )}
               {isReplying ? "Replying..." : "Reply"}
-            </button>
+            </Button>
           )}
           {isSearchingMatches ? (
             <div className="flex items-center gap-2 px-2 py-1 border border-red-400/50 bg-red-500/10 rounded-lg">
