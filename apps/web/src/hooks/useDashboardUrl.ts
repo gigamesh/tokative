@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-export type DashboardTab = "posts" | "comments" | "settings";
+export type DashboardTab = "posts" | "comments" | "commenters" | "settings";
 
 const STORAGE_KEY = "tokative-dashboard-state";
 

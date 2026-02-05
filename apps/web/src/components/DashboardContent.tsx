@@ -6,6 +6,7 @@ import { BulkReplyReportModal } from "@/components/BulkReplyReportModal";
 import { Button } from "@/components/Button";
 import { CommentNotFoundModal } from "@/components/CommentNotFoundModal";
 import { CommentTable, CommentTableSkeleton } from "@/components/CommentTable";
+import { CommenterTable } from "@/components/CommenterTable";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
 import { PostsGrid } from "@/components/PostsGrid";
@@ -22,6 +23,7 @@ import { useMessaging } from "@/hooks/useMessaging";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
 import { useCommentData } from "@/hooks/useCommentData";
 import { useCommentCounts } from "@/hooks/useCommentCounts";
+import { useCommenterData } from "@/hooks/useCommenterData";
 import { useVideoData } from "@/hooks/useVideoData";
 import { useIgnoreList } from "@/hooks/useIgnoreList";
 import { ScrapedComment } from "@/utils/constants";
@@ -124,6 +126,15 @@ export function DashboardContent() {
   } = useIgnoreList();
 
   const { commentCountsByVideo, totalCount: totalCommentCount } = useCommentCounts();
+
+  const {
+    commenters,
+    loading: commentersLoading,
+    totalCommenterCount,
+    hasMore: hasMoreCommenters,
+    loadMore: loadMoreCommenters,
+    isLoadingMore: isLoadingMoreCommenters,
+  } = useCommenterData();
 
   const [selectedCommentIds, setSelectedCommentIds] = useState<Set<string>>(new Set());
   const [selectedVideoIds, setSelectedVideoIds] = useState<Set<string>>(new Set());
@@ -240,15 +251,24 @@ export function DashboardContent() {
     return map;
   }, [videos]);
 
+  const allCommentsFromCommenters = useMemo(() => {
+    const all: ScrapedComment[] = [];
+    for (const commenter of commenters) {
+      all.push(...commenter.comments);
+    }
+    return all;
+  }, [commenters]);
+
   const selectedCommentsForDisplay = useMemo(() => {
     const idsArray = Array.from(selectedCommentIds);
     const selected: ScrapedComment[] = [];
+    const commentsToSearch = activeTab === "commenters" ? allCommentsFromCommenters : comments;
     for (let i = idsArray.length - 1; i >= 0; i--) {
-      const comment = comments.find(c => c.id === idsArray[i]);
+      const comment = commentsToSearch.find(c => c.id === idsArray[i]);
       if (comment) selected.push(comment);
     }
     return selected;
-  }, [comments, selectedCommentIds]);
+  }, [comments, allCommentsFromCommenters, selectedCommentIds, activeTab]);
 
   const getCommentIdsByVideoIds = useCallback(
     (videoIds: string[]) =>
@@ -523,6 +543,7 @@ export function DashboardContent() {
             onTabChange={setTab}
             postCount={videos.length}
             commentCount={totalCommentCount}
+            commenterCount={totalCommenterCount}
           />
         </div>
 
@@ -583,6 +604,29 @@ export function DashboardContent() {
                         </div>
                       )}
                     </>
+                  }
+                />
+              </TabContentContainer>
+            </div>
+
+            <div className={activeTab !== "commenters" ? "hidden" : ""}>
+              <TabContentContainer>
+                <CommenterTable
+                  commenters={commenters}
+                  selectedCommentIds={selectedCommentIds}
+                  onSelectComment={handleSelectComment}
+                  onRemoveSelected={handleRemoveSelected}
+                  onRemoveComment={handleRemoveComment}
+                  onReplyComment={handleReplyComment}
+                  videoThumbnails={videoThumbnailMap}
+                  isLoading={commentersLoading}
+                  replyingCommentId={replyProgress?.commentId}
+                  searchingMatchesCommentId={searchingMatchesCommentId}
+                  onLoadMore={loadMoreCommenters}
+                  hasMore={hasMoreCommenters}
+                  isLoadingMore={isLoadingMoreCommenters}
+                  headerContent={
+                    <h2 className="text-lg font-medium text-foreground">Commenters</h2>
                   }
                 />
               </TabContentContainer>

@@ -6,6 +6,7 @@ interface TabNavigationProps {
   onTabChange: (tab: DashboardTab) => void;
   postCount: number;
   commentCount: number;
+  commenterCount: number;
 }
 
 export function TabNavigation({
@@ -13,6 +14,7 @@ export function TabNavigation({
   onTabChange,
   postCount,
   commentCount,
+  commenterCount,
 }: TabNavigationProps) {
   return (
     <div className="relative">
@@ -44,6 +46,20 @@ export function TabNavigation({
         >
           Comments
           <span className="ml-2 text-xs text-foreground-muted">({commentCount.toLocaleString()})</span>
+        </button>
+        <button
+          onClick={() => onTabChange("commenters")}
+          className={`relative px-5 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors ${
+            activeTab === "commenters"
+              ? "bg-surface-elevated text-foreground border-border z-10"
+              : "bg-surface-secondary/50 text-foreground-muted border-white/10 hover:text-foreground-secondary hover:bg-surface-secondary"
+          }`}
+          style={{
+            marginBottom: activeTab === "commenters" ? "-1px" : "0",
+          }}
+        >
+          Commenters
+          <span className="ml-2 text-xs text-foreground-muted">({commenterCount.toLocaleString()})</span>
         </button>
         <button
           onClick={() => onTabChange("settings")}
