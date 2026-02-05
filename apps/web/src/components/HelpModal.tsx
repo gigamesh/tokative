@@ -59,7 +59,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             <span className="font-semibold">⚠️ Important:</span> TikTok has
             sensitive spam detection. If you reply to too many comments in a
             short amount of time with the same message, TikTok may suspend your
-            account. With great power comes great responsibility.
+            account.
           </p>
         </div>
       </div>
