@@ -33,3 +33,4 @@ coverage/
 
 # Extension builds
 *.zip
+!apps/web/public/downloads/tokative-extension.zip

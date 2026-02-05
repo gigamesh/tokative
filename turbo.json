@@ -4,7 +4,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "public/downloads/**"],
-      "env": ["CLERK_SECRET_KEY", "CONVEX_SITE_URL"]
+      "env": ["CLERK_SECRET_KEY"]
     },
     "dev": {
       "cache": false,
