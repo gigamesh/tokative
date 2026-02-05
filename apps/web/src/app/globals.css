@@ -62,11 +62,14 @@ input[type="checkbox"] {
   }
 
   .text-gradient-brand {
-    background: linear-gradient(to right, var(--accent-cyan), var(--accent-pink));
+    background: linear-gradient(to right, #25F4EE, #FE2C55);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    color: transparent;
     display: inline-block;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 
   .min-h-content {
