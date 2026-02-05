@@ -1,4 +1,4 @@
-
+import { Check, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface ToastProps {
@@ -34,33 +34,9 @@ export function Toast({ message, isVisible, onClose, duration = 3000, variant = 
     >
       <div className={`${isError ? "bg-red-900/80 border-red-700" : "bg-surface-elevated border-border"} border text-foreground px-4 py-3 rounded-lg shadow-lg flex items-start gap-3 max-w-sm`}>
         {isError ? (
-          <svg
-            className="w-5 h-5 text-red-400 flex-shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <X className="w-5 h-5 text-red-400 flex-shrink-0" />
         ) : (
-          <svg
-            className="w-5 h-5 text-green-400 flex-shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
+          <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
         )}
         <span className="text-sm">{message}</span>
       </div>

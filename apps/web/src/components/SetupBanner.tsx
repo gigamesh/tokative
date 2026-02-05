@@ -5,6 +5,7 @@ import { useExtensionStatus } from "@/hooks/useExtensionStatus";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@tokative/convex";
 import { useAuth } from "@/providers/ConvexProvider";
+import { AlertTriangle, Check, Zap } from "lucide-react";
 
 export function SetupBanner() {
   const { setupState, dismissSetup, recheckConnection } = useExtensionStatus();
@@ -36,19 +37,7 @@ export function SetupBanner() {
     return (
       <div className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <svg
-            className="w-5 h-5 text-green-400 flex-shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
+          <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
           <span className="text-green-400">
             You're all set! Go to TikTok to start scraping.
           </span>
@@ -71,19 +60,7 @@ export function SetupBanner() {
     return (
       <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
         <div className="flex items-start gap-3">
-          <svg
-            className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
+          <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="text-yellow-400 font-medium mb-1">Setup Required</h3>
             <p className="text-yellow-400/80 text-sm mb-3">
@@ -100,19 +77,7 @@ export function SetupBanner() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-medium rounded-md transition-colors text-sm"
             >
               Install Extension
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M14 5l7 7m0 0l-7 7m7-7H3"
-                />
-              </svg>
+              <Zap className="w-4 h-4" />
             </a>
           </div>
         </div>
@@ -124,19 +89,7 @@ export function SetupBanner() {
     return (
       <div className="mb-6 p-4 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg">
         <div className="flex items-start gap-3">
-          <svg
-            className="w-5 h-5 text-accent-cyan-text flex-shrink-0 mt-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 10V3L4 14h7v7l9-11h-7z"
-            />
-          </svg>
+          <Zap className="w-5 h-5 text-accent-cyan-text flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="text-accent-cyan-text font-medium mb-1">Almost there!</h3>
             <p className="text-accent-cyan-text/80 text-sm mb-3">
@@ -147,19 +100,7 @@ export function SetupBanner() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-accent-cyan-solid hover:bg-accent-cyan-solid-hover text-white font-medium rounded-md transition-colors text-sm"
             >
               I've connected
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+              <Check className="w-4 h-4" />
             </button>
           </div>
         </div>

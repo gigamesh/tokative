@@ -2,6 +2,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { ScrapedComment } from "@/utils/constants";
 import { ReplyProgress, BulkReplyProgress } from "@tokative/shared";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import { AlertTriangle, Smile, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
@@ -277,22 +278,7 @@ export function ReplyComposer({
                   className="absolute right-2.5 bottom-2.5 text-foreground-muted hover:text-foreground transition-colors"
                   title="Add emoji"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                    <line x1="9" y1="9" x2="9.01" y2="9" />
-                    <line x1="15" y1="9" x2="15.01" y2="9" />
-                  </svg>
+                  <Smile className="w-4 h-4" />
                 </button>
                 {activeEmojiPicker === index && (
                   <div
@@ -316,19 +302,7 @@ export function ReplyComposer({
                   className="self-start mt-2 text-foreground-muted hover:text-red-400 transition-colors"
                   title="Remove this reply"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -338,19 +312,7 @@ export function ReplyComposer({
 
       {needsMoreVariations && (
         <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-          <svg
-            className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
+          <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-yellow-500">
             {selectedCount > 30
               ? "You have more than 30 comments selected. Add at least 3 reply variations to make your replies look natural and avoid being flagged as spam."

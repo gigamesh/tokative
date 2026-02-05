@@ -1,6 +1,7 @@
 import { ExternalLink } from "@/components/ExternalLink";
 import { getAvatarColor } from "@/utils/avatar";
 import { ScrapedComment } from "@/utils/constants";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { CommentCard } from "./CommentCard";
 import { CommenterData } from "@/hooks/useCommenterData";
@@ -143,19 +144,7 @@ export function CommenterCard({
             className="p-1.5 text-foreground-muted hover:text-foreground hover:bg-surface-secondary rounded-lg transition-colors flex-shrink-0"
             title={expanded ? "Collapse" : "Expand"}
           >
-            <svg
-              className={`w-5 h-5 transition-transform ${expanded ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+            <ChevronDown className={`w-5 h-5 transition-transform ${expanded ? "rotate-180" : ""}`} />
           </button>
         </div>
       </div>

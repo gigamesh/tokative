@@ -1,5 +1,6 @@
 import { Button } from "./Button";
 import { IgnoreListEntry } from "@/utils/constants";
+import { X } from "lucide-react";
 import { useState } from "react";
 
 interface SettingsTabProps {
@@ -178,19 +179,7 @@ export function SettingsTab({
                   className="text-foreground-muted hover:text-red-400 transition-colors flex-shrink-0"
                   title="Remove from ignore list"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             ))}

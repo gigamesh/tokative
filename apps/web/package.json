@@ -15,6 +15,7 @@
     "@tokative/shared": "workspace:*",
     "convex": "^1.17.0",
     "emoji-picker-react": "^4.16.1",
+    "lucide-react": "^0.563.0",
     "next": "14.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

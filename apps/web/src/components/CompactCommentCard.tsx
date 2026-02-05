@@ -1,5 +1,6 @@
 import { ScrapedComment } from "@/utils/constants";
 import { getAvatarColor } from "@/utils/avatar";
+import { X } from "lucide-react";
 import { useState } from "react";
 
 interface CompactCommentCardProps {
@@ -63,9 +64,7 @@ export function CompactCommentCard({
         className="p-0.5 text-red-400/70 hover:text-red-400 transition-colors flex-shrink-0"
         title="Remove from selection"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <X className="w-4 h-4" />
       </button>
     </div>
   );

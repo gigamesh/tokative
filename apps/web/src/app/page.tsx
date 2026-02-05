@@ -1,4 +1,5 @@
 import { LinkButton } from "@/components/Button";
+import { ArrowRight } from "lucide-react";
 
 export default function Home() {
   return (
@@ -24,19 +25,7 @@ export default function Home() {
                 className="group hover:scale-105"
               >
                 Get Started
-                <svg
-                  className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M17 8l4 4m0 0l-4 4m4-4H3"
-                  />
-                </svg>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </LinkButton>
             </div>
           </div>

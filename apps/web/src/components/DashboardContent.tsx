@@ -1,5 +1,6 @@
 "use client";
 
+import { PauseCircle, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
 import { BulkReplyReportModal } from "@/components/BulkReplyReportModal";
@@ -502,9 +503,7 @@ export function DashboardContent() {
 
         {scrapingState?.isPaused && (
           <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
-            <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <PauseCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
             <div>
               <span className="text-yellow-400 font-medium">Scraping Paused</span>
               <span className="text-yellow-400/80 ml-2">Return to the TikTok tab to continue scraping.</span>
@@ -532,9 +531,7 @@ export function DashboardContent() {
               className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0"
               aria-label="Dismiss error"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-5 h-5" />
             </button>
           </div>
         )}
