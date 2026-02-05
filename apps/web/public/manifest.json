@@ -1,0 +1,16 @@
+{
+  "name": "Tokative",
+  "short_name": "Tokative",
+  "description": "Manage TikTok engagement at scale",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#25F4EE",
+  "icons": [
+    {
+      "src": "/icon128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}
