@@ -20,10 +20,11 @@ const PAGE_SIZE = 50;
 
 interface UseCommentDataOptions {
   videoIdFilter?: string | null;
+  sortOrder?: "asc" | "desc";
 }
 
 export function useCommentData(options: UseCommentDataOptions = {}) {
-  const { videoIdFilter } = options;
+  const { videoIdFilter, sortOrder = "desc" } = options;
   const { userId } = useAuth();
   const convex = useConvex();
   const [state, setState] = useState<CommentDataState>({
@@ -45,7 +46,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
   } = usePaginatedQuery(
     api.comments.listPaginated,
     userId
-      ? { clerkId: userId, videoId: videoIdFilter ?? undefined }
+      ? { clerkId: userId, videoId: videoIdFilter ?? undefined, sortOrder }
       : "skip",
     { initialNumItems: PAGE_SIZE }
   );

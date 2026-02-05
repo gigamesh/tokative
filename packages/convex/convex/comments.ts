@@ -67,6 +67,7 @@ export const listPaginated = query({
   args: {
     clerkId: v.string(),
     videoId: v.optional(v.string()),
+    sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
@@ -83,20 +84,22 @@ export const listPaginated = query({
       };
     }
 
+    const order = args.sortOrder ?? "desc";
+
     const result = args.videoId
       ? await ctx.db
           .query("comments")
           .withIndex("by_user_video_and_timestamp", (q) =>
             q.eq("userId", user._id).eq("videoId", args.videoId)
           )
-          .order("desc")
+          .order(order)
           .paginate(args.paginationOpts)
       : await ctx.db
           .query("comments")
           .withIndex("by_user_and_timestamp", (q) =>
             q.eq("userId", user._id)
           )
-          .order("desc")
+          .order(order)
           .paginate(args.paginationOpts);
 
     const profileIds = Array.from(new Set(result.page.map((c) => c.tiktokProfileId)));

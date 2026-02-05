@@ -4,7 +4,7 @@ import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
 import { BulkReplyReportModal } from "@/components/BulkReplyReportModal";
 import { Button } from "@/components/Button";
 import { CommentNotFoundModal } from "@/components/CommentNotFoundModal";
-import { CommentTable } from "@/components/CommentTable";
+import { CommentTable, SortOption } from "@/components/CommentTable";
 import { CommenterTable } from "@/components/CommenterTable";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
@@ -50,6 +50,13 @@ export function DashboardContent() {
     clearPostFilter,
   } = useDashboardUrl();
 
+  const [commentSort, setCommentSort] = useState<SortOption>("newest");
+
+  const handleSortChange = useCallback((newSort: SortOption) => {
+    window.scrollTo({ top: 0 });
+    setCommentSort(newSort);
+  }, []);
+
   const {
     comments: allComments,
     commentLimit,
@@ -69,7 +76,10 @@ export function DashboardContent() {
     hasMore,
     isLoadingMore,
     findMatchingComments,
-  } = useCommentData({ videoIdFilter: selectedPostId });
+  } = useCommentData({
+    videoIdFilter: selectedPostId,
+    sortOrder: commentSort === "newest" ? "desc" : "asc",
+  });
 
   const comments = useMemo(() => {
     if (!hideOwnReplies) return allComments;
@@ -632,6 +642,9 @@ export function DashboardContent() {
                   isInitialLoading={loading}
                   replyingCommentId={replyProgress?.commentId}
                   searchingMatchesCommentId={searchingMatchesCommentId}
+                  sort={commentSort}
+                  onSortChange={handleSortChange}
+                  isActive={activeTab === "comments"}
                   headerContent={
                     <>
                       <h2 className="text-lg font-medium text-foreground">

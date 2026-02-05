@@ -67,7 +67,7 @@ interface DisplayComment extends ScrapedComment {
 }
 
 type FilterStatus = "all" | "replied" | "not_replied" | "failed";
-type SortOption = "newest" | "oldest";
+export type SortOption = "newest" | "oldest";
 
 interface CommentTableProps {
   comments: ScrapedComment[];
@@ -87,6 +87,9 @@ interface CommentTableProps {
   replyingCommentId?: string | null;
   headerContent?: React.ReactNode;
   searchingMatchesCommentId?: string | null;
+  sort: SortOption;
+  onSortChange: (sort: SortOption) => void;
+  isActive?: boolean;
 }
 
 export function CommentTable({
@@ -107,10 +110,12 @@ export function CommentTable({
   replyingCommentId,
   headerContent,
   searchingMatchesCommentId,
+  sort,
+  onSortChange,
+  isActive = true,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
-  const [sort, setSort] = useState<SortOption>("newest");
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
     new Set(),
@@ -257,10 +262,10 @@ export function CommentTable({
   }, [filteredComments, expandedThreads]);
 
   const handleEndReached = useCallback(() => {
-    if (hasMore && !isLoadingMore && onLoadMore) {
+    if (isActive && hasMore && !isLoadingMore && onLoadMore) {
       onLoadMore();
     }
-  }, [hasMore, isLoadingMore, onLoadMore]);
+  }, [isActive, hasMore, isLoadingMore, onLoadMore]);
 
   const handleSelectComment = useCallback(
     (
@@ -336,7 +341,7 @@ export function CommentTable({
 
             <select
               value={sort}
-              onChange={(e) => setSort(e.target.value as SortOption)}
+              onChange={(e) => onSortChange(e.target.value as SortOption)}
               className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
             >
               <option value="newest">Newest Comments</option>

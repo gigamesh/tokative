@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { STORAGE_KEYS } from "@/utils/constants";
 import { getStorageItem, setStorageItem } from "@/utils/localStorage";
 
@@ -16,6 +16,10 @@ const DEFAULT_STATE: DashboardState = { tab: "posts", postId: null };
 export function useDashboardUrl() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("posts");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const activeTabRef = useRef<DashboardTab>(activeTab);
+  const scrollPositions = useRef<Map<DashboardTab, number>>(new Map());
+
+  activeTabRef.current = activeTab;
 
   useEffect(() => {
     const stored = getStorageItem<DashboardState>(
@@ -26,20 +30,36 @@ export function useDashboardUrl() {
     setSelectedPostId(stored.postId || null);
   }, []);
 
+  useEffect(() => {
+    const savedPosition = scrollPositions.current.get(activeTab) ?? 0;
+    if (savedPosition > 0) {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: savedPosition });
+      });
+    }
+  }, [activeTab]);
+
+  const saveScrollAndReset = useCallback(() => {
+    scrollPositions.current.set(activeTabRef.current, window.scrollY);
+    window.scrollTo({ top: 0 });
+  }, []);
+
   const setTab = useCallback((tab: DashboardTab) => {
+    saveScrollAndReset();
     setActiveTab(tab);
     setSelectedPostId(null);
     setStorageItem(STORAGE_KEYS.DASHBOARD_STATE, { tab, postId: null });
-  }, []);
+  }, [saveScrollAndReset]);
 
   const setSelectedPost = useCallback((videoId: string) => {
+    saveScrollAndReset();
     setActiveTab("comments");
     setSelectedPostId(videoId);
     setStorageItem(STORAGE_KEYS.DASHBOARD_STATE, {
       tab: "comments",
       postId: videoId,
     });
-  }, []);
+  }, [saveScrollAndReset]);
 
   const clearPostFilter = useCallback(() => {
     setSelectedPostId(null);
