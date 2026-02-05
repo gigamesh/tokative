@@ -1,3 +1,4 @@
+import { CommenterData } from "@/hooks/useCommenterData";
 import { ScrapedComment } from "@/utils/constants";
 import { X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
@@ -5,7 +6,6 @@ import { Virtuoso } from "react-virtuoso";
 import { CommenterCard } from "./CommenterCard";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { DangerButton } from "./DangerButton";
-import { CommenterData } from "@/hooks/useCommenterData";
 
 function CommenterSkeleton() {
   return (
@@ -46,7 +46,9 @@ function StableFooter({ context }: { context?: FooterContext }) {
   if (!context?.hasMore) return null;
 
   return (
-    <div className={`space-y-2 pt-2 ${context.isLoadingMore ? "" : "invisible"}`}>
+    <div
+      className={`space-y-2 pt-2 ${context.isLoadingMore ? "" : "invisible"}`}
+    >
       <CommenterSkeleton />
       <CommenterSkeleton />
       <CommenterSkeleton />
@@ -91,7 +93,9 @@ export function CommenterTable({
   search,
   onSearchChange,
 }: CommenterTableProps) {
-  const [expandedCommenterIds, setExpandedCommenterIds] = useState<Set<string>>(new Set());
+  const [expandedCommenterIds, setExpandedCommenterIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const toggleExpanded = useCallback((profileId: string) => {
@@ -117,16 +121,14 @@ export function CommenterTable({
   }, [commenters]);
 
   const selectedCount = allCommentIds.filter((id) =>
-    selectedCommentIds.has(id)
+    selectedCommentIds.has(id),
   ).length;
 
   const allSelected =
-    allCommentIds.length > 0 &&
-    selectedCount === allCommentIds.length;
+    allCommentIds.length > 0 && selectedCount === allCommentIds.length;
 
   const someSelected =
-    selectedCount > 0 &&
-    selectedCount < allCommentIds.length;
+    selectedCount > 0 && selectedCount < allCommentIds.length;
 
   const handleSelectAll = useCallback(
     (checked: boolean) => {
@@ -134,7 +136,7 @@ export function CommenterTable({
         onSelectComment(id, checked);
       }
     },
-    [allCommentIds, onSelectComment]
+    [allCommentIds, onSelectComment],
   );
 
   const handleEndReached = useCallback(() => {
@@ -145,7 +147,7 @@ export function CommenterTable({
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-header z-20 bg-surface-elevated pt-4 space-y-4">
+      <div className="sticky top-[130px] z-20 bg-surface-elevated pt-4 space-y-4">
         {headerContent}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-wrap items-center">

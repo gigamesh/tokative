@@ -12,7 +12,7 @@ export function TabContentContainer({
   return (
     <div className={`bg-surface-elevated rounded-lg px-4 pb-4 ${className ?? ""}`}>
       {stickyHeader && (
-        <div className="sticky top-header z-20 bg-surface-elevated pt-4">
+        <div className="sticky top-[135px] z-20 bg-surface-elevated pt-4">
           {stickyHeader}
         </div>
       )}

@@ -9,27 +9,14 @@ import { SignOutButton } from "@clerk/nextjs";
 import { HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export function Header() {
   const { userId, isLoaded } = useAuth();
   const isSignedIn = !!userId;
   const pathname = usePathname();
   const isDashboard = pathname === "/dashboard";
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const { isOpen, hasSeenHelp, openModal, closeModal } = useHelpModal();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setIsVisible(currentScrollY < lastScrollY || currentScrollY < 50);
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
 
   useEffect(() => {
     if (isDashboard && hasSeenHelp === false) {
@@ -38,11 +25,7 @@ export function Header() {
   }, [isDashboard, hasSeenHelp, openModal]);
 
   return (
-    <header
-      className={`bg-surface/80 backdrop-blur-md sticky top-0 z-20 transition-transform duration-300 ${
-        isVisible ? "translate-y-0" : "-translate-y-full"
-      }`}
-    >
+    <header className="bg-surface sticky top-0 z-20">
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link
           href="/"

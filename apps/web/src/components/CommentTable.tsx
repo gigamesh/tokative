@@ -48,7 +48,9 @@ function StableFooter({ context }: { context?: FooterContext }) {
   if (!context?.hasMore) return null;
 
   return (
-    <div className={`space-y-2 pt-2 ${context.isLoadingMore ? "" : "invisible"}`}>
+    <div
+      className={`space-y-2 pt-2 ${context.isLoadingMore ? "" : "invisible"}`}
+    >
       <CommentSkeleton />
       <CommentSkeleton />
       <CommentSkeleton />
@@ -273,7 +275,12 @@ export function CommentTable({
   }, [hasMore, isLoadingMore, onLoadMore]);
 
   const handleSelectComment = useCallback(
-    (index: number, commentId: string, selected: boolean, shiftKey: boolean) => {
+    (
+      index: number,
+      commentId: string,
+      selected: boolean,
+      shiftKey: boolean,
+    ) => {
       if (shiftKey && lastSelectedIndexRef.current !== null) {
         const start = Math.min(lastSelectedIndexRef.current, index);
         const end = Math.max(lastSelectedIndexRef.current, index);
@@ -290,7 +297,7 @@ export function CommentTable({
       }
       lastSelectedIndexRef.current = index;
     },
-    [displayComments, onSelectComment, onSelectRange]
+    [displayComments, onSelectComment, onSelectRange],
   );
 
   const filteredSelectedCount = filteredComments.filter((c) =>
@@ -305,7 +312,7 @@ export function CommentTable({
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-header z-20 bg-surface-elevated pt-4 space-y-4">
+      <div className="sticky top-[130px] z-20 bg-surface-elevated pt-4 space-y-4">
         {headerContent}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-wrap items-center">
@@ -366,7 +373,9 @@ export function CommentTable({
                 }}
                 className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
               />
-              {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+              {selectedIds.size > 0
+                ? `${selectedIds.size} selected`
+                : "Select all"}
             </label>
           </div>
 
@@ -410,7 +419,9 @@ export function CommentTable({
                 <CommentCard
                   comment={item}
                   selected={selectedIds.has(item.id)}
-                  onSelect={(selected, shiftKey) => handleSelectComment(index, item.id, selected, shiftKey)}
+                  onSelect={(selected, shiftKey) =>
+                    handleSelectComment(index, item.id, selected, shiftKey)
+                  }
                   onRemove={() => onRemoveComment(item.id)}
                   onReply={() => onReplyComment(item)}
                   thumbnailUrl={
