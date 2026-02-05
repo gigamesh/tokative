@@ -13,8 +13,8 @@
   --border-default: #d1d5db;
 
   /* Brand accent - base values */
-  --accent-cyan: #25F4EE;
-  --accent-pink: #FE2C55;
+  --accent-cyan: #25f4ee;
+  --accent-pink: #fe2c55;
 
   /* Semantic accent tokens - darker in light mode for contrast */
   --accent-cyan-text: #00aeb2;
@@ -24,6 +24,7 @@
   --accent-cyan-muted: #00d8d5;
   --accent-cyan-muted-half: rgba(0, 216, 213, 0.5);
   --accent-cyan-checkbox: #008b8f;
+  --bg-primary-dark: #121212;
 }
 
 .dark {
@@ -37,11 +38,11 @@
   --border-default: #374151;
 
   /* Semantic accent tokens - lighter in dark mode */
-  --accent-cyan-text: #25F4EE;
+  --accent-cyan-text: #25f4ee;
   --accent-cyan-text-hover: #67fffc;
   --accent-cyan-solid: #00aeb2;
   --accent-cyan-solid-hover: #00d8d5;
-  --accent-cyan-muted: #25F4EE;
+  --accent-cyan-muted: #25f4ee;
   --accent-cyan-muted-half: rgba(37, 244, 238, 0.5);
   --accent-cyan-checkbox: #008b8f;
 }
@@ -49,20 +50,77 @@
 body {
   color: var(--text-primary);
   background: var(--bg-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 input[type="checkbox"] {
   accent-color: var(--accent-cyan-checkbox);
 }
 
+.theme-toggle {
+  position: relative;
+  width: 50px;
+  height: 26px;
+  border-radius: 26px;
+  background-color: #87ceeb;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 0.5s ease, border-color 0.5s ease;
+}
+
+.theme-toggle::before,
+.theme-toggle::after {
+  display: block;
+  position: absolute;
+  content: "";
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: 0.5s ease;
+}
+
+.theme-toggle::before {
+  background-color: #ffa41b;
+}
+
+.theme-toggle::after {
+  background-color: #87ceeb;
+  left: -16px;
+  transform: scale(0.00001);
+}
+
+.theme-toggle-dark {
+  background-color: var(--bg-primary-dark);
+
+}
+
+.theme-toggle-dark::before {
+  background-color: #fff;
+  transform: translateX(24px);
+}
+
+.theme-toggle-dark::after {
+  background-color: var(--bg-primary-dark);
+  transform: translateX(33px) scale(1);
+}
+
 @layer utilities {
   .bg-gradient-brand {
-    background: linear-gradient(to right, var(--accent-cyan), var(--accent-pink));
+    background: linear-gradient(
+      to right,
+      var(--accent-cyan),
+      var(--accent-pink)
+    );
   }
 
   .text-gradient-brand {
-    background: linear-gradient(to right, #25F4EE, #FE2C55);
+    background: linear-gradient(to right, #25f4ee, #fe2c55);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

@@ -1,28 +1,18 @@
 "use client";
 
-import { Button } from "./Button";
 import { useTheme } from "@/providers/ThemeProvider";
-import { Moon, Sun } from "lucide-react";
 
+/** Pill-shaped sun/moon toggle — an orange circle morphs into a white crescent via a sliding mask pseudo-element. */
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-
-  const toggleTheme = () => {
-    setTheme(theme === "light" ? "dark" : "light");
-  };
-
-  const icon = theme === "light" ? <Sun /> : <Moon />;
-  const label = theme === "light" ? "Light" : "Dark";
+  const isDark = theme === "dark";
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      icon={icon}
-      onClick={toggleTheme}
-      title={`Theme: ${label}. Click to toggle.`}
-    >
-      <span className="hidden sm:inline">{label}</span>
-    </Button>
+    <button
+      className={`theme-toggle${isDark ? " theme-toggle-dark" : ""}`}
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      title={`Theme: ${isDark ? "Dark" : "Light"}. Click to toggle.`}
+      aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+    />
   );
 }
