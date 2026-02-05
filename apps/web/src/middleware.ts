@@ -4,7 +4,6 @@ import { NextResponse, NextRequest } from "next/server";
 const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
-  "/sign-up(.*)",
   "/api/webhooks(.*)",
   "/not-authorized",
   "/onboarding",

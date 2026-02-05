@@ -1,9 +1,27 @@
 import { LinkButton } from "@/components/Button";
+import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
+const softwareAppSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Tokative",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-surface overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
+      />
       <main className="max-w-5xl mx-auto px-6 relative">
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-r from-accent-cyan/20 via-transparent to-accent-pink/20 blur-3xl rounded-full pointer-events-none" />
 
@@ -32,6 +50,7 @@ export default function Home() {
         </section>
 
         <section className="py-8 relative">
+          <h2 className="sr-only">How It Works</h2>
           <div className="grid sm:grid-cols-3 gap-16 sm:gap-12">
             <FeatureCard
               number="01"
