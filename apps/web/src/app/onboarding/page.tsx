@@ -145,26 +145,25 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-surface text-balance">
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <p className="text-lg text-foreground-muted mb-2">Welcome to</p>
-          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-4">
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="text-center mb-6">
+          <p className="text-foreground-muted mb-1">Welcome to</p>
+          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-2">
             <span className="text-gradient-brand">Tokative</span>
           </h1>
- <p className="text-foreground-muted">
-            If you already installed the Tokative browser extension, enable it
-            at{" "}
+          <p className="text-foreground-muted">
+            If you already installed the extension, enable it at{" "}
             <code className="bg-surface-elevated px-2 py-0.5 rounded text-sm select-all">
               chrome://extensions
             </code>
           </p>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-4">
           <Section number={1} title="Download the Extension">
-            <p className="text-foreground-muted mb-4">
-              The Tokative Chrome extension allows you to scrape comments and
-              send replies directly on TikTok.
+            <p className="text-foreground-muted mb-3">
+              The Chrome extension lets you scrape comments and send replies on
+              TikTok.
             </p>
             <LinkButton
               href="/downloads/tokative-extension.zip"
@@ -190,9 +189,9 @@ export default function OnboardingPage() {
           </Section>
 
           <Section number={2} title="Install in Chrome">
-            <ol className="space-y-4 text-foreground-muted">
-              <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
+            <ol className="space-y-2 text-foreground-muted ml-4">
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
                   1
                 </span>
                 <span>
@@ -200,29 +199,29 @@ export default function OnboardingPage() {
                   downloaded file
                 </span>
               </li>
-              <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
                   2
                 </span>
                 <span>
-                  Open Chrome and navigate to{" "}
-                  <code className="bg-surface-elevated px-2 py-1 rounded text-sm">
+                  Open{" "}
+                  <code className="bg-surface-elevated px-1.5 py-0.5 rounded text-sm">
                     chrome://extensions/
                   </code>
                 </span>
               </li>
-              <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
                   3
                 </span>
                 <span>
                   Enable{" "}
                   <strong className="text-foreground">Developer mode</strong>{" "}
-                  (toggle in the top right corner)
+                  (top right toggle)
                 </span>
               </li>
-              <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
                   4
                 </span>
                 <span>
@@ -231,27 +230,23 @@ export default function OnboardingPage() {
                   select the unzipped folder
                 </span>
               </li>
-              <li className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-accent-cyan-solid text-white text-sm rounded-full flex items-center justify-center">
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
                   5
                 </span>
                 <span>
                   <strong className="text-foreground">Pin</strong> the extension
-                  to your toolbar for easy access
+                  to your toolbar
                 </span>
               </li>
             </ol>
           </Section>
 
-          <div className="bg-surface-elevated rounded-lg p-6 text-center">
-            <p className="text-foreground mb-4">
+          <div className="bg-surface-elevated rounded-lg p-4 text-center">
+            <p className="text-foreground mb-3">
               After installing the extension, refresh this page to continue.
             </p>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => window.location.reload()}
-            >
+            <Button variant="secondary" onClick={() => window.location.reload()}>
               Refresh Page
             </Button>
           </div>
@@ -271,9 +266,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-surface-elevated rounded-lg p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <span className="w-8 h-8 bg-accent-cyan-solid text-white font-bold rounded-full flex items-center justify-center">
+    <div className="bg-surface-elevated rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="w-7 h-7 bg-accent-cyan-solid text-white font-bold rounded-full flex items-center justify-center">
           {number}
         </span>
         <h2 className="text-xl font-semibold text-foreground">{title}</h2>
