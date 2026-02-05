@@ -37,18 +37,21 @@ export function CommenterTableSkeleton({ count = 8 }: { count?: number }) {
   );
 }
 
-function LoadingFooter() {
+interface FooterContext {
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
+}
+
+function StableFooter({ context }: { context?: FooterContext }) {
+  if (!context?.hasMore) return null;
+
   return (
-    <div className="space-y-2 pt-2">
+    <div className={`space-y-2 pt-2 ${context.isLoadingMore ? "" : "invisible"}`}>
       <CommenterSkeleton />
       <CommenterSkeleton />
       <CommenterSkeleton />
     </div>
   );
-}
-
-function EmptyFooter() {
-  return null;
 }
 
 interface CommenterTableProps {
@@ -206,10 +209,12 @@ export function CommenterTable({
         <Virtuoso
           data={commenters}
           useWindowScroll
-          overscan={10}
+          overscan={30}
+          increaseViewportBy={{ top: 0, bottom: 800 }}
           endReached={handleEndReached}
+          context={{ isLoadingMore, hasMore }}
           components={{
-            Footer: isLoadingMore ? LoadingFooter : EmptyFooter,
+            Footer: StableFooter,
           }}
           itemContent={(index, commenter) => (
             <div className={index > 0 ? "pt-2" : ""}>

@@ -39,18 +39,21 @@ export function CommentTableSkeleton({ count = 8 }: { count?: number }) {
   );
 }
 
-function LoadingFooter() {
+interface FooterContext {
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
+}
+
+function StableFooter({ context }: { context?: FooterContext }) {
+  if (!context?.hasMore) return null;
+
   return (
-    <div className="space-y-2 pt-2">
+    <div className={`space-y-2 pt-2 ${context.isLoadingMore ? "" : "invisible"}`}>
       <CommentSkeleton />
       <CommentSkeleton />
       <CommentSkeleton />
     </div>
   );
-}
-
-function EmptyFooter() {
-  return null;
 }
 
 interface DisplayComment extends ScrapedComment {
@@ -388,10 +391,12 @@ export function CommentTable({
         <Virtuoso
           data={displayComments}
           useWindowScroll
-          overscan={10}
+          overscan={30}
+          increaseViewportBy={{ top: 0, bottom: 800 }}
           endReached={handleEndReached}
+          context={{ isLoadingMore, hasMore }}
           components={{
-            Footer: isLoadingMore ? LoadingFooter : EmptyFooter,
+            Footer: StableFooter,
           }}
           itemContent={(index, item) => (
             <div className={index > 0 ? "pt-2" : ""}>
