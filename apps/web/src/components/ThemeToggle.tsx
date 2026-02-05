@@ -11,7 +11,7 @@ export function ThemeToggle() {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
-  const icon = theme === "light" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />;
+  const icon = theme === "light" ? <Sun /> : <Moon />;
   const label = theme === "light" ? "Light" : "Dark";
 
   return (

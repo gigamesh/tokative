@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef } from "react";
+import { cloneElement, forwardRef, isValidElement } from "react";
 
 type ButtonVariant =
   | "primary"
@@ -68,7 +68,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${roundedStyle} ${widthStyle} ${className}`}
         {...props}
       >
-        {icon && <span className="w-4 h-4 flex-shrink-0">{icon}</span>}
+        {icon && isValidElement(icon) && cloneElement(icon, { className: "w-4 h-4 flex-shrink-0" } as React.HTMLAttributes<HTMLElement>)}
         {children}
       </button>
     );
@@ -107,7 +107,7 @@ export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(
         className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${roundedStyle} ${className}`}
         {...props}
       >
-        {icon && <span className="w-4 h-4 flex-shrink-0">{icon}</span>}
+        {icon && isValidElement(icon) && cloneElement(icon, { className: "w-4 h-4 flex-shrink-0" } as React.HTMLAttributes<HTMLElement>)}
         {children}
       </a>
     );
