@@ -65,10 +65,10 @@ input[type="checkbox"] {
   width: 50px;
   height: 26px;
   border-radius: 26px;
-  background-color: #87ceeb;
+  background-color: #fff;
   overflow: hidden;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid #bbb;
   padding: 0;
   flex-shrink: 0;
   transition:
@@ -94,7 +94,7 @@ input[type="checkbox"] {
 }
 
 .theme-toggle::after {
-  background-color: #87ceeb;
+  background-color: #fff;
   left: -16px;
   transform: scale(0.00001);
 }
