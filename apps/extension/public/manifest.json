@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tokative",
   "version": "1.0.0",
-  "description": "Manage TikTok interactions - scrape comments and send messages",
+  "description": "Collect and manage TikTok comments and engage with your audience",
   "permissions": ["storage", "tabs", "scripting", "webRequest"],
   "host_permissions": [
     "https://www.tiktok.com/*",
@@ -33,6 +33,9 @@
     "16": "icon16.png",
     "48": "icon48.png",
     "128": "icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "web_accessible_resources": [
     {

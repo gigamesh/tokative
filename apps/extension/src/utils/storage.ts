@@ -25,18 +25,8 @@ export async function getScrapedComments(): Promise<ScrapedComment[]> {
 }
 
 export async function addScrapedComments(newComments: ScrapedComment[]): Promise<AddCommentsResult> {
-  // TEMP DIAGNOSTIC
-  const stack = new Error().stack;
-  const caller = stack?.split('\n')[2]?.trim() || 'unknown';
-  console.log(`[DIAG] addScrapedComments called with ${newComments.length} comments from: ${caller}`);
-
   const ignoreList = await convexApi.fetchIgnoreList();
-  const result = await convexApi.syncComments(newComments, ignoreList.map((e) => e.text));
-
-  // TEMP DIAGNOSTIC
-  console.log(`[DIAG] addScrapedComments result:`, result);
-
-  return result;
+  return convexApi.syncComments(newComments, ignoreList.map((e) => e.text));
 }
 
 export async function updateScrapedComment(

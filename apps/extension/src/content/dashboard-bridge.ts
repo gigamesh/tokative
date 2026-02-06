@@ -1,5 +1,9 @@
 import { MessageType, ExtensionMessage, EXTENSION_SOURCE } from "../types";
 import { guardExtensionContext } from "../utils/dom";
+import { logger } from "../utils/logger";
+
+declare const DASHBOARD_URL_PLACEHOLDER: string;
+const DASHBOARD_ORIGIN = DASHBOARD_URL_PLACEHOLDER;
 
 const BRIDGE_ID = "tokative-bridge";
 
@@ -14,13 +18,12 @@ declare global {
 
 function initBridge(): void {
   if (!guardExtensionContext()) {
-    console.warn("[Bridge] Extension context invalid");
+    logger.warn("[Bridge] Extension context invalid");
     return;
   }
 
   // Clean up any existing bridge from previous injection (e.g., after extension re-enable)
   if (window.__tokativeBridge) {
-    console.log("[Bridge] Cleaning up previous bridge instance");
     window.removeEventListener("message", window.__tokativeBridge.handler);
     window.__tokativeBridge.cleanup();
     window.__tokativeBridge = undefined;
@@ -45,12 +48,11 @@ function initBridge(): void {
         ...message,
         source: EXTENSION_SOURCE,
       },
-      "*"
+      DASHBOARD_ORIGIN
     );
   });
 
   port.onDisconnect.addListener(() => {
-    console.log("[Bridge] Port disconnected, will reconnect on next message");
     port = null;
   });
 
@@ -63,9 +65,8 @@ function initBridge(): void {
 
     // Handle auth token response from the web app (source: "dashboard")
     if (message.type === MessageType.AUTH_TOKEN_RESPONSE && event.data?.source === "dashboard") {
-      console.log("[Bridge] Forwarding auth token to background");
       chrome.runtime.sendMessage(message).catch((error) => {
-        console.error("[Bridge] Error forwarding auth token:", error);
+        logger.error("[Bridge] Error forwarding auth token:", error);
       });
       return;
     }
@@ -78,7 +79,7 @@ function initBridge(): void {
             type: MessageType.BRIDGE_READY,
             source: EXTENSION_SOURCE,
           },
-          "*"
+          DASHBOARD_ORIGIN
         );
       }
       return;
@@ -90,20 +91,18 @@ function initBridge(): void {
           type: "EXTENSION_CONTEXT_INVALID",
           source: EXTENSION_SOURCE,
         },
-        "*"
+        DASHBOARD_ORIGIN
       );
       return;
     }
 
     if (isPortMessage(message.type)) {
       if (!port) {
-        console.log("[Bridge] Reconnecting port...");
         port = chrome.runtime.connect({ name: "dashboard" });
         port.onMessage.addListener((msg: ExtensionMessage) => {
-          window.postMessage({ ...msg, source: EXTENSION_SOURCE }, "*");
+          window.postMessage({ ...msg, source: EXTENSION_SOURCE }, DASHBOARD_ORIGIN);
         });
         port.onDisconnect.addListener(() => {
-          console.log("[Bridge] Port disconnected, will reconnect on next message");
           port = null;
         });
       }
@@ -118,19 +117,19 @@ function initBridge(): void {
                 payload: response,
                 source: EXTENSION_SOURCE,
               },
-              "*"
+              DASHBOARD_ORIGIN
             );
           }
         })
         .catch((error) => {
-          console.error("[Bridge] Error sending message:", error);
+          logger.error("[Bridge] Error sending message:", error);
           window.postMessage(
             {
               type: getResponseType(message.type),
               payload: { error: error.message || "Extension communication error" },
               source: EXTENSION_SOURCE,
             },
-            "*"
+            DASHBOARD_ORIGIN
           );
         });
     }
@@ -140,13 +139,12 @@ function initBridge(): void {
 
   // Listen for messages from background script (via chrome.tabs.sendMessage)
   const runtimeMessageHandler = (message: ExtensionMessage) => {
-    console.log("[Bridge] Received from background:", message.type);
     window.postMessage(
       {
         ...message,
         source: EXTENSION_SOURCE,
       },
-      "*"
+      DASHBOARD_ORIGIN
     );
   };
   chrome.runtime.onMessage.addListener(runtimeMessageHandler);
@@ -165,10 +163,8 @@ function initBridge(): void {
       type: MessageType.BRIDGE_READY,
       source: EXTENSION_SOURCE,
     },
-    "*"
+    DASHBOARD_ORIGIN
   );
-
-  console.log("[Bridge] Dashboard bridge initialized");
 }
 
 function isPortMessage(type: MessageType): boolean {

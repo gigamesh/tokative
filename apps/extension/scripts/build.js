@@ -52,6 +52,12 @@ async function copyPublicFiles() {
         perm === "http://localhost:3000/*" ? dashboardPattern : perm
       );
 
+      // Inject Convex host permission
+      const convexPattern = env.CONVEX_SITE_URL + "/*";
+      if (!manifest.host_permissions.includes(convexPattern)) {
+        manifest.host_permissions.push(convexPattern);
+      }
+
       // Update content_scripts matches
       manifest.content_scripts = manifest.content_scripts.map((script) => ({
         ...script,

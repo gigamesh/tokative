@@ -105,9 +105,6 @@ interface ElementWithFiber extends Element {
     const topLevel = document.querySelectorAll(TOP_LEVEL_COMMENT_SELECTOR);
     const replies = document.querySelectorAll(REPLY_COMMENT_SELECTOR);
     const all = getAllCommentElements();
-
-    // Verbose logging disabled
-    // console.log("[Tokative page-script] Found", topLevel.length, "top-level and", replies.length, "replies =", all.length, "total");
     return all;
   }
 
@@ -199,8 +196,6 @@ interface ElementWithFiber extends Element {
       }
     });
 
-    // Verbose logging disabled
-    // console.log("[Tokative page-script] Extracted", results.length, "comments with React data");
     return results;
   }
 

@@ -10,6 +10,7 @@ import { addScrapedComments, addVideos } from "../../utils/storage";
 import { querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { getAllCommentElements, VIDEO_SELECTORS } from "./video-selectors";
 import { getLoadedConfig } from "../../config/loader";
+import { logger } from "../../utils/logger";
 
 interface DiagnosticData {
   displayedCount: number | null;
@@ -35,10 +36,6 @@ interface RawCommentData {
 
 let isCancelled = false;
 let isPaused = false;
-
-// Set to true to enable verbose logging
-const DEBUG_VERBOSE = true;
-const log = (...args: unknown[]) => DEBUG_VERBOSE && console.log(...args);
 
 export function cancelVideoScrape(): void {
   isCancelled = true;
@@ -156,7 +153,7 @@ function logDiagnosticSummary(
     ? ((scrapedTotal / displayedCount) * 100).toFixed(1)
     : "N/A";
 
-  log(`[Tokative] Scrape Summary: Displayed=${displayedStr}, Scraped=${scrapedTotal}, TopLevel=${topLevelCount}, Replies=${replyCount}, CaptureRate=${capturedPct}%`);
+  logger.log(`[Tokative] Scrape Summary: Displayed=${displayedStr}, Scraped=${scrapedTotal}, TopLevel=${topLevelCount}, Replies=${replyCount}, CaptureRate=${capturedPct}%`);
 
   if (incompleteThreads.length > 0) {
     const sorted = incompleteThreads
@@ -164,7 +161,7 @@ function logDiagnosticSummary(
       .sort((a, b) => b.missing - a.missing)
       .slice(0, 5);
 
-    log(`[Tokative] Incomplete threads (top ${sorted.length}): ${sorted.map(t => `${t.parentId}:${t.got}/${t.expected}`).join(", ")}`);
+    logger.log(`[Tokative] Incomplete threads (top ${sorted.length}): ${sorted.map(t => `${t.parentId}:${t.got}/${t.expected}`).join(", ")}`);
   }
 }
 
@@ -173,7 +170,7 @@ export async function extractAllReactData(): Promise<Map<number, CommentReactDat
 
   const isReady =
     document.documentElement.getAttribute("data-tokative-ready") === "true";
-  log("[Tokative] React extractor ready:", isReady);
+  logger.log("[Tokative] React extractor ready:", isReady);
   if (!isReady) {
     return new Map();
   }
@@ -191,7 +188,7 @@ export async function extractAllReactData(): Promise<Map<number, CommentReactDat
   );
   document.documentElement.removeAttribute("data-tokative-comments");
 
-  log("[Tokative] React data attribute length:", dataAttr?.length || 0);
+  logger.log("[Tokative] React data attribute length:", dataAttr?.length || 0);
 
   const results = new Map<number, CommentReactData>();
   if (dataAttr) {
@@ -215,7 +212,7 @@ export async function extractAllReactData(): Promise<Map<number, CommentReactDat
           reply_to_reply_id?: string;
         }>;
       }>;
-      log("[Tokative] Parsed React data for", parsed.length, "comments");
+      logger.log("[Tokative] Parsed React data for", parsed.length, "comments");
       for (const item of parsed) {
         results.set(item.index, {
           cid: item.cid,
@@ -230,7 +227,7 @@ export async function extractAllReactData(): Promise<Map<number, CommentReactDat
         });
       }
     } catch (e) {
-      console.error("[Tokative] Failed to parse React data:", e);
+      logger.error("[Tokative] Failed to parse React data:", e);
     }
   }
 
@@ -301,17 +298,17 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<
   RawCommentData[]
 > {
   const videoId = getVideoId();
-  log("[Tokative] Video ID from URL:", videoId);
+  logger.log("[Tokative] Video ID from URL:", videoId);
 
   // Get React data - this is our primary data source
   const reactDataMap = await extractAllReactData();
-  log("[Tokative] React data map size:", reactDataMap.size);
+  logger.log("[Tokative] React data map size:", reactDataMap.size);
 
   // Log first comment's aweme_id to check for mismatch
   if (reactDataMap.size > 0) {
     const firstData = reactDataMap.values().next().value;
     if (firstData?.aweme_id && firstData.aweme_id !== videoId) {
-      console.warn(
+      logger.warn(
         `[Tokative] VIDEO ID MISMATCH: URL says "${videoId}" but React data has aweme_id "${firstData.aweme_id}"`,
       );
     }
@@ -399,7 +396,7 @@ export async function scrapeCommentsFromCurrentVideo(): Promise<
     }
   }
 
-  log(
+  logger.log(
     `[Tokative] Extracted ${comments.length} comments from React data, ${repliesFound} are replies`,
   );
   return comments;
@@ -488,10 +485,10 @@ export async function findRecentlyPostedReply(
   const ourHandleLower = ourHandle?.toLowerCase();
   const nowSeconds = Math.floor(Date.now() / 1000);
 
-  log(`[Tokative] findRecentlyPostedReply: looking for reply${ourHandle ? ` by @${ourHandle}` : ""} to comment ${parentCommentId}`);
+  logger.log(`[Tokative] findRecentlyPostedReply: looking for reply${ourHandle ? ` by @${ourHandle}` : ""} to comment ${parentCommentId}`);
 
   const reactDataMap = await extractAllReactData();
-  log(`[Tokative] findRecentlyPostedReply: extracted ${reactDataMap.size} comments from React`);
+  logger.log(`[Tokative] findRecentlyPostedReply: extracted ${reactDataMap.size} comments from React`);
 
   const videoId = getVideoId();
 
@@ -505,7 +502,7 @@ export async function findRecentlyPostedReply(
     const textMatches = textsMatch(replyText, data.text || "");
 
     if (handleMatches && isReplyToParent && isRecent && textMatches) {
-      log(`[Tokative] findRecentlyPostedReply: found match - cid=${data.cid}, age=${ageSeconds}s`);
+      logger.log(`[Tokative] findRecentlyPostedReply: found match - cid=${data.cid}, age=${ageSeconds}s`);
 
       const rawComment: RawCommentData = {
         commentId: data.cid,
@@ -524,7 +521,7 @@ export async function findRecentlyPostedReply(
     }
   }
 
-  log(`[Tokative] findRecentlyPostedReply: no matching reply found`);
+  logger.log(`[Tokative] findRecentlyPostedReply: no matching reply found`);
   return null;
 }
 
@@ -535,7 +532,7 @@ export async function findRecentlyPostedReplyWithRetry(
 ): Promise<ScrapedComment | null> {
   let delayMs = initialDelayMs;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    log(`[Tokative] findRecentlyPostedReplyWithRetry: attempt ${attempt}/${maxRetries}`);
+    logger.log(`[Tokative] findRecentlyPostedReplyWithRetry: attempt ${attempt}/${maxRetries}`);
     const result = await findRecentlyPostedReply(options);
     if (result) {
       return result;
@@ -561,7 +558,7 @@ async function expandAndSaveReplies(
   cumulativeStats: ScrapeStats,
   onProgress?: (stats: ScrapeStats) => void,
 ): Promise<void> {
-  log(`[Tokative] >>> expandAndSaveReplies START`);
+  logger.log(`[Tokative] >>> expandAndSaveReplies START`);
   let totalExpanded = 0;
   const processedThreads = new Set<Element>(); // Track which parent comments we've fully expanded
 
@@ -572,7 +569,7 @@ async function expandAndSaveReplies(
       ['[class*="DivCommentObjectWrapper"]'],
     );
     const parentComments = allParentComments.filter((el) => isVisible(el));
-    log(
+    logger.log(
       `[Tokative] Found ${parentComments.length} visible parent comments (${allParentComments.length} total in DOM)`,
     );
 
@@ -606,7 +603,7 @@ async function expandAndSaveReplies(
         }
 
         // Click to expand more replies
-        log(`[Tokative] Expanding thread: "${button.textContent?.trim()}"`);
+        logger.log(`[Tokative] Expanding thread: "${button.textContent?.trim()}"`);
         button.scrollIntoView({ behavior: "instant", block: "center" });
         await humanDelay("short");
         button.click();
@@ -636,7 +633,7 @@ async function expandAndSaveReplies(
           cumulativeStats.new += result.new;
           cumulativeStats.preexisting += result.preexisting;
           cumulativeStats.ignored += result.ignored;
-          log(
+          logger.log(
             `[Tokative] Replies: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored`,
           );
           consecutiveNoNewReplies = 0; // Reset counter
@@ -646,7 +643,7 @@ async function expandAndSaveReplies(
           consecutiveNoNewReplies++;
           // If we've clicked N times without getting new replies, this thread is stuck
           if (consecutiveNoNewReplies >= config.limits.consecutiveNoReplies) {
-            log(
+            logger.log(
               `[Tokative] Thread stuck after ${consecutiveNoNewReplies} clicks with no new replies, moving on`,
             );
             break;
@@ -660,14 +657,14 @@ async function expandAndSaveReplies(
       processedThreads.add(parentComment);
 
       if (threadClicks > 0) {
-        log(`[Tokative] Thread fully expanded after ${threadClicks} clicks`);
+        logger.log(`[Tokative] Thread fully expanded after ${threadClicks} clicks`);
       }
     }
   } catch (error) {
-    console.error(`[Tokative] Error in expandAndSaveReplies:`, error);
+    logger.error(`[Tokative] Error in expandAndSaveReplies:`, error);
   }
 
-  log(
+  logger.log(
     `[Tokative] >>> expandAndSaveReplies END - expanded ${totalExpanded} buttons`,
   );
 }
@@ -698,7 +695,7 @@ async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
     // Check if button text changed (expanded or showing "more")
     const currentText = clickedButton.textContent?.toLowerCase() || "";
     if (currentText !== initialText) {
-      log(
+      logger.log(
         `[Tokative] Button text changed: "${initialText}" -> "${currentText}"`,
       );
       await humanDelay("medium");
@@ -710,7 +707,7 @@ async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
       replyContainer?.querySelectorAll('[class*="DivCommentItemWrapper"]')
         .length || 0;
     if (currentReplyCount > initialReplyCount) {
-      log(
+      logger.log(
         `[Tokative] Reply count increased: ${initialReplyCount} -> ${currentReplyCount}`,
       );
       await humanDelay("medium");
@@ -719,13 +716,13 @@ async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
 
     // Check if button is no longer in DOM (replaced by different structure)
     if (!document.contains(clickedButton)) {
-      log(`[Tokative] Button removed from DOM`);
+      logger.log(`[Tokative] Button removed from DOM`);
       await humanDelay("medium");
       return;
     }
   }
 
-  log(`[Tokative] Timeout waiting for replies to load (waited ${waited}ms)`);
+  logger.log(`[Tokative] Timeout waiting for replies to load (waited ${waited}ms)`);
 }
 
 interface ScrollResult {
@@ -755,7 +752,7 @@ async function waitForSkeletonsToDisappear(
   const timeoutMs = timeout ?? config.timeouts.skeletonLoader;
   const startTime = Date.now();
   const initialHasSkeletons = hasSkeletonLoaders(scroller);
-  log(`[Tokative] [SKEL] Start: initialHasSkeletons=${initialHasSkeletons}, timeout=${timeoutMs}ms`);
+  logger.log(`[Tokative] [SKEL] Start: initialHasSkeletons=${initialHasSkeletons}, timeout=${timeoutMs}ms`);
 
   return new Promise((resolve) => {
     let sawSkeletons = initialHasSkeletons;
@@ -767,7 +764,7 @@ async function waitForSkeletonsToDisappear(
       resolved = true;
       observer.disconnect();
       const elapsed = Date.now() - startTime;
-      log(`[Tokative] [SKEL] Done: sawSkeletons=${result}, reason=${reason}, elapsed=${elapsed}ms, mutations=${mutationCount}`);
+      logger.log(`[Tokative] [SKEL] Done: sawSkeletons=${result}, reason=${reason}, elapsed=${elapsed}ms, mutations=${mutationCount}`);
       resolve(result);
     };
 
@@ -776,7 +773,7 @@ async function waitForSkeletonsToDisappear(
       const hasNow = hasSkeletonLoaders(scroller);
       if (hasNow) {
         if (!sawSkeletons) {
-          log(`[Tokative] [SKEL] Detected via observer after ${Date.now() - startTime}ms`);
+          logger.log(`[Tokative] [SKEL] Detected via observer after ${Date.now() - startTime}ms`);
         }
         sawSkeletons = true;
       } else if (sawSkeletons) {
@@ -804,7 +801,7 @@ async function scrollAndWaitForContent(
   // Check if we're already at the bottom before scrolling
   const wasAtBottom = scrollTopBefore + clientHeight >= scrollHeightBefore - 10;
 
-  log(
+  logger.log(
     `[Tokative] scrollAndWait: before scroll - top=${scrollTopBefore}, height=${scrollHeightBefore}, wasAtBottom=${wasAtBottom}, prevLastId=${prevLastCommentId}, prevCount=${prevCommentCount}`,
   );
 
@@ -816,7 +813,7 @@ async function scrollAndWaitForContent(
     scroller.scrollTop = scrollTopBefore - scrollUpAmount;
     scroller.dispatchEvent(new Event("scroll", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, config.delays.scrollUp));
-    log(`[Tokative] Was at bottom, scrolled up to ${scroller.scrollTop}`);
+    logger.log(`[Tokative] Was at bottom, scrolled up to ${scroller.scrollTop}`);
   }
 
   // Scroll to bottom using scrollBy for more natural behavior
@@ -846,12 +843,12 @@ async function scrollAndWaitForContent(
 
   // If no skeletons appeared, wait a fallback timeout for any delayed content
   if (!skeletonsAppeared) {
-    log(`[Tokative] No skeletons detected, waiting fallback ${config.delays.fallbackContent}ms`);
+    logger.log(`[Tokative] No skeletons detected, waiting fallback ${config.delays.fallbackContent}ms`);
     await new Promise((resolve) => setTimeout(resolve, config.delays.fallbackContent));
   }
 
   if (isCancelled) {
-    log(`[Tokative] Cancelled during scroll wait`);
+    logger.log(`[Tokative] Cancelled during scroll wait`);
     return {
       lastCommentId: prevLastCommentId,
       commentCount: prevCommentCount,
@@ -871,7 +868,7 @@ async function scrollAndWaitForContent(
   const countChanged = countAfter !== prevCommentCount;
   const hasNewContent = idChanged || countChanged;
 
-  log(
+  logger.log(
     `[Tokative] scrollAndWait complete: skeletons=${skeletonsAppeared}, lastId=${prevLastCommentId}->${lastIdAfter}, count=${prevCommentCount}->${countAfter}, hasNewContent=${hasNewContent}`,
   );
 
@@ -892,12 +889,12 @@ async function scrollToLoadComments(
   maxComments: number,
   onProgress?: (stats: ScrapeStats) => void,
 ): Promise<ScrapeResult> {
-  log("[Tokative] scrollToLoadComments called, maxComments:", maxComments);
+  logger.log("[Tokative] scrollToLoadComments called, maxComments:", maxComments);
 
   const scroller = querySelector(VIDEO_SELECTORS.commentsScroller);
-  log("[Tokative] Scroller element found:", !!scroller);
+  logger.log("[Tokative] Scroller element found:", !!scroller);
   if (scroller) {
-    log("[Tokative] Scroller details:", {
+    logger.log("[Tokative] Scroller details:", {
       className: scroller.className,
       tagName: scroller.tagName,
       scrollHeight: scroller.scrollHeight,
@@ -906,16 +903,16 @@ async function scrollToLoadComments(
     });
   }
   if (!scroller) {
-    log(
+    logger.log(
       "[Tokative] No scroller found, trying all selectors:",
       VIDEO_SELECTORS.commentsScroller,
     );
     // Debug: list all potential scrollers
     const allDivs = document.querySelectorAll('[class*="Comment"]');
-    log("[Tokative] Elements with 'Comment' in class:", allDivs.length);
+    logger.log("[Tokative] Elements with 'Comment' in class:", allDivs.length);
     allDivs.forEach((div, i) => {
       if (i < 5)
-        log(`  [${i}] ${div.tagName}.${div.className.substring(0, 60)}`);
+        logger.log(`  [${i}] ${div.tagName}.${div.className.substring(0, 60)}`);
     });
     return {
       comments: [],
@@ -947,25 +944,25 @@ async function scrollToLoadComments(
     const timeSinceLastIteration = now - lastIterationTime;
     lastIterationTime = now;
     const countBefore = allComments.length;
-    log(
+    logger.log(
       `[Tokative] === Scroll loop iteration ${loopIteration} === (${timeSinceLastIteration}ms since last)`,
     );
 
     await waitWhilePaused();
     if (isCancelled) {
-      log("[Tokative] Scrape cancelled, exiting loop");
+      logger.log("[Tokative] Scrape cancelled, exiting loop");
       exitReason = "cancelled";
       break;
     }
 
     const commentElements = querySelectorAll(VIDEO_SELECTORS.commentItem);
-    log(
+    logger.log(
       `[Tokative] Found ${commentElements.length} comment elements, saved comments: ${allComments.length}`,
     );
 
     // Check against actual saved comments, not DOM elements (which may include replies)
     if (maxComments !== Infinity && allComments.length >= maxComments) {
-      log(
+      logger.log(
         `[Tokative] Reached maxComments limit (${allComments.length} >= ${maxComments}), breaking`,
       );
       exitReason = `maxComments reached (${maxComments})`;
@@ -974,7 +971,7 @@ async function scrollToLoadComments(
 
     // Always extract comments from current DOM
     const rawComments = await scrapeCommentsFromCurrentVideo();
-    log(
+    logger.log(
       `[Tokative] Extracted ${rawComments.length} raw comments from React data`,
     );
     const newComments: ScrapedComment[] = [];
@@ -1000,7 +997,7 @@ async function scrollToLoadComments(
       }
     }
 
-    log(
+    logger.log(
       `[Tokative] New unique comments this iteration: ${newComments.length}, total: ${allComments.length}/${maxComments}`,
     );
 
@@ -1012,7 +1009,7 @@ async function scrollToLoadComments(
       cumulativeStats.new += result.new;
       cumulativeStats.preexisting += result.preexisting;
       cumulativeStats.ignored += result.ignored;
-      log(
+      logger.log(
         `[Tokative] Storage result: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored (totals: ${cumulativeStats.new}/${cumulativeStats.found})`,
       );
       // Report progress immediately after main comments (before potentially slow reply expansion)
@@ -1030,25 +1027,25 @@ async function scrollToLoadComments(
     });
 
     if (viewButtons.length > 0) {
-      log(`[Tokative] Found ${viewButtons.length} expandable reply buttons`);
+      logger.log(`[Tokative] Found ${viewButtons.length} expandable reply buttons`);
       await expandAndSaveReplies(
         savedCommentIds,
         allComments,
         cumulativeStats,
         onProgress,
       );
-      log(
+      logger.log(
         `[Tokative] Total comments after expansion: ${allComments.length}, stats: ${JSON.stringify(cumulativeStats)}`,
       );
     }
 
     // Report stats (always, not just when expanding replies)
-    log(`[Tokative] Reporting progress: ${JSON.stringify(cumulativeStats)}`);
+    logger.log(`[Tokative] Reporting progress: ${JSON.stringify(cumulativeStats)}`);
     try {
       onProgress?.(cumulativeStats);
-      log(`[Tokative] onProgress called successfully`);
+      logger.log(`[Tokative] onProgress called successfully`);
     } catch (err) {
-      console.error(`[Tokative] Error calling onProgress:`, err);
+      logger.error(`[Tokative] Error calling onProgress:`, err);
     }
 
     // Scroll down and wait for new content to load
@@ -1063,13 +1060,13 @@ async function scrollToLoadComments(
     lastCommentCount = scrollResult.commentCount;
 
     const addedThisIteration = allComments.length - countBefore;
-    log(
+    logger.log(
       `[Tokative] Iteration ${loopIteration} summary: added=${addedThisIteration}, hasNewContent=${scrollResult.hasNewContent}, skeletons=${scrollResult.skeletonsAppeared}, lastId=${lastCommentId}, count=${lastCommentCount}`,
     );
 
     // Stop if skeletons appeared but no new content loaded (we've reached the end)
     if (scrollResult.skeletonsAppeared && !scrollResult.hasNewContent) {
-      log(
+      logger.log(
         "[Tokative] Skeletons appeared but no new content - reached end of comments",
       );
       exitReason = "end of content (no new data after skeletons)";
@@ -1078,7 +1075,7 @@ async function scrollToLoadComments(
 
     // Also stop if no skeletons and no new content (fallback for edge cases)
     if (!scrollResult.skeletonsAppeared && !scrollResult.hasNewContent && addedThisIteration === 0) {
-      log(
+      logger.log(
         "[Tokative] No skeletons, no new content, no new comments - likely at end",
       );
       exitReason = "end of content (no activity)";
@@ -1089,19 +1086,19 @@ async function scrollToLoadComments(
     await humanDelay("micro");
   }
 
-  log(`[Tokative] ====== Scroll loop finished ======`);
-  log(`[Tokative] Total iterations: ${loopIteration}`);
-  log(
+  logger.log(`[Tokative] ====== Scroll loop finished ======`);
+  logger.log(`[Tokative] Total iterations: ${loopIteration}`);
+  logger.log(
     `[Tokative] Final DOM elements: ${querySelectorAll(VIDEO_SELECTORS.commentItem).length}`,
   );
-  log(`[Tokative] Total unique comments collected: ${allComments.length}`);
-  log(`[Tokative] Final stats: ${JSON.stringify(cumulativeStats)}`);
-  log(`[Tokative] Exit reason: ${exitReason}`);
+  logger.log(`[Tokative] Total unique comments collected: ${allComments.length}`);
+  logger.log(`[Tokative] Final stats: ${JSON.stringify(cumulativeStats)}`);
+  logger.log(`[Tokative] Exit reason: ${exitReason}`);
 
   // Final pass: expand any remaining visible threads and save
   // (Most expansion happens during scroll, this catches any stragglers)
   if (!isCancelled) {
-    log(`[Tokative] === FINAL PASS ===`);
+    logger.log(`[Tokative] === FINAL PASS ===`);
     const preCount = allComments.length;
     await expandAndSaveReplies(
       savedCommentIds,
@@ -1112,7 +1109,7 @@ async function scrollToLoadComments(
     const addedCount = allComments.length - preCount;
 
     if (addedCount > 0) {
-      log(`[Tokative] Final pass found ${addedCount} additional comments`);
+      logger.log(`[Tokative] Final pass found ${addedCount} additional comments`);
     }
 
     onProgress?.(cumulativeStats);
@@ -1120,7 +1117,7 @@ async function scrollToLoadComments(
 
   // Truncate to exact limit if we collected more than requested
   if (maxComments !== Infinity && allComments.length > maxComments) {
-    log(
+    logger.log(
       `[Tokative] Truncating from ${allComments.length} to ${maxComments} comments`,
     );
     return {
@@ -1158,46 +1155,46 @@ async function waitForCommentContent(
 }
 
 async function openCommentsPanel(): Promise<boolean> {
-  log("[Tokative] openCommentsPanel called");
+  logger.log("[Tokative] openCommentsPanel called");
   const existingComments = querySelector(VIDEO_SELECTORS.commentsContainer);
-  log("[Tokative] Existing comments panel:", !!existingComments);
+  logger.log("[Tokative] Existing comments panel:", !!existingComments);
   if (existingComments) {
     return true;
   }
 
-  log(
+  logger.log(
     "[Tokative] Looking for comment button with selectors:",
     VIDEO_SELECTORS.commentButton,
   );
   const commentButton = querySelector<HTMLElement>(
     VIDEO_SELECTORS.commentButton,
   );
-  log("[Tokative] Comment button found:", !!commentButton);
+  logger.log("[Tokative] Comment button found:", !!commentButton);
   if (!commentButton) {
-    log("[Tokative] Waiting for comment button...");
+    logger.log("[Tokative] Waiting for comment button...");
     const button = await waitForSelector(VIDEO_SELECTORS.commentButton, {
       timeout: 10000,
     });
-    log("[Tokative] Comment button after wait:", !!button);
+    logger.log("[Tokative] Comment button after wait:", !!button);
     if (!button) {
-      log("[Tokative] ERROR: Comment button not found after 10s timeout");
+      logger.log("[Tokative] ERROR: Comment button not found after 10s timeout");
       return false;
     }
-    log("[Tokative] Clicking comment button (waited)");
+    logger.log("[Tokative] Clicking comment button (waited)");
     (button as HTMLElement).click();
   } else {
-    log("[Tokative] Clicking comment button (immediate)");
+    logger.log("[Tokative] Clicking comment button (immediate)");
     commentButton.click();
   }
 
   await humanDelay("short");
 
-  log("[Tokative] Waiting for comments panel to appear...");
+  logger.log("[Tokative] Waiting for comments panel to appear...");
   const commentsPanel = await waitForSelector(
     VIDEO_SELECTORS.commentsContainer,
     { timeout: 10000 },
   );
-  log("[Tokative] Comments panel found:", !!commentsPanel);
+  logger.log("[Tokative] Comments panel found:", !!commentsPanel);
   return commentsPanel !== null;
 }
 
@@ -1288,7 +1285,7 @@ function extractVideoIdFromVideoItem(videoItem: Element): string | null {
 
 async function closeVideoModal(): Promise<void> {
   const config = getLoadedConfig();
-  log("[Tokative] Closing modal with history.back()");
+  logger.log("[Tokative] Closing modal with history.back()");
   window.history.back();
 
   // Wait for the video grid to reappear (confirms we're back on profile)
@@ -1296,9 +1293,9 @@ async function closeVideoModal(): Promise<void> {
     timeout: config.timeouts.modalClose,
   });
   if (grid) {
-    log("[Tokative] Back on profile page, video grid found");
+    logger.log("[Tokative] Back on profile page, video grid found");
   } else {
-    log("[Tokative] Warning: video grid not found after going back");
+    logger.log("[Tokative] Warning: video grid not found after going back");
   }
 
   await humanDelay("short");
@@ -1311,7 +1308,7 @@ async function clickVideoItem(videoItem: Element): Promise<boolean> {
   // Push current URL to history before clicking, so history.back() has somewhere to go
   const currentUrl = window.location.href;
   window.history.pushState({ tiktokBuddy: true }, "", currentUrl);
-  log("[Tokative] Pushed history state before clicking video");
+  logger.log("[Tokative] Pushed history state before clicking video");
 
   clickTarget.click();
   await humanDelayWithJitter("medium");
@@ -1331,11 +1328,11 @@ export async function scrapeProfileVideos(
   const allComments: ScrapedComment[] = [];
   const videoThumbnails = new Map<string, string>();
 
-  log("[Tokative] Starting profile scrape");
+  logger.log("[Tokative] Starting profile scrape");
 
   const videoGrid = querySelector(VIDEO_SELECTORS.videoGrid);
   if (!videoGrid) {
-    log("[Tokative] No video grid found");
+    logger.log("[Tokative] No video grid found");
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 0,
@@ -1349,7 +1346,7 @@ export async function scrapeProfileVideos(
   const videoItems = querySelectorAll(VIDEO_SELECTORS.videoItem);
   const videosToProcess = Math.min(videoItems.length, maxVideos);
 
-  log(
+  logger.log(
     `[Tokative] Found ${videoItems.length} videos, will process ${videosToProcess}`,
   );
 
@@ -1367,7 +1364,7 @@ export async function scrapeProfileVideos(
       const thumbnail = extractThumbnailFromVideoItem(videoItem);
       const videoId = extractVideoIdFromVideoItem(videoItem);
 
-      log(
+      logger.log(
         `[Tokative] Processing video ${i + 1}: ${videoId}, thumbnail: ${thumbnail ? "yes" : "no"}`,
       );
 
@@ -1385,11 +1382,11 @@ export async function scrapeProfileVideos(
 
       const modalOpened = await clickVideoItem(videoItem);
       if (!modalOpened) {
-        log(`[Tokative] Failed to open modal for video ${i + 1}`);
+        logger.log(`[Tokative] Failed to open modal for video ${i + 1}`);
         continue;
       }
 
-      log(`[Tokative] Modal opened for video ${i + 1}`);
+      logger.log(`[Tokative] Modal opened for video ${i + 1}`);
       await humanDelay("short");
 
       const result = await scrapeVideoComments(
@@ -1405,7 +1402,7 @@ export async function scrapeProfileVideos(
         },
       );
 
-      log(
+      logger.log(
         `[Tokative] Scraped ${result.comments.length} comments from video ${i + 1}`,
       );
 
@@ -1414,11 +1411,11 @@ export async function scrapeProfileVideos(
         allComments.push(comment);
       }
 
-      log(`[Tokative] Closing modal for video ${i + 1}`);
+      logger.log(`[Tokative] Closing modal for video ${i + 1}`);
       await closeVideoModal();
       await humanDelayWithJitter("long");
     } catch (error) {
-      console.error(`[Tokative] Error processing video ${i + 1}:`, error);
+      logger.error(`[Tokative] Error processing video ${i + 1}:`, error);
       // Try to close any open modal and continue
       try {
         await closeVideoModal();
@@ -1430,7 +1427,7 @@ export async function scrapeProfileVideos(
   }
 
   if (isCancelled) {
-    log("[Tokative] Scraping cancelled");
+    logger.log("[Tokative] Scraping cancelled");
     onProgress?.({
       videosProcessed: 0,
       totalVideos: videosToProcess,
@@ -1441,7 +1438,7 @@ export async function scrapeProfileVideos(
     return allComments;
   }
 
-  log(
+  logger.log(
     `[Tokative] Scraping complete: ${allComments.length} comments from ${videosToProcess} videos`,
   );
   onProgress?.({
@@ -1478,7 +1475,7 @@ export async function scrapeProfileVideoMetadata(
     return { videos: [], limitReached: false };
   }
 
-  log(
+  logger.log(
     "[Tokative] Starting video metadata scrape for @" +
       profileHandle +
       " (max: " +
@@ -1559,7 +1556,7 @@ export async function scrapeProfileVideoMetadata(
 
       if (allVideos.length > 0 && allVideos.length % 10 === 0) {
         const savedCount = await addVideos(allVideos);
-        log(`[Tokative] Incrementally saved ${savedCount} new videos`);
+        logger.log(`[Tokative] Incrementally saved ${savedCount} new videos`);
       }
     }
 
@@ -1576,7 +1573,7 @@ export async function scrapeProfileVideoMetadata(
     return { videos: allVideos, limitReached: false };
   } else {
     const savedCount = await addVideos(allVideos);
-    log(`[Tokative] Final save: ${savedCount} new videos`);
+    logger.log(`[Tokative] Final save: ${savedCount} new videos`);
 
     const limitReached = allVideos.length >= maxVideos;
     onProgress?.({
@@ -1598,7 +1595,7 @@ export async function scrapeVideoComments(
   maxComments: number = Infinity,
   onProgress?: (progress: VideoScrapeProgress) => void,
 ): Promise<ScrapeCommentsResult> {
-  log(
+  logger.log(
     "[Tokative] scrapeVideoComments called, maxComments:",
     maxComments,
     "onProgress defined:",
@@ -1617,11 +1614,11 @@ export async function scrapeVideoComments(
     message: "Opening comments panel...",
   });
 
-  log("[Tokative] Opening comments panel...");
+  logger.log("[Tokative] Opening comments panel...");
   const panelOpened = await openCommentsPanel();
-  log("[Tokative] Panel opened:", panelOpened);
+  logger.log("[Tokative] Panel opened:", panelOpened);
   if (!panelOpened) {
-    log("[Tokative] ERROR: Could not open comments panel");
+    logger.log("[Tokative] ERROR: Could not open comments panel");
     const emptyStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
     onProgress?.({
       videosProcessed: 0,
@@ -1642,15 +1639,15 @@ export async function scrapeVideoComments(
     message: "Loading comments...",
   });
 
-  log("[Tokative] Waiting for comment items...");
+  logger.log("[Tokative] Waiting for comment items...");
   await waitForSelector(VIDEO_SELECTORS.commentItem, { timeout: 10000 });
-  log("[Tokative] Comment items selector found");
+  logger.log("[Tokative] Comment items selector found");
 
-  log("[Tokative] Waiting for comment content...");
+  logger.log("[Tokative] Waiting for comment content...");
   const contentLoaded = await waitForCommentContent({ timeout: 10000 });
-  log("[Tokative] Comment content loaded:", contentLoaded);
+  logger.log("[Tokative] Comment content loaded:", contentLoaded);
   if (!contentLoaded) {
-    log("[Tokative] ERROR: Comments failed to load");
+    logger.log("[Tokative] ERROR: Comments failed to load");
     const emptyStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
     onProgress?.({
       videosProcessed: 0,
@@ -1663,10 +1660,10 @@ export async function scrapeVideoComments(
     return { comments: [], stats: emptyStats };
   }
 
-  log("[Tokative] Starting scroll loop...");
+  logger.log("[Tokative] Starting scroll loop...");
   // scrollToLoadComments now handles extraction and saving incrementally
   const result = await scrollToLoadComments(maxComments, (stats) => {
-    log(
+    logger.log(
       "[Tokative] scrollToLoadComments callback invoked with stats:",
       JSON.stringify(stats),
     );
@@ -1678,10 +1675,10 @@ export async function scrapeVideoComments(
       message: `Found ${stats.found}, new ${stats.new}`,
       stats,
     };
-    log("[Tokative] Calling onProgress with:", JSON.stringify(progress));
+    logger.log("[Tokative] Calling onProgress with:", JSON.stringify(progress));
     onProgress?.(progress);
   });
-  log(
+  logger.log(
     "[Tokative] Scroll loop completed, comments:",
     result.comments.length,
     "stats:",

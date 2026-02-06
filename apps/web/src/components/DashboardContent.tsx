@@ -549,7 +549,7 @@ export function DashboardContent() {
   }, [clearError]);
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-content bg-surface">
       <main className="max-w-7xl mx-auto px-4 py-6">
         {scrapingState?.isPaused && (
           <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">

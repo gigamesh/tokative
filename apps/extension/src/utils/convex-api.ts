@@ -62,7 +62,6 @@ export async function requestAuthTokenFromWebApp(
       return new Promise<string | null>((resolve) => {
         const timeoutId = setTimeout(() => {
           chrome.runtime.onMessage.removeListener(listener);
-          console.log("[ConvexAPI] Token request timed out");
           resolve(null);
         }, timeoutMs);
 

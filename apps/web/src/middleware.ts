@@ -7,6 +7,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks(.*)",
   "/not-authorized",
   "/onboarding",
+  "/privacy",
+  "/terms",
 ]);
 
 function proxyClerkRequests(req: NextRequest) {

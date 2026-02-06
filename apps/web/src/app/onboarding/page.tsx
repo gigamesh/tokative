@@ -195,7 +195,7 @@ export default function OnboardingPage() {
   const showBrowserWarning = browserCheck && (!browserCheck.isChrome || !browserCheck.isDesktop);
 
   return (
-    <div className="min-h-screen bg-surface text-balance">
+    <div className="min-h-content bg-surface text-balance">
       <div className="max-w-2xl mx-auto px-4 py-6">
         {showBrowserWarning && (
           <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">

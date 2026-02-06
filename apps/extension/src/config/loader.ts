@@ -1,6 +1,7 @@
 import type { ExtensionConfig } from "./types";
 import { isVersionCompatible } from "./types";
 import { DEFAULT_CONFIG } from "./defaults";
+import { logger } from "../utils/logger";
 
 const CONFIG_URL = "https://gigamesh.github.io/tokative/config.json";
 const CACHE_KEY = "tokative_remote_config";
@@ -34,7 +35,7 @@ async function getCachedConfig(): Promise<CachedConfig | null> {
       }
     }
   } catch (error) {
-    console.warn("[Config] Failed to read cache:", error);
+    logger.warn("[Config] Failed to read cache:", error);
   }
   return null;
 }
@@ -47,7 +48,7 @@ async function setCachedConfig(config: ExtensionConfig): Promise<void> {
     };
     await chrome.storage.local.set({ [CACHE_KEY]: cached });
   } catch (error) {
-    console.warn("[Config] Failed to write cache:", error);
+    logger.warn("[Config] Failed to write cache:", error);
   }
 }
 
@@ -98,20 +99,20 @@ async function fetchExtensionConfig(): Promise<ExtensionConfig | null> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.warn(`[Config] Fetch failed with status ${response.status}`);
+      logger.warn(`[Config] Fetch failed with status ${response.status}`);
       return null;
     }
 
     const data = await response.json();
 
     if (!validateConfig(data)) {
-      console.warn("[Config] Invalid config schema");
+      logger.warn("[Config] Invalid config schema");
       return null;
     }
 
     const extensionVersion = getExtensionVersion();
     if (!isVersionCompatible(data.version, data.minExtensionVersion, extensionVersion)) {
-      console.warn(
+      logger.warn(
         `[Config] Version incompatible: config requires extension >= ${data.minExtensionVersion}, ` +
         `current is ${extensionVersion}`
       );
@@ -122,9 +123,9 @@ async function fetchExtensionConfig(): Promise<ExtensionConfig | null> {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {
-      console.warn("[Config] Fetch timed out");
+      logger.warn("[Config] Fetch timed out");
     } else {
-      console.warn("[Config] Fetch error:", error);
+      logger.warn("[Config] Fetch error:", error);
     }
     return null;
   }
@@ -137,20 +138,20 @@ export async function loadConfig(): Promise<ExtensionConfig> {
 
   const cached = await getCachedConfig();
   if (cached) {
-    console.log("[Config] Using cached config, version:", cached.config.version);
+    logger.log("[Config] Using cached config, version:", cached.config.version);
     memoryCache = cached.config;
     return cached.config;
   }
 
   const remote = await fetchExtensionConfig();
   if (remote) {
-    console.log("[Config] Fetched remote config, version:", remote.version);
+    logger.log("[Config] Fetched remote config, version:", remote.version);
     await setCachedConfig(remote);
     memoryCache = remote;
     return remote;
   }
 
-  console.log("[Config] Using default config, version:", DEFAULT_CONFIG.version);
+  logger.log("[Config] Using default config, version:", DEFAULT_CONFIG.version);
   memoryCache = DEFAULT_CONFIG;
   return DEFAULT_CONFIG;
 }

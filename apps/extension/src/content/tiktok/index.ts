@@ -3,6 +3,7 @@ import { guardExtensionContext } from "../../utils/dom";
 import { replyToComment } from "./comment-replier";
 import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape } from "./video-scraper";
 import { loadConfig } from "../../config/loader";
+import { logger } from "../../utils/logger";
 
 let port: chrome.runtime.Port | null = null;
 
@@ -15,18 +16,18 @@ function injectMainWorldScript(): void {
 
 async function init(): Promise<void> {
   if (!guardExtensionContext()) {
-    console.warn("[TikTok] Extension context invalid");
+    logger.warn("[TikTok] Extension context invalid");
     return;
   }
 
-  console.log("[TikTok] Content script initialized");
+  logger.log("[TikTok] Content script initialized");
 
   // Load config early so it's available for all operations
   try {
     const config = await loadConfig();
-    console.log("[TikTok] Config loaded, version:", config.version);
+    logger.log("[TikTok] Config loaded, version:", config.version);
   } catch (error) {
-    console.warn("[TikTok] Failed to load config, using defaults:", error);
+    logger.warn("[TikTok] Failed to load config, using defaults:", error);
   }
 
   // Inject main world script early so it's ready for React props extraction
@@ -41,7 +42,7 @@ async function init(): Promise<void> {
   });
 
   port.onDisconnect.addListener(() => {
-    console.log("[TikTok] Port disconnected");
+    logger.log("[TikTok] Port disconnected");
     port = null;
     cancelVideoScrape();
   });
@@ -52,8 +53,6 @@ function handleMessage(
   sender: chrome.runtime.MessageSender,
   sendResponse: (response?: unknown) => void
 ): boolean {
-  console.log("[TikTok] Message received:", message.type);
-
   switch (message.type) {
     case MessageType.REPLY_COMMENT: {
       const { comment, message: replyMsg } = message.payload as {
@@ -87,19 +86,15 @@ function handleMessage(
     }
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
-      console.log("[TikTok] SCRAPE_VIDEO_COMMENTS_START received, payload:", message.payload);
       const { maxComments } = (message.payload as { maxComments?: number }) || {};
-      console.log("[TikTok] Starting scrapeVideoComments with maxComments:", maxComments);
 
       scrapeVideoComments(maxComments, (progress) => {
-        console.log("[TikTok] Progress update:", progress);
         chrome.runtime.sendMessage({
           type: MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
           payload: progress,
         });
       })
         .then((result) => {
-          console.log("[TikTok] Scraping complete, comments:", result.comments.length, "stats:", result.stats);
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
             payload: { comments: result.comments, stats: result.stats },
@@ -107,7 +102,7 @@ function handleMessage(
           sendResponse({ success: true, comments: result.comments, stats: result.stats });
         })
         .catch((error) => {
-          console.error("[TikTok] Scraping error:", error);
+          logger.error("[TikTok] Scraping error:", error);
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
             payload: {
@@ -178,30 +173,24 @@ function handleMessage(
 }
 
 function handlePortMessage(message: ExtensionMessage): void {
-  console.log("[TikTok] Port message:", message.type);
-
   switch (message.type) {
     case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
-      console.log("[TikTok] Port: SCRAPE_VIDEO_COMMENTS_START received, payload:", message.payload);
       if (port) {
         const { maxComments } = (message.payload as { maxComments?: number }) || {};
-        console.log("[TikTok] Port: Starting scrapeVideoComments with maxComments:", maxComments);
         scrapeVideoComments(maxComments, (progress) => {
-          console.log("[TikTok] Port: Progress update:", progress);
           port?.postMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
             payload: progress,
           });
         })
           .then((result) => {
-            console.log("[TikTok] Port: Scraping complete, comments:", result.comments.length, "stats:", result.stats);
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
               payload: { comments: result.comments, stats: result.stats },
             });
           })
           .catch((error) => {
-            console.error("[TikTok] Port: Scraping error:", error);
+            logger.error("[TikTok] Port: Scraping error:", error);
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
               payload: {
@@ -209,8 +198,6 @@ function handlePortMessage(message: ExtensionMessage): void {
               },
             });
           });
-      } else {
-        console.log("[TikTok] Port: No port available for SCRAPE_VIDEO_COMMENTS_START");
       }
       break;
     }
@@ -253,7 +240,7 @@ function handlePortMessage(message: ExtensionMessage): void {
     }
 
     default:
-      console.log("[TikTok] Unknown port message:", message.type);
+      break;
   }
 }
 

@@ -8,6 +8,7 @@ import {
 import { colors } from "@tokative/shared";
 import { setAuthToken } from "../utils/convex-api";
 import { loadConfig, refreshConfig, getLoadedConfig } from "../config/loader";
+import { logger } from "../utils/logger";
 
 declare const DASHBOARD_URL_PLACEHOLDER: string;
 const DASHBOARD_URL = DASHBOARD_URL_PLACEHOLDER;
@@ -142,7 +143,7 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   }
 
   if (activeScrapingTabId && tabId === activeScrapingTabId) {
-    console.log("[Background] Scraping tab was closed by user");
+    logger.log("[Background] Scraping tab was closed by user");
     const wasBatchScraping = isBatchScraping;
     await cleanupScrapingSession();
 
@@ -165,11 +166,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     const state = await getScrapingState();
     if (state.isActive && state.tabId) {
       scrapingTabId = state.tabId;
-      activeScrapingTabId = scrapingTabId; // Restore runtime variable
-      console.log(
-        "[Background] Restored activeScrapingTabId from storage:",
-        scrapingTabId,
-      );
+      activeScrapingTabId = scrapingTabId;
     }
   }
 
@@ -180,7 +177,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     await chrome.tabs.get(scrapingTabId);
   } catch {
     // Tab no longer exists - clear stale state
-    console.log("[Background] Scraping tab no longer exists, clearing stale state");
+    logger.log("[Background] Scraping tab no longer exists, clearing stale state");
     activeScrapingTabId = null;
     await clearScrapingState();
     return;
@@ -188,7 +185,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
   if (activeInfo.tabId !== scrapingTabId) {
     // Pause scraping when leaving the TikTok tab (for both single and batch scraping)
-    console.log("[Background] Scraping tab lost focus, pausing");
     chrome.tabs.sendMessage(scrapingTabId, { type: MessageType.SCRAPE_PAUSE });
     await updateAndBroadcastScrapingState({
       isPaused: true,
@@ -196,7 +192,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       message: "Paused - TikTok tab must be active",
     });
   } else {
-    console.log("[Background] Scraping tab regained focus, resuming");
     chrome.tabs.sendMessage(scrapingTabId, { type: MessageType.SCRAPE_RESUME });
     await updateAndBroadcastScrapingState({
       isPaused: false,
@@ -236,7 +231,6 @@ chrome.runtime.onMessage.addListener(
 );
 
 chrome.runtime.onConnect.addListener((port) => {
-  console.log("[Background] Port connected:", port.name);
   activePorts.set(port.name, port);
 
   port.onMessage.addListener((message: ExtensionMessage) => {
@@ -244,7 +238,6 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 
   port.onDisconnect.addListener(() => {
-    console.log("[Background] Port disconnected:", port.name);
     activePorts.delete(port.name);
   });
 });
@@ -253,8 +246,6 @@ async function handleMessage(
   message: ExtensionMessage,
   sender: chrome.runtime.MessageSender,
 ): Promise<unknown> {
-  console.log("[Background] Message received:", message.type);
-
   // Handle simple message forwarding to dashboard
   if (FORWARD_TO_DASHBOARD_MESSAGES.has(message.type)) {
     broadcastToDashboard(message);
@@ -394,7 +385,6 @@ async function handleMessage(
     }
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE: {
-      console.log(`[DIAG] handleMessage: SCRAPE_VIDEO_COMMENTS_COMPLETE received`);
       const { comments } = message.payload as { comments: ScrapedComment[] };
       // Capture batch state BEFORE async ops - the responseHandler in scrapeVideoComments
       // resolves synchronously, which can set isBatchScraping=false before we finish here
@@ -415,7 +405,7 @@ async function handleMessage(
 
     // Handle cancel from popup/dashboard via regular messaging
     case MessageType.SCRAPE_VIDEO_COMMENTS_STOP: {
-      console.log(
+      logger.log(
         "[Background] Received SCRAPE_VIDEO_COMMENTS_STOP via sendMessage, cancelling batch",
       );
       batchCancelled = true;
@@ -448,7 +438,7 @@ async function handleMessage(
       const { token } = message.payload as { token: string | null };
       if (token) {
         await setAuthToken(token);
-        console.log("[Background] Auth token stored from web app");
+        logger.log("[Background] Auth token stored from web app");
         // Notify popup about the new token
         broadcastToPopup(message);
       }
@@ -512,7 +502,6 @@ async function handleMessage(
     }
 
     default:
-      console.log("[Background] Unknown message type:", message.type);
       return null;
   }
 }
@@ -521,8 +510,6 @@ async function handlePortMessage(
   message: ExtensionMessage,
   port: chrome.runtime.Port,
 ): Promise<void> {
-  console.log("[Background] Port message:", message.type);
-
   switch (message.type) {
     case MessageType.REPLY_COMMENT: {
       const { comment, message: replyContent } = message.payload as {
@@ -548,7 +535,7 @@ async function handlePortMessage(
     }
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_STOP: {
-      console.log(
+      logger.log(
         "[Background] Received SCRAPE_VIDEO_COMMENTS_STOP, cancelling",
       );
       batchCancelled = true;
@@ -651,7 +638,7 @@ async function handlePortMessage(
     }
 
     default:
-      console.log("[Background] Unknown port message:", message.type);
+      break;
   }
 }
 
@@ -699,7 +686,7 @@ async function forwardToContentScript(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.log(
+      logger.log(
         `[Background] Content script not ready, attempt ${attempt + 1}/${maxRetries}`,
       );
 
@@ -1040,18 +1027,12 @@ async function handleGetVideoComments(
     const commentLimit = await getCommentLimit();
 
     const responseHandler = async (msg: ExtensionMessage) => {
-      console.log(
-        "[Background] Response handler received:",
-        msg.type,
-        msg.payload,
-      );
       if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
         const payload = msg.payload as {
           commentsFound?: number;
           message?: string;
         };
         const count = payload.commentsFound || 0;
-        console.log("[Background] Progress update, commentsFound:", count);
         await updateAndBroadcastScrapingState({
           commentsFound: count,
           message: payload.message || "Scraping...",
@@ -1063,17 +1044,9 @@ async function handleGetVideoComments(
           payload: { videoId, ...progressPayload },
         });
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-        console.log(`[DIAG] responseHandler: SCRAPE_VIDEO_COMMENTS_COMPLETE received`);
-        console.log("[Background] Scrape complete, payload:", msg.payload);
         const { comments: scrapedComments } = msg.payload as {
           comments: ScrapedComment[];
         };
-        console.log(
-          "[Background] Comments received:",
-          scrapedComments?.length || 0,
-          "comments array:",
-          !!scrapedComments,
-        );
         // NOTE: Content script already saves incrementally during scraping, so we don't
         // call addScrapedComments here to avoid duplicate storage attempts
         updateVideo(videoId, { commentsScraped: true });
@@ -1083,12 +1056,10 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScrapingSession();
-        // DIAG: Tab auto-close disabled for log inspection
-        // closingTabsIntentionally.add(tab.id!);
-        // chrome.tabs.remove(tab.id!);
+        closingTabsIntentionally.add(tab.id!);
+        chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
-        console.log("[Background] Scrape error:", msg.payload);
         const errorPayload = (msg.payload || {}) as Record<string, unknown>;
         port.postMessage({
           type: MessageType.GET_VIDEO_COMMENTS_ERROR,
@@ -1096,9 +1067,8 @@ async function handleGetVideoComments(
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScrapingSession();
-        // DIAG: Tab auto-close disabled for log inspection
-        // closingTabsIntentionally.add(tab.id!);
-        // chrome.tabs.remove(tab.id!);
+        closingTabsIntentionally.add(tab.id!);
+        chrome.tabs.remove(tab.id!);
         await focusDashboardTab();
       }
     };
@@ -1149,7 +1119,7 @@ async function handleGetBatchComments(
 
   // Get the total comment limit for the entire batch
   const totalCommentLimit = await getCommentLimit();
-  console.log(
+  logger.log(
     `[Background] Starting batch scrape: ${videosToProcess.length} videos, limit: ${totalCommentLimit} comments total`,
   );
 
@@ -1177,7 +1147,7 @@ async function handleGetBatchComments(
     for (let i = 0; i < videosToProcess.length; i++) {
       // Check if batch was cancelled
       if (batchCancelled) {
-        console.log("[Background] Batch cancelled, stopping loop");
+        logger.log("[Background] Batch cancelled, stopping loop");
         break;
       }
 
@@ -1186,7 +1156,7 @@ async function handleGetBatchComments(
       // Calculate remaining comment budget for this video
       const remainingBudget = totalCommentLimit - totalComments;
       if (remainingBudget <= 0) {
-        console.log(
+        logger.log(
           `[Background] Comment limit reached (${totalComments}/${totalCommentLimit}), stopping batch`,
         );
         break;
@@ -1225,9 +1195,6 @@ async function handleGetBatchComments(
       await waitForTabLoad(tab!.id!);
 
       const videoIndex = i + 1;
-      console.log(
-        `[Background] Scraping video ${videoIndex}, remaining budget: ${remainingBudget}`,
-      );
       const result = await scrapeVideoComments(
         tab!.id!,
         video.videoId,
@@ -1251,14 +1218,8 @@ async function handleGetBatchComments(
         `Completed video ${i + 1} of ${videosToProcess.length}`,
       );
 
-      // Check again after scraping in case it was cancelled during scrape
-      console.log(
-        `[Background] After video ${i + 1}: batchCancelled=${batchCancelled}, totalComments=${totalComments}`,
-      );
       if (batchCancelled) {
-        console.log(
-          "[Background] Batch cancelled after video scrape, breaking loop",
-        );
+        logger.log("[Background] Batch cancelled after video scrape, breaking loop");
         break;
       }
     }
@@ -1289,11 +1250,10 @@ async function handleGetBatchComments(
       });
     }
 
-    // DIAG: Tab auto-close disabled for log inspection
-    // if (tab?.id) {
-    //   closingTabsIntentionally.add(tab.id);
-    //   chrome.tabs.remove(tab.id);
-    // }
+    if (tab?.id) {
+      closingTabsIntentionally.add(tab.id);
+      chrome.tabs.remove(tab.id);
+    }
     await focusDashboardTab();
   } catch (error) {
     batchCancelled = false;
@@ -1308,11 +1268,10 @@ async function handleGetBatchComments(
       },
     });
 
-    // DIAG: Tab auto-close disabled for log inspection
-    // if (tab?.id) {
-    //   closingTabsIntentionally.add(tab.id);
-    //   chrome.tabs.remove(tab.id).catch(() => {});
-    // }
+    if (tab?.id) {
+      closingTabsIntentionally.add(tab.id);
+      chrome.tabs.remove(tab.id).catch(() => {});
+    }
     await focusDashboardTab();
   }
 }
@@ -1328,17 +1287,8 @@ async function scrapeVideoComments(
   commentLimit: number,
   onProgress: (videoId: string, message: string) => void,
 ): Promise<VideoScrapeResult> {
-  console.log(
-    "[Background] scrapeVideoComments called for tabId:",
-    tabId,
-    "videoId:",
-    videoId,
-    "limit:",
-    commentLimit,
-  );
   return new Promise((resolve, reject) => {
     const responseHandler = (msg: ExtensionMessage) => {
-      console.log("[Background] Batch scrape handler received:", msg.type);
       if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
         const payload = msg.payload as {
           commentsFound?: number;
@@ -1358,19 +1308,12 @@ async function scrapeVideoComments(
             ignored: number;
           };
         };
-        console.log(
-          "[Background] Batch scrape complete, comments:",
-          comments?.length || 0,
-          "stats:",
-          stats,
-        );
         chrome.runtime.onMessage.removeListener(responseHandler);
         resolve({
           commentCount: comments?.length || 0,
           stats: stats || { found: 0, new: 0, preexisting: 0, ignored: 0 },
         });
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
-        console.log("[Background] Batch scrape error:", msg.payload);
         chrome.runtime.onMessage.removeListener(responseHandler);
         reject(
           new Error(
@@ -1382,10 +1325,6 @@ async function scrapeVideoComments(
 
     chrome.runtime.onMessage.addListener(responseHandler);
 
-    console.log(
-      "[Background] Sending SCRAPE_VIDEO_COMMENTS_START to tab:",
-      tabId,
-    );
     chrome.tabs.sendMessage(tabId, {
       type: MessageType.SCRAPE_VIDEO_COMMENTS_START,
       payload: { maxComments: commentLimit },
@@ -1443,7 +1382,7 @@ chrome.webRequest.onCompleted.addListener(
 
     if (is429 || is5xx) {
       const errorMsg = `TikTok API error ${details.statusCode} on ${new URL(details.url).pathname}`;
-      console.log(`[Background] Rate limit detected: ${errorMsg}`);
+      logger.log(`[Background] Rate limit detected: ${errorMsg}`);
 
       // For 429 errors during active scraping, pause and set resume time
       const shouldPause = is429 && activeScrapingTabId !== null;
@@ -1467,7 +1406,7 @@ chrome.webRequest.onCompleted.addListener(
 
       // For 429 errors, pause scraping and auto-resume after 60 seconds
       if (shouldPause) {
-        console.log(`[Background] 429 detected - pausing scraping for 60 seconds`);
+        logger.log(`[Background] 429 detected - pausing scraping for 60 seconds`);
         chrome.tabs.sendMessage(activeScrapingTabId!, { type: MessageType.SCRAPE_PAUSE });
 
         // Clear any existing resume timeout
@@ -1477,7 +1416,7 @@ chrome.webRequest.onCompleted.addListener(
 
         // Auto-resume after 60 seconds
         rateLimitResumeTimeout = setTimeout(async () => {
-          console.log(`[Background] 60 seconds elapsed - resuming scraping`);
+          logger.log(`[Background] 60 seconds elapsed - resuming scraping`);
           if (activeScrapingTabId) {
             chrome.tabs.sendMessage(activeScrapingTabId, { type: MessageType.SCRAPE_RESUME });
           }
@@ -1515,7 +1454,7 @@ getScrapingState().then((state) => {
   if (state.isActive && state.tabId) {
     activeScrapingTabId = state.tabId;
     isBatchScraping = false; // Conservative - assume single video scrape
-    console.log(
+    logger.log(
       "[Background] Restored scraping state on startup, tabId:",
       state.tabId,
     );
@@ -1532,7 +1471,7 @@ async function injectContentScripts(): Promise<void> {
           target: { tabId: tab.id },
           files: ["content/dashboard-bridge.js"],
         }).catch((err) => {
-          console.log("[Background] Could not inject into tab:", tab.id, err.message);
+          logger.log("[Background] Could not inject into tab:", tab.id, err.message);
         });
       }
     }
@@ -1544,22 +1483,22 @@ async function injectContentScripts(): Promise<void> {
           target: { tabId: tab.id },
           files: ["content/tiktok.js"],
         }).catch((err) => {
-          console.log("[Background] Could not inject into tab:", tab.id, err.message);
+          logger.log("[Background] Could not inject into tab:", tab.id, err.message);
         });
       }
     }
   } catch (error) {
-    console.warn("[Background] Failed to inject content scripts:", error);
+    logger.warn("[Background] Failed to inject content scripts:", error);
   }
 }
 
 // Load config on service worker startup
 loadConfig()
   .then((config) => {
-    console.log("[Background] Config loaded, version:", config.version);
+    logger.log("[Background] Config loaded, version:", config.version);
   })
   .catch((error) => {
-    console.warn("[Background] Failed to load config:", error);
+    logger.warn("[Background] Failed to load config:", error);
   });
 
 // Inject content scripts on every service worker startup (handles re-enable)
@@ -1567,10 +1506,10 @@ injectContentScripts();
 
 // Refresh config on extension install/update
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log("[Background] Extension installed/updated, refreshing config");
+  logger.log("[Background] Extension installed/updated, refreshing config");
   refreshConfig().catch((error) => {
-    console.warn("[Background] Failed to refresh config on install:", error);
+    logger.warn("[Background] Failed to refresh config on install:", error);
   });
 });
 
-console.log("[Background] Tokative service worker initialized");
+logger.log("[Background] Tokative service worker initialized");

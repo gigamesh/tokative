@@ -1,4 +1,5 @@
 import { AuthBridge } from "@/components/AuthBridge";
+import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { ConvexClientProvider } from "@/providers/ConvexProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
@@ -78,6 +79,7 @@ export default function RootLayout({
             <AuthBridge />
             <Header />
             {children}
+            <Footer />
           </ConvexClientProvider>
         </ThemeProvider>
         <Analytics />

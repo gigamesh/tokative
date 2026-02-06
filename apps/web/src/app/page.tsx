@@ -17,7 +17,7 @@ const softwareAppSchema = {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-surface overflow-hidden">
+    <div className="min-h-content bg-surface overflow-hidden">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
