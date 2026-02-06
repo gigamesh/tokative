@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 
 const MIGRATION = process.argv[2] || "replySent";
 const BATCH_SIZE = 100;
+const PROD_FLAG = process.argv.includes("--prod") ? " --prod" : "";
 
 function parseJsonFromOutput(output) {
   const lines = output.trim().split('\n');
@@ -43,7 +44,7 @@ function migrateReplySent() {
     if (cursor) args.cursor = cursor;
 
     const argsJson = JSON.stringify(args);
-    const cmd = `npx convex run comments:migrateReplySentToRepliedTo '${argsJson}'`;
+    const cmd = `npx convex run comments:migrateReplySentToRepliedTo '${argsJson}'${PROD_FLAG}`;
 
     try {
       const output = execSync(cmd, { encoding: 'utf-8' });
@@ -86,7 +87,7 @@ function migrateBackfillCommenters() {
   while (true) {
     batchNum++;
     const argsJson = JSON.stringify({ clerkId, batchSize: 5, skip });
-    const cmd = `npx convex run commenters:backfillBatch '${argsJson}'`;
+    const cmd = `npx convex run commenters:backfillBatch '${argsJson}'${PROD_FLAG}`;
 
     try {
       const output = execSync(cmd, { encoding: 'utf-8' });
