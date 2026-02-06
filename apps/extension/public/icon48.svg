@@ -6,5 +6,5 @@
     </linearGradient>
   </defs>
   <rect width="48" height="48" rx="10" fill="url(#iconGradient)"/>
-  <text x="24" y="38" font-family="system-ui, -apple-system, sans-serif" font-size="38" font-weight="bold" fill="white" text-anchor="middle">T</text>
+  <path d="M9,8 H39 V15 H28 V40 H20 V15 H9 Z" fill="white"/>
 </svg>

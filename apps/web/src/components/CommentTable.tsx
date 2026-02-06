@@ -146,8 +146,8 @@ export function CommentTable({
 
     const matchesFilterStatus = (comment: ScrapedComment) =>
       filter === "all" ||
-      (filter === "replied" && comment.replySent) ||
-      (filter === "not_replied" && !comment.replySent && !comment.replyError) ||
+      (filter === "replied" && comment.repliedTo) ||
+      (filter === "not_replied" && !comment.repliedTo && !comment.replyError) ||
       (filter === "failed" && comment.replyError);
 
     // Filter and sort only top-level comments based on criteria

@@ -89,7 +89,7 @@ export function DashboardContent() {
   const handleReplyComplete = useCallback(
     (commentId: string) => {
       updateComment(commentId, {
-        replySent: true,
+        repliedTo: true,
         repliedAt: new Date().toISOString(),
       });
       setSelectedComment(null);

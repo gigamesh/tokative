@@ -861,7 +861,7 @@ async function handleBulkReply(
   const settings = await getSettings();
 
   const targetComments = comments.filter(
-    (c) => commentIds.includes(c.id) && !c.replySent && c.videoUrl,
+    (c) => commentIds.includes(c.id) && !c.repliedTo && c.videoUrl,
   );
 
   // Group comments by videoId for tab reuse
@@ -912,7 +912,7 @@ async function handleBulkReply(
       if (result.success) {
         progress.completed++;
         await updateScrapedComment(comment.id, {
-          replySent: true,
+          repliedTo: true,
           repliedAt: new Date().toISOString(),
         });
         // Store tabId for reuse on next comment in same video

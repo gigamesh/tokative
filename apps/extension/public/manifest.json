@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tokative",
   "version": "1.0.0",
-  "description": "Collect and manage TikTok comments and engage with your audience",
+  "description": "Collect TikTok comments and engage with your audience at scale",
   "permissions": ["storage", "tabs", "scripting", "webRequest"],
   "host_permissions": [
     "https://www.tiktok.com/*",

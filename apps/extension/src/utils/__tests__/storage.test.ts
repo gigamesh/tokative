@@ -152,10 +152,10 @@ describe("Comment Storage (Convex-backed)", () => {
     it("updates comment in Convex", async () => {
       mockedConvexApi.updateComment.mockResolvedValue(undefined);
 
-      await updateScrapedComment("comment-1", { replySent: true, repliedAt: "2024-01-01" });
+      await updateScrapedComment("comment-1", { repliedTo: true, repliedAt: "2024-01-01" });
 
       expect(mockedConvexApi.updateComment).toHaveBeenCalledWith("comment-1", {
-        replySent: true,
+        repliedTo: true,
         repliedAt: expect.any(Number),
       });
     });

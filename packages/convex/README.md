@@ -75,7 +75,7 @@ comments: {
   videoId?: string,
 
   // Reply tracking
-  replySent?: boolean,
+  repliedTo?: boolean,
   repliedAt?: number,
   replyContent?: string,
   replyError?: string,

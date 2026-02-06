@@ -108,7 +108,7 @@ export const listPaginated = query({
             profileUrl: profile.profileUrl,
             avatarUrl: profile.avatarUrl,
             videoUrl: c.videoUrl,
-            replySent: c.replySent,
+            repliedTo: c.repliedTo,
             repliedAt: c.repliedAt
               ? new Date(c.repliedAt).toISOString()
               : undefined,
@@ -178,7 +178,7 @@ export const list = query({
           profileUrl: string;
           avatarUrl?: string;
           videoUrl?: string;
-          replySent?: boolean;
+          repliedTo?: boolean;
           repliedAt?: string;
           replyError?: string;
           replyContent?: string;
@@ -207,7 +207,7 @@ export const list = query({
         profileUrl: profile.profileUrl ?? "",
         avatarUrl: profile.avatarUrl,
         videoUrl: c.videoUrl,
-        replySent: c.replySent,
+        repliedTo: c.repliedTo,
         repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
         replyError: c.replyError,
         replyContent: c.replyContent,

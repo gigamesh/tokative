@@ -1,0 +1,20 @@
+<svg width="1400" height="560" viewBox="0 0 1400 560" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00d8d5"/>
+      <stop offset="100%" style="stop-color:#fe2c55"/>
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="75"/>
+    </filter>
+  </defs>
+
+  <rect width="1400" height="560" fill="#f5f5f5"/>
+
+  <ellipse cx="280" cy="170" rx="200" ry="160" fill="#00d8d5" opacity="0.12" filter="url(#blur)"/>
+  <ellipse cx="1120" cy="390" rx="200" ry="160" fill="#fe2c55" opacity="0.16" filter="url(#blur)"/>
+
+  <text x="700" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="175" font-weight="bold" fill="url(#brandGradient)" text-anchor="middle">Tokative</text>
+
+  <text x="700" y="385" font-family="system-ui, -apple-system, sans-serif" font-size="42" fill="#737373" text-anchor="middle">Manage TikTok engagement at scale</text>
+</svg>

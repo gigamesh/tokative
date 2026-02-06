@@ -174,14 +174,14 @@ describe("comments", () => {
         clerkId,
         commentId: "update-test",
         updates: {
-          replySent: true,
+          repliedTo: true,
           repliedAt: Date.now(),
           replyContent: "Thanks!",
         },
       });
 
       const comments = await t.query(api.comments.list, { clerkId });
-      expect(comments[0].replySent).toBe(true);
+      expect(comments[0].repliedTo).toBe(true);
       expect(comments[0].replyContent).toBe("Thanks!");
     });
   });

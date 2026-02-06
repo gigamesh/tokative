@@ -315,14 +315,14 @@ describe("Background Message Handler", () => {
       const result = await handleMessage(
         {
           type: MessageType.UPDATE_SCRAPED_COMMENT,
-          payload: { commentId: "1", updates: { replySent: true, repliedAt: "2024-01-01" } },
+          payload: { commentId: "1", updates: { repliedTo: true, repliedAt: "2024-01-01" } },
         },
         mockSender
       );
 
       expect(result).toEqual({ success: true });
       expect(mockedConvexApi.updateComment).toHaveBeenCalledWith("1", {
-        replySent: true,
+        repliedTo: true,
         repliedAt: expect.any(Number),
       });
     });

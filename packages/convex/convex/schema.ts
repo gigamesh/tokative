@@ -30,7 +30,9 @@ export default defineSchema({
     comment: v.string(),
     scrapedAt: v.number(),
     videoUrl: v.optional(v.string()),
-    replySent: v.optional(v.boolean()),
+    // Denormalized: whether our app has replied to this comment.
+    // Canonical data lives on the reply's own row (parentCommentId + source: "app").
+    repliedTo: v.optional(v.boolean()),
     repliedAt: v.optional(v.number()),
     replyError: v.optional(v.string()),
     replyContent: v.optional(v.string()),

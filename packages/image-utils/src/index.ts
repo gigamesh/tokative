@@ -8,6 +8,7 @@ export interface ConvertOptions {
   background?: { r: number; g: number; b: number; alpha: number };
 }
 
+/** Converts an SVG file to PNG, rasterizing at the exact target density to avoid resize blur. */
 export async function svgToPng(
   inputPath: string,
   outputPath: string,
@@ -15,16 +16,15 @@ export async function svgToPng(
 ): Promise<void> {
   const svgBuffer = await fs.readFile(inputPath);
 
-  let pipeline = sharp(svgBuffer, { density: 300 });
+  const metadata = await sharp(svgBuffer).metadata();
+  const svgWidth = metadata.width || 128;
 
-  if (options.width || options.height) {
-    pipeline = pipeline.resize(options.width, options.height, {
-      fit: "contain",
-      background: options.background || { r: 0, g: 0, b: 0, alpha: 0 },
-    });
-  }
+  const targetWidth = options.width || svgWidth;
+  const density = Math.round((targetWidth / svgWidth) * 72);
 
-  await pipeline.png().toFile(outputPath);
+  await sharp(svgBuffer, { density })
+    .png()
+    .toFile(outputPath);
 }
 
 export async function convertDirectory(

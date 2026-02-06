@@ -1,24 +1,20 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#25F4EE"/>
-      <stop offset="100%" style="stop-color:#FE2C55"/>
+    <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00d8d5"/>
+      <stop offset="100%" style="stop-color:#fe2c55"/>
     </linearGradient>
-    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#25F4EE"/>
-      <stop offset="100%" style="stop-color:#FE2C55"/>
-    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="80"/>
+    </filter>
   </defs>
 
-  <rect width="1200" height="630" fill="#121212"/>
+  <rect width="1200" height="630" fill="#f5f5f5"/>
 
-  <rect x="40" y="40" width="1120" height="550" rx="20" fill="url(#bgGradient)" opacity="0.15"/>
+  <ellipse cx="250" cy="200" rx="220" ry="180" fill="#00d8d5" opacity="0.12" filter="url(#blur)"/>
+  <ellipse cx="950" cy="430" rx="220" ry="180" fill="#fe2c55" opacity="0.16" filter="url(#blur)"/>
 
-  <text x="600" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="120" font-weight="bold" fill="url(#textGradient)" text-anchor="middle">Tokative</text>
+  <text x="600" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="195" font-weight="bold" fill="url(#brandGradient)" text-anchor="middle">Tokative</text>
 
-  <text x="600" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="36" fill="#e5e5e5" text-anchor="middle">Manage TikTok engagement at scale</text>
-
-  <line x1="400" y1="420" x2="800" y2="420" stroke="url(#bgGradient)" stroke-width="3" opacity="0.5"/>
-
-  <text x="600" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#888888" text-anchor="middle">Collect comments | Reply in bulk | Track everything</text>
+  <text x="600" y="430" font-family="system-ui, -apple-system, sans-serif" font-size="47" fill="#737373" text-anchor="middle">Manage TikTok engagement at scale</text>
 </svg>

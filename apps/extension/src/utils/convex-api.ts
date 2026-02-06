@@ -180,7 +180,7 @@ export async function fetchComments(): Promise<ScrapedComment[]> {
 export async function updateComment(
   commentId: string,
   updates: {
-    replySent?: boolean;
+    repliedTo?: boolean;
     repliedAt?: number;
     replyError?: string;
     replyContent?: string;

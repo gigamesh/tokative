@@ -46,7 +46,7 @@ export const list = query({
         profileUrl: profile?.profileUrl ?? "",
         avatarUrl: profile?.avatarUrl,
         videoUrl: c.videoUrl,
-        replySent: c.replySent,
+        repliedTo: c.repliedTo,
         repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
         replyError: c.replyError,
         replyContent: c.replyContent,
@@ -118,7 +118,7 @@ export const listPaginated = query({
         profileUrl: profile?.profileUrl ?? "",
         avatarUrl: profile?.avatarUrl,
         videoUrl: c.videoUrl,
-        replySent: c.replySent,
+        repliedTo: c.repliedTo,
         repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
         replyError: c.replyError,
         replyContent: c.replyContent,
@@ -274,7 +274,7 @@ export const update = mutation({
     clerkId: v.string(),
     commentId: v.string(),
     updates: v.object({
-      replySent: v.optional(v.boolean()),
+      repliedTo: v.optional(v.boolean()),
       repliedAt: v.optional(v.number()),
       replyError: v.optional(v.string()),
       replyContent: v.optional(v.string()),
@@ -423,5 +423,44 @@ export const findMatchingByText = query({
           c.comment.trim() === normalizedText
       )
       .map((c) => c.commentId);
+  },
+});
+
+/** Migration: rename the old `replySent` field → `repliedTo` on existing documents. */
+export const migrateReplySentToRepliedTo = mutation({
+  args: {
+    cursor: v.optional(v.string()),
+    batchSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const BATCH_SIZE = args.batchSize ?? 100;
+
+    const result = await ctx.db
+      .query("comments")
+      .paginate({
+        numItems: BATCH_SIZE,
+        cursor: args.cursor ?? null,
+      });
+
+    let migrated = 0;
+    for (const doc of result.page) {
+      const raw = doc as Record<string, unknown>;
+      if (raw.replySent !== undefined) {
+        await ctx.db.patch(doc._id, {
+          repliedTo: raw.replySent as boolean,
+        } as never);
+        await ctx.db.patch(doc._id, {
+          replySent: undefined,
+        } as never);
+        migrated++;
+      }
+    }
+
+    return {
+      migrated,
+      processed: result.page.length,
+      isDone: result.isDone,
+      continueCursor: result.isDone ? null : result.continueCursor,
+    };
   },
 });

@@ -214,14 +214,14 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
       if (!userId) return;
 
       const convexUpdates: {
-        replySent?: boolean;
+        repliedTo?: boolean;
         repliedAt?: number;
         replyError?: string;
         replyContent?: string;
       } = {};
 
-      if (updates.replySent !== undefined)
-        convexUpdates.replySent = updates.replySent;
+      if (updates.repliedTo !== undefined)
+        convexUpdates.repliedTo = updates.repliedTo;
       if (updates.repliedAt !== undefined)
         convexUpdates.repliedAt = new Date(updates.repliedAt).getTime();
       if (updates.replyError !== undefined)

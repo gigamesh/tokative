@@ -118,7 +118,7 @@ export interface ScrapedComment {
   profileUrl: string;
   avatarUrl?: string;
   videoUrl?: string;
-  replySent?: boolean;
+  repliedTo?: boolean;
   repliedAt?: string;
   replyError?: string;
   replyContent?: string;
