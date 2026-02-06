@@ -45,7 +45,9 @@ export default function PrivacyPolicy() {
                 which comments you have replied to and when
               </li>
               <li>
-                <strong className="text-foreground">Authentication tokens</strong>{" "}
+                <strong className="text-foreground">
+                  Authentication tokens
+                </strong>{" "}
                 — session tokens for signing in to the dashboard
               </li>
               <li>
@@ -93,7 +95,7 @@ export default function PrivacyPolicy() {
                 <strong className="text-foreground">Convex</strong> — Backend
                 database and API hosting.{" "}
                 <a
-                  href="https://www.convex.dev/privacy"
+                  href="https://www.convex.dev/legal/privacy/v2024-03-21"
                   className="text-accent-cyan-text hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"

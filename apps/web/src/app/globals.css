@@ -12,8 +12,8 @@
   --text-muted: #737373;
   --border-default: #d1d5db;
 
-  /* Brand accent - base values */
-  --accent-cyan: #25f4ee;
+  /* Brand accent - base values (darker in light mode for contrast) */
+  --accent-cyan: #00d8d5;
   --accent-pink: #fe2c55;
 
   /* Semantic accent tokens - darker in light mode for contrast */
@@ -36,6 +36,8 @@
   --text-secondary: #e5e5e5;
   --text-muted: #888888;
   --border-default: #374151;
+
+  --accent-cyan: #25f4ee;
 
   /* Semantic accent tokens - lighter in dark mode */
   --accent-cyan-text: #25f4ee;
@@ -121,7 +123,7 @@ input[type="checkbox"] {
   }
 
   .text-gradient-brand {
-    background: linear-gradient(to right, #25f4ee, #fe2c55);
+    background: linear-gradient(to right, var(--accent-cyan), #fe2c55);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
