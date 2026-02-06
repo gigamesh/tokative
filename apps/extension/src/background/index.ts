@@ -891,77 +891,81 @@ async function handleBulkReply(
 
   let commentIndex = 0;
 
-  // Process comments grouped by video
-  for (const [videoKey, videoComments] of commentsByVideo) {
-    let tabId: number | undefined;
+  try {
+    // Process comments grouped by video
+    for (const [videoKey, videoComments] of commentsByVideo) {
+      let tabId: number | undefined;
 
-    for (let i = 0; i < videoComments.length; i++) {
-      const comment = videoComments[i];
-      const replyMessage = replyMessages[commentIndex % replyMessages.length];
-      commentIndex++;
+      for (let i = 0; i < videoComments.length; i++) {
+        const comment = videoComments[i];
+        const replyMessage = replyMessages[commentIndex % replyMessages.length];
+        commentIndex++;
 
-      progress.current = comment.handle;
-      port.postMessage({
-        type: MessageType.BULK_REPLY_PROGRESS,
-        payload: progress,
-      });
-
-      // Reuse tab for same video (pass existing tabId after first reply)
-      const result = await handleReplyToComment(comment, replyMessage, port, tabId);
-
-      if (result.success) {
-        progress.completed++;
-        await updateScrapedComment(comment.id, {
-          repliedTo: true,
-          repliedAt: new Date().toISOString(),
+        progress.current = comment.handle;
+        port.postMessage({
+          type: MessageType.BULK_REPLY_PROGRESS,
+          payload: progress,
         });
-        // Store tabId for reuse on next comment in same video
-        if (result.tabId) {
-          tabId = result.tabId;
-        }
-      } else if (result.error === "Comment not found") {
-        progress.skipped++;
-        if (deleteMissingComments) {
-          await removeScrapedComment(comment.id);
-        } else {
+
+        // Reuse tab for same video (pass existing tabId after first reply)
+        const result = await handleReplyToComment(comment, replyMessage, port, tabId);
+
+        if (result.success) {
+          progress.completed++;
           await updateScrapedComment(comment.id, {
-            replyError: "Comment not found",
+            repliedTo: true,
+            repliedAt: new Date().toISOString(),
+          });
+          // Store tabId for reuse on next comment in same video
+          if (result.tabId) {
+            tabId = result.tabId;
+          }
+        } else if (result.error === "Comment not found") {
+          progress.skipped++;
+          if (deleteMissingComments) {
+            await removeScrapedComment(comment.id);
+          } else {
+            await updateScrapedComment(comment.id, {
+              replyError: "Comment not found",
+            });
+          }
+        } else {
+          progress.failed++;
+          await updateScrapedComment(comment.id, {
+            replyError: result.error || "Failed to post reply",
           });
         }
-      } else {
-        progress.failed++;
-        await updateScrapedComment(comment.id, {
-          replyError: result.error || "Failed to post reply",
-        });
+
+        // Delay between replies (reduced for same-video since no tab creation overhead)
+        if (i < videoComments.length - 1) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, settings.messageDelay),
+          );
+        }
       }
 
-      // Delay between replies (reduced for same-video since no tab creation overhead)
-      if (i < videoComments.length - 1) {
+      // Close tab after finishing all comments for this video
+      if (tabId) {
+        closingTabsIntentionally.add(tabId);
+        chrome.tabs.remove(tabId).catch(() => {});
+      }
+
+      // Delay between videos
+      if (commentsByVideo.size > 1) {
         await new Promise((resolve) =>
           setTimeout(resolve, settings.messageDelay),
         );
       }
     }
-
-    // Close tab after finishing all comments for this video
-    if (tabId) {
-      closingTabsIntentionally.add(tabId);
-      chrome.tabs.remove(tabId).catch(() => {});
-    }
-
-    // Delay between videos
-    if (commentsByVideo.size > 1) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, settings.messageDelay),
-      );
-    }
+  } catch (error) {
+    progress.failed += progress.total - progress.completed - progress.failed - progress.skipped;
+  } finally {
+    progress.status = "complete";
+    port.postMessage({
+      type: MessageType.BULK_REPLY_COMPLETE,
+      payload: progress,
+    });
   }
-
-  progress.status = "complete";
-  port.postMessage({
-    type: MessageType.BULK_REPLY_COMPLETE,
-    payload: progress,
-  });
 }
 
 async function handleGetVideoComments(

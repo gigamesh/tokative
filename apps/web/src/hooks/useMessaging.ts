@@ -8,6 +8,7 @@ interface ReplyState {
   isReplying: boolean;
   replyProgress: ReplyProgress | null;
   bulkReplyProgress: BulkReplyProgress | null;
+  isSingleReply: boolean;
   error: string | null;
 }
 
@@ -22,6 +23,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     isReplying: false,
     replyProgress: null,
     bulkReplyProgress: null,
+    isSingleReply: false,
     error: null,
   });
 
@@ -30,10 +32,13 @@ export function useMessaging(options: UseMessagingOptions = {}) {
 
     const cleanups = [
       bridge.on(MessageType.REPLY_COMMENT_PROGRESS, (payload) => {
-        setState((prev) => ({
-          ...prev,
-          replyProgress: payload as ReplyProgress,
-        }));
+        setState((prev) => {
+          if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
+          return {
+            ...prev,
+            replyProgress: payload as ReplyProgress,
+          };
+        });
       }),
 
       bridge.on(MessageType.REPLY_COMMENT_COMPLETE, (payload) => {
@@ -47,30 +52,52 @@ export function useMessaging(options: UseMessagingOptions = {}) {
         if (postedReply && onPostedReply) {
           onPostedReply(postedReply);
         }
-        // Keep progress visible briefly so user sees completion state
-        setState((prev) => ({
-          ...prev,
-          replyProgress: prev.replyProgress
-            ? { ...prev.replyProgress, status: "complete" }
-            : null,
-        }));
-        setTimeout(() => {
-          setState((prev) => ({
+        setState((prev) => {
+          if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
+          return {
             ...prev,
-            isReplying: false,
             replyProgress: null,
-          }));
+            bulkReplyProgress: prev.bulkReplyProgress
+              ? { ...prev.bulkReplyProgress, completed: 1, status: "complete" }
+              : null,
+          };
+        });
+        setTimeout(() => {
+          setState((prev) => {
+            if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
+            return {
+              ...prev,
+              isReplying: false,
+              replyProgress: null,
+              bulkReplyProgress: null,
+            };
+          });
         }, 1500);
       }),
 
       bridge.on(MessageType.REPLY_COMMENT_ERROR, (payload) => {
         const { error } = payload as { error: string };
-        setState((prev) => ({
-          ...prev,
-          isReplying: false,
-          replyProgress: null,
-          error,
-        }));
+        setState((prev) => {
+          if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
+          return {
+            ...prev,
+            replyProgress: null,
+            bulkReplyProgress: prev.bulkReplyProgress
+              ? { ...prev.bulkReplyProgress, failed: 1, status: "complete" }
+              : null,
+            error,
+          };
+        });
+        setTimeout(() => {
+          setState((prev) => {
+            if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
+            return {
+              ...prev,
+              isReplying: false,
+              bulkReplyProgress: null,
+            };
+          });
+        }, 1500);
       }),
 
       bridge.on(MessageType.BULK_REPLY_PROGRESS, (payload) => {
@@ -86,6 +113,12 @@ export function useMessaging(options: UseMessagingOptions = {}) {
           isReplying: false,
           bulkReplyProgress: payload as BulkReplyProgress,
         }));
+        setTimeout(() => {
+          setState((prev) => ({
+            ...prev,
+            bulkReplyProgress: null,
+          }));
+        }, 1500);
       }),
     ];
 
@@ -98,8 +131,17 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     setState((prev) => ({
       ...prev,
       isReplying: true,
+      isSingleReply: true,
       error: null,
       replyProgress: { commentId: comment.id, status: "navigating" },
+      bulkReplyProgress: {
+        total: 1,
+        completed: 0,
+        failed: 0,
+        skipped: 0,
+        status: "running",
+        current: comment.handle,
+      },
     }));
 
     bridge.send(MessageType.REPLY_COMMENT, { comment, message });
@@ -111,6 +153,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     setState((prev) => ({
       ...prev,
       isReplying: true,
+      isSingleReply: false,
       error: null,
       bulkReplyProgress: {
         total: commentIds.length,

@@ -1,12 +1,12 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { ScrapedComment } from "@/utils/constants";
-import { ReplyProgress, BulkReplyProgress } from "@tokative/shared";
+import { BulkReplyProgress } from "@tokative/shared";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { AlertTriangle, Smile, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
-import { Spinner } from "./Spinner";
+
 
 interface ReplyComposerProps {
   selectedComment: ScrapedComment | null;
@@ -16,11 +16,9 @@ interface ReplyComposerProps {
   onBulkSend: (messages: string[]) => void;
   onClearSelection: () => void;
   onToggleComment: (commentId: string, selected: boolean) => void;
-  replyProgress: ReplyProgress | null;
   bulkReplyProgress: BulkReplyProgress | null;
   onStopBulkReply: () => void;
   disabled?: boolean;
-  resetTrigger?: number;
 }
 
 export function ReplyComposer({
@@ -31,11 +29,9 @@ export function ReplyComposer({
   onBulkSend,
   onClearSelection,
   onToggleComment,
-  replyProgress,
   bulkReplyProgress,
   onStopBulkReply,
   disabled,
-  resetTrigger,
 }: ReplyComposerProps) {
   const [messages, setMessages] = useState<string[]>([""]);
   const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(
@@ -46,13 +42,6 @@ export function ReplyComposer({
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
-
-  useEffect(() => {
-    if (resetTrigger !== undefined && resetTrigger > 0) {
-      setMessages([""]);
-      setActiveEmojiPicker(null);
-    }
-  }, [resetTrigger]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -114,7 +103,6 @@ export function ReplyComposer({
 
     if (selectedComment) {
       onSend(validMessages[0]);
-      setMessages([""]);
     } else if (selectedCount > 0) {
       onBulkSend(validMessages);
     }
@@ -137,7 +125,6 @@ export function ReplyComposer({
     (selectedCount > 30 && messages.length < 3) ||
     (selectedCount > 10 && messages.length < 2);
 
-  const showReplyProgress = replyProgress && replyProgress.status !== "complete";
   const showBulkProgress = bulkReplyProgress && bulkReplyProgress.status === "running";
 
   return (
@@ -190,36 +177,20 @@ export function ReplyComposer({
         </div>
       )}
 
-      {showReplyProgress && (
-        <div className="p-3 bg-surface border border-border rounded-lg">
-          <div className="flex items-center gap-2">
-            {replyProgress.status !== "error" && <Spinner size="sm" />}
-            <p className="text-sm text-foreground-muted">
-              {replyProgress.status === "navigating" && "Opening video..."}
-              {replyProgress.status === "finding" && "Finding comment..."}
-              {replyProgress.status === "replying" && "Posting reply..."}
-              {replyProgress.status === "error" && (
-                <span className="text-red-400">
-                  Error: {replyProgress.message}
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-      )}
-
       {showBulkProgress && (
         <div className="p-3 bg-surface border border-border rounded-lg space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-foreground">Bulk Reply Progress</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onStopBulkReply}
-              className="text-xs text-red-400 hover:text-red-300"
-            >
-              Stop
-            </Button>
+            <span className="text-xs font-medium text-foreground">Reply Progress</span>
+            {bulkReplyProgress.total > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onStopBulkReply}
+                className="text-xs text-red-400 hover:text-red-300"
+              >
+                Stop
+              </Button>
+            )}
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-foreground-muted">

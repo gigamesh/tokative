@@ -106,6 +106,7 @@ export function DashboardContent() {
     isReplying,
     replyProgress,
     bulkReplyProgress,
+    isSingleReply,
     error: replyError,
     replyToComment,
     startBulkReply,
@@ -164,7 +165,7 @@ export function DashboardContent() {
   );
 
   const [dismissedError, setDismissedError] = useState<string | null>(null);
-  const [composerResetTrigger, setComposerResetTrigger] = useState(0);
+
 
   const [deleteModal, setDeleteModal] = useState<DeleteModalState>({
     isOpen: false,
@@ -225,7 +226,7 @@ export function DashboardContent() {
   }, [replyError, selectedComment]);
 
   useEffect(() => {
-    if (bulkReplyProgress?.status === "complete") {
+    if (bulkReplyProgress?.status === "complete" && !isSingleReply) {
       setBulkReplyReportModal({
         isOpen: true,
         stats: {
@@ -235,7 +236,7 @@ export function DashboardContent() {
         },
       });
     }
-  }, [bulkReplyProgress]);
+  }, [bulkReplyProgress, isSingleReply]);
 
   const handlePostLimitBlur = useCallback(() => {
     const parsed = parseInt(postLimitInput);
@@ -733,11 +734,9 @@ export function DashboardContent() {
               onBulkSend={handleBulkReply}
               onClearSelection={handleClearSelection}
               onToggleComment={handleSelectComment}
-              replyProgress={replyProgress}
               bulkReplyProgress={bulkReplyProgress}
               onStopBulkReply={stopBulkReply}
               disabled={isReplying}
-              resetTrigger={composerResetTrigger}
             />
           </div>
         </div>
@@ -794,7 +793,6 @@ export function DashboardContent() {
             isOpen: false,
             stats: { completed: 0, failed: 0, skipped: 0 },
           });
-          setComposerResetTrigger((prev) => prev + 1);
         }}
         stats={bulkReplyReportModal.stats}
         deleteMissingComments={deleteMissingComments}
