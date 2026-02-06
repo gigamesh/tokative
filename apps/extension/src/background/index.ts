@@ -521,12 +521,12 @@ async function handlePortMessage(
     }
 
     case MessageType.BULK_REPLY_START: {
-      const { commentIds, messages: replyMessages, deleteMissingComments } = message.payload as {
-        commentIds: string[];
+      const { comments: incomingComments, messages: replyMessages, deleteMissingComments } = message.payload as {
+        comments: ScrapedComment[];
         messages: string[];
         deleteMissingComments: boolean;
       };
-      await handleBulkReply(commentIds, replyMessages, deleteMissingComments, port);
+      await handleBulkReply(incomingComments, replyMessages, deleteMissingComments, port);
       break;
     }
 
@@ -852,46 +852,56 @@ function extractVideoIdFromUrl(url: string): string | null {
 }
 
 async function handleBulkReply(
-  commentIds: string[],
+  comments: ScrapedComment[],
   replyMessages: string[],
   deleteMissingComments: boolean,
   port: chrome.runtime.Port,
 ): Promise<void> {
-  const comments = await getScrapedComments();
-  const settings = await getSettings();
-
-  const targetComments = comments.filter(
-    (c) => commentIds.includes(c.id) && !c.repliedTo && c.videoUrl,
-  );
-
-  // Group comments by videoId for tab reuse
-  const commentsByVideo = new Map<string, ScrapedComment[]>();
-  for (const comment of targetComments) {
-    const videoId = comment.videoId || extractVideoIdFromUrl(comment.videoUrl || "");
-    if (videoId) {
-      const existing = commentsByVideo.get(videoId) || [];
-      existing.push(comment);
-      commentsByVideo.set(videoId, existing);
-    } else {
-      // Fallback for comments without videoId - use videoUrl as key
-      const key = comment.videoUrl || comment.id;
-      const existing = commentsByVideo.get(key) || [];
-      existing.push(comment);
-      commentsByVideo.set(key, existing);
-    }
-  }
-
   const progress: BulkReplyProgress = {
-    total: targetComments.length,
+    total: 0,
     completed: 0,
     failed: 0,
     skipped: 0,
     status: "running",
   };
 
-  let commentIndex = 0;
-
   try {
+    const targetComments = comments.filter(
+      (c) => !c.repliedTo && c.videoUrl,
+    );
+
+    progress.total = targetComments.length;
+
+    // Group comments by videoId for tab reuse
+    const commentsByVideo = new Map<string, ScrapedComment[]>();
+    for (const comment of targetComments) {
+      const videoId = comment.videoId || extractVideoIdFromUrl(comment.videoUrl || "");
+      if (videoId) {
+        const existing = commentsByVideo.get(videoId) || [];
+        existing.push(comment);
+        commentsByVideo.set(videoId, existing);
+      } else {
+        // Fallback for comments without videoId - use videoUrl as key
+        const key = comment.videoUrl || comment.id;
+        const existing = commentsByVideo.get(key) || [];
+        existing.push(comment);
+        commentsByVideo.set(key, existing);
+      }
+    }
+
+    // Fetch settings lazily — only needed for delay between multiple replies
+    let messageDelay = 3000;
+    if (targetComments.length > 1) {
+      try {
+        const settings = await getSettings();
+        messageDelay = settings.messageDelay;
+      } catch {
+        // Use default delay if settings fetch fails
+      }
+    }
+
+    let commentIndex = 0;
+
     // Process comments grouped by video
     for (const [videoKey, videoComments] of commentsByVideo) {
       let tabId: number | undefined;
@@ -936,10 +946,10 @@ async function handleBulkReply(
           });
         }
 
-        // Delay between replies (reduced for same-video since no tab creation overhead)
+        // Delay between replies
         if (i < videoComments.length - 1) {
           await new Promise((resolve) =>
-            setTimeout(resolve, settings.messageDelay),
+            setTimeout(resolve, messageDelay),
           );
         }
       }
@@ -953,12 +963,12 @@ async function handleBulkReply(
       // Delay between videos
       if (commentsByVideo.size > 1) {
         await new Promise((resolve) =>
-          setTimeout(resolve, settings.messageDelay),
+          setTimeout(resolve, messageDelay),
         );
       }
     }
   } catch (error) {
-    progress.failed += progress.total - progress.completed - progress.failed - progress.skipped;
+    progress.failed += Math.max(0, progress.total - progress.completed - progress.failed - progress.skipped);
   } finally {
     progress.status = "complete";
     port.postMessage({

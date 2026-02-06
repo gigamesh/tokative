@@ -1,9 +1,8 @@
 "use client";
 
 import { AddToIgnoreListModal } from "@/components/AddToIgnoreListModal";
-import { BulkReplyReportModal } from "@/components/BulkReplyReportModal";
 import { Button } from "@/components/Button";
-import { CommentNotFoundModal } from "@/components/CommentNotFoundModal";
+
 import { CommentTable, SortOption } from "@/components/CommentTable";
 import { CommenterTable } from "@/components/CommenterTable";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
@@ -92,7 +91,6 @@ export function DashboardContent() {
         repliedTo: true,
         repliedAt: new Date().toISOString(),
       });
-      setSelectedComment(null);
       setSelectedCommentIds((prev) => {
         const next = new Set(prev);
         next.delete(commentId);
@@ -104,14 +102,10 @@ export function DashboardContent() {
 
   const {
     isReplying,
-    replyProgress,
     bulkReplyProgress,
-    isSingleReply,
-    error: replyError,
-    replyToComment,
+    replyStatusMessage,
     startBulkReply,
     stopBulkReply,
-    clearError,
   } = useMessaging({
     onReplyComplete: handleReplyComplete,
     onPostedReply: addOptimisticComment,
@@ -153,9 +147,6 @@ export function DashboardContent() {
   const [selectedVideoIds, setSelectedVideoIds] = useState<Set<string>>(
     new Set(),
   );
-  const [selectedComment, setSelectedComment] = useState<ScrapedComment | null>(
-    null,
-  );
   const [searchingMatchesCommentId, setSearchingMatchesCommentId] = useState<
     string | null
   >(null);
@@ -180,20 +171,16 @@ export function DashboardContent() {
   });
 
   const [toast, setToast] = useState({ isVisible: false, message: "" });
-  const [commentNotFoundModal, setCommentNotFoundModal] = useState<{
-    isOpen: boolean;
-    commentId: string | null;
-  }>({ isOpen: false, commentId: null });
-
   const [missingCommentChoiceModal, setMissingCommentChoiceModal] = useState<{
     isOpen: boolean;
     pendingMessages: string[];
   }>({ isOpen: false, pendingMessages: [] });
 
-  const [bulkReplyReportModal, setBulkReplyReportModal] = useState<{
-    isOpen: boolean;
-    stats: { completed: number; failed: number; skipped: number };
-  }>({ isOpen: false, stats: { completed: 0, failed: 0, skipped: 0 } });
+  const [replyReport, setReplyReport] = useState<{
+    completed: number;
+    failed: number;
+    skipped: number;
+  } | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToast({ isVisible: true, message });
@@ -220,23 +207,14 @@ export function DashboardContent() {
   }, [error, dismissedError]);
 
   useEffect(() => {
-    if (replyError === "Comment not found" && selectedComment) {
-      setCommentNotFoundModal({ isOpen: true, commentId: selectedComment.id });
-    }
-  }, [replyError, selectedComment]);
-
-  useEffect(() => {
-    if (bulkReplyProgress?.status === "complete" && !isSingleReply) {
-      setBulkReplyReportModal({
-        isOpen: true,
-        stats: {
-          completed: bulkReplyProgress.completed,
-          failed: bulkReplyProgress.failed,
-          skipped: bulkReplyProgress.skipped,
-        },
+    if (bulkReplyProgress?.status === "complete") {
+      setReplyReport({
+        completed: bulkReplyProgress.completed,
+        failed: bulkReplyProgress.failed,
+        skipped: bulkReplyProgress.skipped,
       });
     }
-  }, [bulkReplyProgress, isSingleReply]);
+  }, [bulkReplyProgress]);
 
   const handlePostLimitBlur = useCallback(() => {
     const parsed = parseInt(postLimitInput);
@@ -434,21 +412,17 @@ export function DashboardContent() {
   }, []);
 
   const handleReplyComment = useCallback((comment: ScrapedComment) => {
-    setSelectedComment(comment);
+    setSelectedCommentIds((prev) => {
+      if (prev.has(comment.id)) return prev;
+      const next = new Set(prev);
+      next.add(comment.id);
+      return next;
+    });
   }, []);
 
   const handleClearSelection = useCallback(() => {
-    setSelectedComment(null);
     setSelectedCommentIds(new Set());
   }, []);
-
-  const handleReplyFromComposer = useCallback(
-    (message: string) => {
-      if (!selectedComment) return;
-      replyToComment(selectedComment, message);
-    },
-    [selectedComment, replyToComment],
-  );
 
   const handleBulkReply = useCallback(
     (messages: string[]) => {
@@ -461,24 +435,24 @@ export function DashboardContent() {
         return;
       }
       startBulkReply(
-        Array.from(selectedCommentIds),
+        selectedCommentsForDisplay,
         messages,
         deleteMissingComments,
       );
     },
-    [selectedCommentIds, startBulkReply, deleteMissingComments],
+    [selectedCommentsForDisplay, selectedCommentIds.size, startBulkReply, deleteMissingComments],
   );
 
   const handleMissingCommentChoiceSkip = useCallback(() => {
     saveDeleteMissingComments(false);
     startBulkReply(
-      Array.from(selectedCommentIds),
+      selectedCommentsForDisplay,
       missingCommentChoiceModal.pendingMessages,
       false,
     );
     setMissingCommentChoiceModal({ isOpen: false, pendingMessages: [] });
   }, [
-    selectedCommentIds,
+    selectedCommentsForDisplay,
     missingCommentChoiceModal.pendingMessages,
     startBulkReply,
     saveDeleteMissingComments,
@@ -487,13 +461,13 @@ export function DashboardContent() {
   const handleMissingCommentChoiceDelete = useCallback(() => {
     saveDeleteMissingComments(true);
     startBulkReply(
-      Array.from(selectedCommentIds),
+      selectedCommentsForDisplay,
       missingCommentChoiceModal.pendingMessages,
       true,
     );
     setMissingCommentChoiceModal({ isOpen: false, pendingMessages: [] });
   }, [
-    selectedCommentIds,
+    selectedCommentsForDisplay,
     missingCommentChoiceModal.pendingMessages,
     startBulkReply,
     saveDeleteMissingComments,
@@ -527,27 +501,6 @@ export function DashboardContent() {
   const handleCancelScraping = useCallback(() => {
     cancelScraping();
   }, [cancelScraping]);
-
-  const handleCommentNotFoundDelete = useCallback(() => {
-    if (commentNotFoundModal.commentId) {
-      removeComments([commentNotFoundModal.commentId]);
-      setSelectedCommentIds((prev) => {
-        const next = new Set(prev);
-        next.delete(commentNotFoundModal.commentId!);
-        return next;
-      });
-      showToast("Removed 1 comment");
-    }
-    setCommentNotFoundModal({ isOpen: false, commentId: null });
-    setSelectedComment(null);
-    clearError();
-  }, [commentNotFoundModal.commentId, removeComments, showToast, clearError]);
-
-  const handleCommentNotFoundClose = useCallback(() => {
-    setCommentNotFoundModal({ isOpen: false, commentId: null });
-    setSelectedComment(null);
-    clearError();
-  }, [clearError]);
 
   return (
     <div className="min-h-content bg-surface">
@@ -641,7 +594,7 @@ export function DashboardContent() {
                   hasMore={hasMore}
                   isLoadingMore={isLoadingMore}
                   isInitialLoading={loading}
-                  replyingCommentId={replyProgress?.commentId}
+                  replyingCommentId={null}
                   searchingMatchesCommentId={searchingMatchesCommentId}
                   sort={commentSort}
                   onSortChange={handleSortChange}
@@ -688,7 +641,7 @@ export function DashboardContent() {
                   onReplyComment={handleReplyComment}
                   videoThumbnails={videoThumbnailMap}
                   isLoading={commentersLoading}
-                  replyingCommentId={replyProgress?.commentId}
+                  replyingCommentId={null}
                   searchingMatchesCommentId={searchingMatchesCommentId}
                   onLoadMore={loadMoreCommenters}
                   hasMore={hasMoreCommenters}
@@ -727,14 +680,13 @@ export function DashboardContent() {
             className={`space-y-6 sticky top-[130px] self-start ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
           >
             <ReplyComposer
-              selectedComment={selectedComment}
               selectedComments={selectedCommentsForDisplay}
               selectedCount={selectedCommentIds.size}
-              onSend={handleReplyFromComposer}
-              onBulkSend={handleBulkReply}
+              onSend={handleBulkReply}
               onClearSelection={handleClearSelection}
               onToggleComment={handleSelectComment}
               bulkReplyProgress={bulkReplyProgress}
+              replyStatusMessage={replyStatusMessage}
               onStopBulkReply={stopBulkReply}
               disabled={isReplying}
             />
@@ -774,28 +726,10 @@ export function DashboardContent() {
         />
       )}
 
-      <CommentNotFoundModal
-        isOpen={commentNotFoundModal.isOpen}
-        onClose={handleCommentNotFoundClose}
-        onDelete={handleCommentNotFoundDelete}
-      />
-
       <MissingCommentChoiceModal
         isOpen={missingCommentChoiceModal.isOpen}
         onSkip={handleMissingCommentChoiceSkip}
         onDelete={handleMissingCommentChoiceDelete}
-      />
-
-      <BulkReplyReportModal
-        isOpen={bulkReplyReportModal.isOpen}
-        onClose={() => {
-          setBulkReplyReportModal({
-            isOpen: false,
-            stats: { completed: 0, failed: 0, skipped: 0 },
-          });
-        }}
-        stats={bulkReplyReportModal.stats}
-        deleteMissingComments={deleteMissingComments}
       />
 
       <Toast
@@ -803,6 +737,27 @@ export function DashboardContent() {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
+
+      <Toast
+        isVisible={replyReport !== null}
+        onClose={() => setReplyReport(null)}
+        duration={10000}
+        variant={replyReport && replyReport.failed > 0 && replyReport.completed === 0 ? "error" : "success"}
+      >
+        {replyReport && (
+          <div className="text-sm">
+            <span className="font-medium">Reply complete</span>
+            <span className="text-foreground-muted"> — </span>
+            <span className="text-green-400">{replyReport.completed} sent</span>
+            {replyReport.failed > 0 && (
+              <span className="text-red-400">, {replyReport.failed} failed</span>
+            )}
+            {replyReport.skipped > 0 && (
+              <span className="text-yellow-400">, {replyReport.skipped} skipped</span>
+            )}
+          </div>
+        )}
+      </Toast>
     </div>
   );
 }

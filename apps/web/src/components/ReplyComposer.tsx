@@ -6,30 +6,28 @@ import { AlertTriangle, Smile, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
-
+import { Spinner } from "./Spinner";
 
 interface ReplyComposerProps {
-  selectedComment: ScrapedComment | null;
   selectedComments: ScrapedComment[];
   selectedCount: number;
-  onSend: (message: string) => void;
-  onBulkSend: (messages: string[]) => void;
+  onSend: (messages: string[]) => void;
   onClearSelection: () => void;
   onToggleComment: (commentId: string, selected: boolean) => void;
   bulkReplyProgress: BulkReplyProgress | null;
+  replyStatusMessage: string | null;
   onStopBulkReply: () => void;
   disabled?: boolean;
 }
 
 export function ReplyComposer({
-  selectedComment,
   selectedComments,
   selectedCount,
   onSend,
-  onBulkSend,
   onClearSelection,
   onToggleComment,
   bulkReplyProgress,
+  replyStatusMessage,
   onStopBulkReply,
   disabled,
 }: ReplyComposerProps) {
@@ -99,26 +97,19 @@ export function ReplyComposer({
   const validMessages = messages.filter((m) => m.trim());
 
   const handleSend = () => {
-    if (validMessages.length === 0) return;
-
-    if (selectedComment) {
-      onSend(validMessages[0]);
-    } else if (selectedCount > 0) {
-      onBulkSend(validMessages);
-    }
+    if (validMessages.length === 0 || selectedCount === 0) return;
+    onSend(validMessages);
   };
 
   const allMessagesValid =
     messages.length > 1 ? messages.every((m) => m.trim()) : messages[0]?.trim();
 
-  const effectiveSelectedCount =
-    selectedCount > 0 ? selectedCount : selectedComment ? 1 : 0;
   const hasVariationMismatch =
-    messages.length > 1 && effectiveSelectedCount < messages.length;
+    messages.length > 1 && selectedCount < messages.length;
 
   const canSend =
     allMessagesValid &&
-    (selectedComment || selectedCount > 0) &&
+    selectedCount > 0 &&
     !hasVariationMismatch;
 
   const needsMoreVariations =
@@ -137,22 +128,6 @@ export function ReplyComposer({
           </span>
         )}
       </div>
-
-      {selectedComment && selectedCount === 0 && (
-        <div className="p-3 bg-surface border border-border rounded-lg">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-foreground-muted">
-              Replying to @{selectedComment.handle}
-            </span>
-            <Button variant="ghost" size="sm" onClick={onClearSelection} className="text-xs">
-              Clear
-            </Button>
-          </div>
-          <p className="text-xs text-foreground-muted truncate">
-            "{selectedComment.comment}"
-          </p>
-        </div>
-      )}
 
       {selectedComments.length > 0 && (
         <div className="space-y-1">
@@ -180,7 +155,10 @@ export function ReplyComposer({
       {showBulkProgress && (
         <div className="p-3 bg-surface border border-border rounded-lg space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-foreground">Reply Progress</span>
+            <div className="flex items-center gap-2">
+              <Spinner size="sm" />
+              <span className="text-xs font-medium text-foreground">Reply Progress</span>
+            </div>
             {bulkReplyProgress.total > 1 && (
               <Button
                 variant="ghost"
@@ -200,6 +178,9 @@ export function ReplyComposer({
               <span className="text-foreground-muted">@{bulkReplyProgress.current}</span>
             )}
           </div>
+          {replyStatusMessage && (
+            <p className="text-xs text-foreground-muted">{replyStatusMessage}</p>
+          )}
           <div className="w-full bg-surface-secondary rounded-full h-1.5">
             <div
               className="bg-green-500 h-1.5 rounded-full transition-all"

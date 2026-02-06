@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { bridge } from "@/utils/extension-bridge";
-import { MessageType, ScrapedComment, ReplyProgress, BulkReplyProgress } from "@/utils/constants";
+import { MessageType, ScrapedComment, BulkReplyProgress } from "@/utils/constants";
 
 interface ReplyState {
   isReplying: boolean;
-  replyProgress: ReplyProgress | null;
   bulkReplyProgress: BulkReplyProgress | null;
-  isSingleReply: boolean;
+  replyStatusMessage: string | null;
   error: string | null;
 }
 
@@ -21,9 +20,8 @@ export function useMessaging(options: UseMessagingOptions = {}) {
   const { onReplyComplete, onPostedReply } = options;
   const [state, setState] = useState<ReplyState>({
     isReplying: false,
-    replyProgress: null,
     bulkReplyProgress: null,
-    isSingleReply: false,
+    replyStatusMessage: null,
     error: null,
   });
 
@@ -32,13 +30,10 @@ export function useMessaging(options: UseMessagingOptions = {}) {
 
     const cleanups = [
       bridge.on(MessageType.REPLY_COMMENT_PROGRESS, (payload) => {
-        setState((prev) => {
-          if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
-          return {
-            ...prev,
-            replyProgress: payload as ReplyProgress,
-          };
-        });
+        const { message } = payload as { message?: string };
+        if (message) {
+          setState((prev) => ({ ...prev, replyStatusMessage: message }));
+        }
       }),
 
       bridge.on(MessageType.REPLY_COMMENT_COMPLETE, (payload) => {
@@ -53,49 +48,18 @@ export function useMessaging(options: UseMessagingOptions = {}) {
           onPostedReply(postedReply);
         }
         setState((prev) => {
-          if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
+          if (!prev.bulkReplyProgress || prev.bulkReplyProgress.total > 1) return prev;
           return {
             ...prev,
-            replyProgress: null,
-            bulkReplyProgress: prev.bulkReplyProgress
-              ? { ...prev.bulkReplyProgress, completed: 1, status: "complete" }
-              : null,
+            isReplying: false,
+            replyStatusMessage: null,
+            bulkReplyProgress: { ...prev.bulkReplyProgress, completed: 1, status: "complete" },
           };
         });
         setTimeout(() => {
           setState((prev) => {
-            if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
-            return {
-              ...prev,
-              isReplying: false,
-              replyProgress: null,
-              bulkReplyProgress: null,
-            };
-          });
-        }, 1500);
-      }),
-
-      bridge.on(MessageType.REPLY_COMMENT_ERROR, (payload) => {
-        const { error } = payload as { error: string };
-        setState((prev) => {
-          if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
-          return {
-            ...prev,
-            replyProgress: null,
-            bulkReplyProgress: prev.bulkReplyProgress
-              ? { ...prev.bulkReplyProgress, failed: 1, status: "complete" }
-              : null,
-            error,
-          };
-        });
-        setTimeout(() => {
-          setState((prev) => {
-            if (prev.bulkReplyProgress && prev.bulkReplyProgress.total > 1) return prev;
-            return {
-              ...prev,
-              isReplying: false,
-              bulkReplyProgress: null,
-            };
+            if (!prev.bulkReplyProgress || prev.bulkReplyProgress.total > 1) return prev;
+            return { ...prev, bulkReplyProgress: null };
           });
         }, 1500);
       }),
@@ -111,6 +75,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
         setState((prev) => ({
           ...prev,
           isReplying: false,
+          replyStatusMessage: null,
           bulkReplyProgress: payload as BulkReplyProgress,
         }));
         setTimeout(() => {
@@ -125,38 +90,16 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     return () => cleanups.forEach((cleanup) => cleanup());
   }, [onReplyComplete, onPostedReply]);
 
-  const replyToComment = useCallback((comment: ScrapedComment, message: string) => {
+  const startBulkReply = useCallback((comments: ScrapedComment[], messages: string[], deleteMissingComments: boolean) => {
     if (!bridge) return;
 
     setState((prev) => ({
       ...prev,
       isReplying: true,
-      isSingleReply: true,
       error: null,
-      replyProgress: { commentId: comment.id, status: "navigating" },
+      replyStatusMessage: null,
       bulkReplyProgress: {
-        total: 1,
-        completed: 0,
-        failed: 0,
-        skipped: 0,
-        status: "running",
-        current: comment.handle,
-      },
-    }));
-
-    bridge.send(MessageType.REPLY_COMMENT, { comment, message });
-  }, []);
-
-  const startBulkReply = useCallback((commentIds: string[], messages: string[], deleteMissingComments: boolean) => {
-    if (!bridge) return;
-
-    setState((prev) => ({
-      ...prev,
-      isReplying: true,
-      isSingleReply: false,
-      error: null,
-      bulkReplyProgress: {
-        total: commentIds.length,
+        total: comments.length,
         completed: 0,
         failed: 0,
         skipped: 0,
@@ -164,7 +107,16 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       },
     }));
 
-    bridge.send(MessageType.BULK_REPLY_START, { commentIds, messages, deleteMissingComments });
+    const trimmedComments = comments.map((c) => ({
+      id: c.id,
+      handle: c.handle,
+      comment: c.comment,
+      videoUrl: c.videoUrl,
+      videoId: c.videoId,
+      repliedTo: c.repliedTo,
+    }));
+
+    bridge.send(MessageType.BULK_REPLY_START, { comments: trimmedComments, messages, deleteMissingComments });
   }, []);
 
   const stopBulkReply = useCallback(() => {
@@ -186,7 +138,6 @@ export function useMessaging(options: UseMessagingOptions = {}) {
 
   return {
     ...state,
-    replyToComment,
     startBulkReply,
     stopBulkReply,
     clearError,

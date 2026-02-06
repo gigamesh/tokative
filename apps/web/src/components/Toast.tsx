@@ -1,15 +1,16 @@
 import { Check, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 interface ToastProps {
-  message: string;
+  message?: string;
+  children?: ReactNode;
   isVisible: boolean;
   onClose: () => void;
   duration?: number;
   variant?: "success" | "error";
 }
 
-export function Toast({ message, isVisible, onClose, duration = 3000, variant = "success" }: ToastProps) {
+export function Toast({ message, children, isVisible, onClose, duration = 3000, variant = "success" }: ToastProps) {
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export function Toast({ message, isVisible, onClose, duration = 3000, variant = 
         ) : (
           <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
         )}
-        <span className="text-sm">{message}</span>
+        {children || <span className="text-sm">{message}</span>}
       </div>
     </div>
   );
