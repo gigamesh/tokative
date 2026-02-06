@@ -9,7 +9,17 @@ import { SignOutButton } from "@clerk/nextjs";
 import { HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { ComponentProps, useEffect } from "react";
+
+const navLinkClass = "text-sm text-foreground-muted hover:text-foreground transition-colors";
+
+function NavLink(props: ComponentProps<typeof Link>) {
+  return <Link {...props} className={navLinkClass} />;
+}
+
+function NavButton(props: ComponentProps<"button">) {
+  return <button {...props} className={navLinkClass} />;
+}
 
 export function Header() {
   const { userId, isLoaded } = useAuth();
@@ -34,32 +44,27 @@ export function Header() {
           Tokative
         </Link>
         <div className="flex items-center gap-6">
-          {isDashboard && <ConnectionStatus />}
+          {isLoaded && isSignedIn && (
+            <NavLink href="/dashboard">Dashboard</NavLink>
+          )}
+          {isLoaded && isSignedIn ? (
+            <SignOutButton>
+              <NavButton>Sign Out</NavButton>
+            </SignOutButton>
+          ) : (
+            <NavLink href="/sign-in">Sign In</NavLink>
+          )}
           {isDashboard && (
             <button
               onClick={openModal}
-              className="text-sm text-foreground-muted hover:text-foreground transition-colors"
+              className={navLinkClass}
               title="Help"
             >
               <HelpCircle className="w-[18px] h-[18px]" />
             </button>
           )}
+          {isDashboard && <ConnectionStatus />}
           <ThemeToggle />
-          {isLoaded &&
-            (isSignedIn ? (
-              <SignOutButton>
-                <button className="text-sm text-foreground-muted hover:text-foreground transition-colors">
-                  Sign Out
-                </button>
-              </SignOutButton>
-            ) : (
-              <Link
-                href="/sign-in"
-                className="text-sm text-foreground-muted hover:text-foreground transition-colors"
-              >
-                Sign In
-              </Link>
-            ))}
         </div>
       </div>
       <HelpModal isOpen={isOpen} onClose={closeModal} />

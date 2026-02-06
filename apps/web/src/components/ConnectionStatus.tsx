@@ -16,7 +16,7 @@ export function ConnectionStatus() {
           isExtensionConnected ? "bg-accent-cyan-solid" : "bg-red-400"
         }`}
       />
-      {isExtensionConnected ? "Extension Connected" : "Extension Not Connected"}
+      {isExtensionConnected ? "Connected" : "Not Connected"}
     </div>
   );
 }
