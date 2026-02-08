@@ -1,6 +1,72 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageType, ScrapedComment, ScrapedVideo } from "../../types";
 
+const {
+  mockStorage, mockChromeStorage, mockChromeTabs,
+  mockChromeRuntime,
+} = vi.hoisted(() => {
+  const mockStorage: Record<string, unknown> = {};
+  const mockChromeStorage = {
+    local: {
+      get: vi.fn((keys: string | string[]) => {
+        if (typeof keys === "string") {
+          return Promise.resolve({ [keys]: mockStorage[keys] });
+        }
+        const result: Record<string, unknown> = {};
+        (Array.isArray(keys) ? keys : [keys]).forEach((key: string) => {
+          result[key] = mockStorage[key];
+        });
+        return Promise.resolve(result);
+      }),
+      set: vi.fn((items: Record<string, unknown>) => {
+        Object.assign(mockStorage, items);
+        return Promise.resolve();
+      }),
+      remove: vi.fn((keys: string | string[]) => {
+        const keysArray = typeof keys === "string" ? [keys] : keys;
+        keysArray.forEach((key: string) => delete mockStorage[key]);
+        return Promise.resolve();
+      }),
+    },
+  };
+
+  const mockChromeTabs = {
+    create: vi.fn().mockResolvedValue({ id: 1, url: "https://www.tiktok.com" }),
+    query: vi.fn().mockResolvedValue([]),
+    update: vi.fn().mockResolvedValue({}),
+    sendMessage: vi.fn().mockResolvedValue({}),
+    remove: vi.fn().mockResolvedValue(undefined),
+    onRemoved: { addListener: vi.fn() },
+    onActivated: { addListener: vi.fn() },
+    onUpdated: { addListener: vi.fn(), removeListener: vi.fn() },
+    get: vi.fn().mockResolvedValue({ id: 1, url: "https://www.tiktok.com" }),
+  };
+
+  const mockChromeRuntime = {
+    onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
+    onConnect: { addListener: vi.fn() },
+    onInstalled: { addListener: vi.fn() },
+    sendMessage: vi.fn(),
+    getManifest: vi.fn().mockReturnValue({ version: "1.0.0" }),
+  };
+
+  globalThis.chrome = {
+    storage: mockChromeStorage,
+    tabs: mockChromeTabs,
+    action: {
+      setBadgeText: vi.fn(),
+      setBadgeBackgroundColor: vi.fn(),
+    },
+    runtime: mockChromeRuntime,
+    extension: { getViews: vi.fn().mockReturnValue([]) },
+    windows: { update: vi.fn().mockResolvedValue({}) },
+    scripting: { executeScript: vi.fn().mockResolvedValue(undefined) },
+    webRequest: { onCompleted: { addListener: vi.fn() } },
+  } as unknown as typeof chrome;
+
+  return { mockStorage, mockChromeStorage, mockChromeTabs, mockChromeRuntime };
+});
+
 vi.mock("../../utils/convex-api", () => ({
   fetchComments: vi.fn(),
   syncComments: vi.fn(),
@@ -17,206 +83,29 @@ vi.mock("../../utils/convex-api", () => ({
   removeFromIgnoreListRemote: vi.fn(),
   fetchSettings: vi.fn(),
   updateSettings: vi.fn(),
+  setAuthToken: vi.fn(),
+}));
+
+vi.mock("../../config/loader", () => ({
+  loadConfig: vi.fn().mockResolvedValue({ version: "test" }),
+  refreshConfig: vi.fn().mockResolvedValue({ version: "test" }),
+  getLoadedConfig: vi.fn().mockReturnValue({
+    version: "test",
+    timeouts: { selectorWait: 5000, tabLoad: 10000, replyTimeout: 30000 },
+    delays: { postReply: 1000 },
+    limits: { contentScriptRetries: 3, contentScriptRetryDelay: 1000 },
+  }),
+}));
+
+vi.mock("../../utils/logger", () => ({
+  logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
 import * as convexApi from "../../utils/convex-api";
 
 const mockedConvexApi = vi.mocked(convexApi);
 
-const mockStorage: Record<string, unknown> = {};
-
-const mockChromeStorage = {
-  local: {
-    get: vi.fn((keys: string | string[]) => {
-      if (typeof keys === "string") {
-        return Promise.resolve({ [keys]: mockStorage[keys] });
-      }
-      const result: Record<string, unknown> = {};
-      (Array.isArray(keys) ? keys : [keys]).forEach((key) => {
-        result[key] = mockStorage[key];
-      });
-      return Promise.resolve(result);
-    }),
-    set: vi.fn((items: Record<string, unknown>) => {
-      Object.assign(mockStorage, items);
-      return Promise.resolve();
-    }),
-    remove: vi.fn((keys: string | string[]) => {
-      const keysArray = typeof keys === "string" ? [keys] : keys;
-      keysArray.forEach((key) => delete mockStorage[key]);
-      return Promise.resolve();
-    }),
-  },
-};
-
-const mockChromeTabs = {
-  create: vi.fn().mockResolvedValue({ id: 1, url: "https://www.tiktok.com" }),
-  query: vi.fn().mockResolvedValue([]),
-  update: vi.fn().mockResolvedValue({}),
-  sendMessage: vi.fn().mockResolvedValue({}),
-  remove: vi.fn().mockResolvedValue(undefined),
-  onRemoved: { addListener: vi.fn() },
-  onActivated: { addListener: vi.fn() },
-  onUpdated: { addListener: vi.fn(), removeListener: vi.fn() },
-  get: vi.fn().mockResolvedValue({ id: 1, url: "https://www.tiktok.com" }),
-};
-
-const mockChromeAction = {
-  setBadgeText: vi.fn(),
-  setBadgeBackgroundColor: vi.fn(),
-};
-
-const mockChromeRuntime = {
-  onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
-  onConnect: { addListener: vi.fn() },
-  sendMessage: vi.fn(),
-};
-
-const mockChromeExtension = {
-  getViews: vi.fn().mockReturnValue([]),
-};
-
-vi.stubGlobal("chrome", {
-  storage: mockChromeStorage,
-  tabs: mockChromeTabs,
-  action: mockChromeAction,
-  runtime: mockChromeRuntime,
-  extension: mockChromeExtension,
-});
-
-import {
-  getScrapedComments,
-  removeScrapedComment,
-  removeScrapedComments,
-  updateScrapedComment,
-  getVideos,
-  removeVideo,
-  removeVideos,
-  getAccountHandle,
-  saveAccountHandle,
-  getCommentLimit,
-  saveCommentLimit,
-  getPostLimit,
-  savePostLimit,
-  getScrapingState,
-} from "../../utils/storage";
-
-type ExtensionMessage = {
-  type: MessageType;
-  payload?: unknown;
-};
-
-type MessageSender = chrome.runtime.MessageSender;
-
-async function handleMessage(
-  message: ExtensionMessage,
-  _sender: MessageSender
-): Promise<unknown> {
-  switch (message.type) {
-    case MessageType.GET_SCRAPED_COMMENTS: {
-      const comments = await getScrapedComments();
-      return { comments };
-    }
-
-    case MessageType.REMOVE_SCRAPED_COMMENT: {
-      const { commentId } = message.payload as { commentId: string };
-      await removeScrapedComment(commentId);
-      return { success: true };
-    }
-
-    case MessageType.REMOVE_SCRAPED_COMMENTS: {
-      const { commentIds } = message.payload as { commentIds: string[] };
-      await removeScrapedComments(commentIds);
-      return { success: true };
-    }
-
-    case MessageType.UPDATE_SCRAPED_COMMENT: {
-      const { commentId, updates } = message.payload as {
-        commentId: string;
-        updates: Partial<ScrapedComment>;
-      };
-      await updateScrapedComment(commentId, updates);
-      return { success: true };
-    }
-
-    case MessageType.OPEN_TIKTOK_TAB: {
-      const tab = await chrome.tabs.create({
-        url: "https://www.tiktok.com",
-        active: true,
-      });
-      return { tabId: tab.id };
-    }
-
-    case MessageType.GET_TIKTOK_TAB: {
-      const tabs = await chrome.tabs.query({
-        url: "https://www.tiktok.com/*",
-      });
-      return { tab: tabs[0] || null };
-    }
-
-    case MessageType.CHECK_BRIDGE: {
-      return { connected: true };
-    }
-
-    case MessageType.GET_SCRAPING_STATE: {
-      const state = await getScrapingState();
-      return { state };
-    }
-
-    case MessageType.GET_ACCOUNT_HANDLE: {
-      const handle = await getAccountHandle();
-      return { handle };
-    }
-
-    case MessageType.SAVE_ACCOUNT_HANDLE: {
-      const { handle } = message.payload as { handle: string };
-      await saveAccountHandle(handle);
-      return { success: true };
-    }
-
-    case MessageType.GET_COMMENT_LIMIT: {
-      const limit = await getCommentLimit();
-      return { limit };
-    }
-
-    case MessageType.SAVE_COMMENT_LIMIT: {
-      const { limit } = message.payload as { limit: number };
-      await saveCommentLimit(limit);
-      return { success: true };
-    }
-
-    case MessageType.GET_POST_LIMIT: {
-      const limit = await getPostLimit();
-      return { limit };
-    }
-
-    case MessageType.SAVE_POST_LIMIT: {
-      const { limit } = message.payload as { limit: number };
-      await savePostLimit(limit);
-      return { success: true };
-    }
-
-    case MessageType.GET_STORED_VIDEOS: {
-      const videos = await getVideos();
-      return { videos };
-    }
-
-    case MessageType.REMOVE_VIDEO: {
-      const { videoId } = message.payload as { videoId: string };
-      await removeVideo(videoId);
-      return { success: true };
-    }
-
-    case MessageType.REMOVE_VIDEOS: {
-      const { videoIds } = message.payload as { videoIds: string[] };
-      await removeVideos(videoIds);
-      return { success: true };
-    }
-
-    default:
-      return null;
-  }
-}
+import { handleMessage } from "../index";
 
 function createComment(overrides: Partial<ScrapedComment> = {}): ScrapedComment {
   return {
@@ -251,12 +140,13 @@ const defaultSettings = {
   accountHandle: null as string | null,
 };
 
-describe("Background Message Handler", () => {
-  const mockSender: MessageSender = { tab: { id: 1 } } as MessageSender;
+const mockSender: chrome.runtime.MessageSender = { tab: { id: 1 } } as chrome.runtime.MessageSender;
 
+describe("Background Message Handler", () => {
   beforeEach(() => {
     Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
     vi.clearAllMocks();
+    mockChromeTabs.query.mockResolvedValue([]);
     mockedConvexApi.fetchSettings.mockResolvedValue({ ...defaultSettings });
   });
 
@@ -329,7 +219,7 @@ describe("Background Message Handler", () => {
   });
 
   describe("Tab Operations", () => {
-    it("OPEN_TIKTOK_TAB creates a new tab", async () => {
+    it("OPEN_TIKTOK_TAB creates a new tab with dashboard-adjacent index", async () => {
       const result = await handleMessage(
         { type: MessageType.OPEN_TIKTOK_TAB },
         mockSender
@@ -338,8 +228,24 @@ describe("Background Message Handler", () => {
       expect(mockChromeTabs.create).toHaveBeenCalledWith({
         url: "https://www.tiktok.com",
         active: true,
+        index: undefined,
       });
       expect(result).toEqual({ tabId: 1 });
+    });
+
+    it("OPEN_TIKTOK_TAB positions tab next to dashboard when dashboard is open", async () => {
+      mockChromeTabs.query.mockResolvedValueOnce([{ id: 5, index: 2 }]);
+
+      await handleMessage(
+        { type: MessageType.OPEN_TIKTOK_TAB },
+        mockSender
+      );
+
+      expect(mockChromeTabs.create).toHaveBeenCalledWith({
+        url: "https://www.tiktok.com",
+        active: true,
+        index: 3,
+      });
     });
 
     it("GET_TIKTOK_TAB returns existing TikTok tab", async () => {
@@ -377,6 +283,15 @@ describe("Background Message Handler", () => {
       );
 
       expect(result).toEqual({ connected: true });
+    });
+
+    it("CHECK_EXTENSION returns installed status", async () => {
+      const result = await handleMessage(
+        { type: MessageType.CHECK_EXTENSION },
+        mockSender
+      );
+
+      expect(result).toEqual({ installed: true });
     });
   });
 
@@ -532,6 +447,44 @@ describe("Background Message Handler", () => {
     });
   });
 
+  describe("Ignore List Operations", () => {
+    it("GET_IGNORE_LIST returns ignore list", async () => {
+      const ignoreList = [{ text: "spam", addedAt: "2024-01-01T00:00:00.000Z" }];
+      mockedConvexApi.fetchIgnoreList.mockResolvedValue(ignoreList);
+
+      const result = await handleMessage(
+        { type: MessageType.GET_IGNORE_LIST },
+        mockSender
+      );
+
+      expect(result).toEqual({ ignoreList });
+    });
+
+    it("ADD_TO_IGNORE_LIST adds text to ignore list", async () => {
+      mockedConvexApi.addToIgnoreListRemote.mockResolvedValue(undefined);
+
+      const result = await handleMessage(
+        { type: MessageType.ADD_TO_IGNORE_LIST, payload: { text: "spam" } },
+        mockSender
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(mockedConvexApi.addToIgnoreListRemote).toHaveBeenCalledWith("spam");
+    });
+
+    it("REMOVE_FROM_IGNORE_LIST removes text from ignore list", async () => {
+      mockedConvexApi.removeFromIgnoreListRemote.mockResolvedValue(undefined);
+
+      const result = await handleMessage(
+        { type: MessageType.REMOVE_FROM_IGNORE_LIST, payload: { text: "spam" } },
+        mockSender
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(mockedConvexApi.removeFromIgnoreListRemote).toHaveBeenCalledWith("spam");
+    });
+  });
+
   describe("Scraping State", () => {
     it("GET_SCRAPING_STATE returns current state", async () => {
       const state = {
@@ -570,6 +523,40 @@ describe("Background Message Handler", () => {
           message: "",
         },
       });
+    });
+  });
+
+  describe("Forward to Dashboard", () => {
+    it("forwards REPLY_COMMENT_PROGRESS to dashboard", async () => {
+      const result = await handleMessage(
+        {
+          type: MessageType.REPLY_COMMENT_PROGRESS,
+          payload: { commentId: "1", status: "replying", message: "Typing..." },
+        },
+        mockSender
+      );
+
+      expect(result).toEqual({ success: true });
+    });
+
+    it("forwards COMMENTS_UPDATED to dashboard", async () => {
+      const result = await handleMessage(
+        { type: MessageType.COMMENTS_UPDATED },
+        mockSender
+      );
+
+      expect(result).toEqual({ success: true });
+    });
+  });
+
+  describe("Config Operations", () => {
+    it("GET_CONFIG returns loaded config", async () => {
+      const result = await handleMessage(
+        { type: MessageType.GET_CONFIG },
+        mockSender
+      );
+
+      expect(result).toHaveProperty("config");
     });
   });
 

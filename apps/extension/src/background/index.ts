@@ -242,7 +242,7 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
-async function handleMessage(
+export async function handleMessage(
   message: ExtensionMessage,
   sender: chrome.runtime.MessageSender,
 ): Promise<unknown> {

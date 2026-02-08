@@ -157,13 +157,13 @@ async function waitForFirstComment(): Promise<Element | null> {
   });
 }
 
-interface VerificationResult {
+export interface VerificationResult {
   isMatch: boolean;
   foundHandle: string;
   foundComment: string;
 }
 
-function verifyComment(commentElement: Element, user: ScrapedComment): VerificationResult {
+export function verifyComment(commentElement: Element, user: ScrapedComment): VerificationResult {
   const targetHandle = user.handle.toLowerCase();
   const targetComment = normalizeText(user.comment);
 
@@ -201,7 +201,7 @@ function verifyComment(commentElement: Element, user: ScrapedComment): Verificat
   };
 }
 
-function normalizeText(text: string): string {
+export function normalizeText(text: string): string {
   return text
     .toLowerCase()
     .replace(/\s+/g, " ")
@@ -209,7 +209,7 @@ function normalizeText(text: string): string {
     .substring(0, 100);
 }
 
-function checkCommentTextMatch(expected: string, found: string): boolean {
+export function checkCommentTextMatch(expected: string, found: string): boolean {
   // Direct containment checks
   if (found.includes(expected) || expected.includes(found)) {
     return true;
