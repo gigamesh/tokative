@@ -45,6 +45,9 @@ export default defineSchema({
     isReply: v.optional(v.boolean()),
     replyCount: v.optional(v.number()),
     source: v.optional(v.union(v.literal("app"), v.literal("scraped"))),
+    detectedLanguage: v.optional(v.string()),
+    translatedText: v.optional(v.string()),
+    replyOriginalContent: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_video", ["userId", "videoId"])

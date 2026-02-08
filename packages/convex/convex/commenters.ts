@@ -121,6 +121,9 @@ export const listPaginated = query({
             isReply: c.isReply,
             replyCount: c.replyCount,
             source: c.source,
+            detectedLanguage: c.detectedLanguage,
+            translatedText: c.translatedText,
+            replyOriginalContent: c.replyOriginalContent,
             _convexId: c._id.toString(),
           })),
         };
@@ -218,6 +221,9 @@ export const list = query({
         isReply: c.isReply,
         replyCount: c.replyCount,
         source: c.source,
+        detectedLanguage: c.detectedLanguage,
+        translatedText: c.translatedText,
+        replyOriginalContent: c.replyOriginalContent,
         _convexId: c._id.toString(),
       };
 
