@@ -7,6 +7,9 @@ export default defineSchema({
     email: v.optional(v.string()),
     hasCompletedOnboarding: v.optional(v.boolean()),
     createdAt: v.number(),
+    commentCount: v.optional(v.number()),
+    replyCount: v.optional(v.number()),
+    videoCount: v.optional(v.number()),
   }).index("by_clerk_id", ["clerkId"]),
 
   tiktokProfiles: defineTable({

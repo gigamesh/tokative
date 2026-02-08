@@ -47,6 +47,13 @@ export async function insertComment(
     });
   }
 
+  const user = await ctx.db.get(userId);
+  if (user) {
+    await ctx.db.patch(userId, {
+      commentCount: (user.commentCount ?? 0) + 1,
+    });
+  }
+
   return commentDocId;
 }
 
@@ -87,6 +94,15 @@ export async function insertCommentsBatch(
     }
   }
 
+  if (comments.length > 0) {
+    const user = await ctx.db.get(userId);
+    if (user) {
+      await ctx.db.patch(userId, {
+        commentCount: (user.commentCount ?? 0) + comments.length,
+      });
+    }
+  }
+
   return comments.length;
 }
 
@@ -109,6 +125,13 @@ export async function deleteComment(
       commentCount: Math.max(0, (profile.commentCount ?? 1) - 1),
     });
   }
+
+  const user = await ctx.db.get(comment.userId);
+  if (user) {
+    await ctx.db.patch(comment.userId, {
+      commentCount: Math.max(0, (user.commentCount ?? 1) - 1),
+    });
+  }
 }
 
 /**
@@ -120,6 +143,7 @@ export async function deleteCommentsBatch(
   commentDocIds: Id<"comments">[]
 ): Promise<void> {
   const profileDecrements = new Map<string, number>();
+  const userDecrements = new Map<string, number>();
 
   for (const docId of commentDocIds) {
     const comment = await ctx.db.get(docId);
@@ -132,6 +156,12 @@ export async function deleteCommentsBatch(
       profileIdStr,
       (profileDecrements.get(profileIdStr) ?? 0) + 1
     );
+
+    const userIdStr = comment.userId.toString();
+    userDecrements.set(
+      userIdStr,
+      (userDecrements.get(userIdStr) ?? 0) + 1
+    );
   }
 
   for (const [profileIdStr, decrement] of Array.from(profileDecrements.entries())) {
@@ -140,6 +170,16 @@ export async function deleteCommentsBatch(
     if (profile) {
       await ctx.db.patch(profileId, {
         commentCount: Math.max(0, (profile.commentCount ?? decrement) - decrement),
+      });
+    }
+  }
+
+  for (const [userIdStr, decrement] of Array.from(userDecrements.entries())) {
+    const userId = userIdStr as Id<"users">;
+    const user = await ctx.db.get(userId);
+    if (user) {
+      await ctx.db.patch(userId, {
+        commentCount: Math.max(0, (user.commentCount ?? decrement) - decrement),
       });
     }
   }

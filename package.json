@@ -4,7 +4,8 @@
   "scripts": {
     "build": "turbo build",
     "build:release": "pnpm --filter @tokative/extension build:release",
-    "dev": "turbo dev",
+    "dev": "NEXT_PUBLIC_CONVEX_URL=https://befitting-albatross-157.convex.cloud turbo dev",
+    "dev:prod": "turbo dev",
     "dev:convex": "cd packages/convex && npx convex dev",
     "deploy:convex:dev": "cd packages/convex && npx convex dev --once",
     "deploy:convex:prod": "cd packages/convex && npx convex deploy",

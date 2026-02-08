@@ -301,6 +301,12 @@ export const update = mutation({
       throw new Error("Comment not found");
     }
 
+    if (args.updates.repliedTo === true && !comment.repliedTo) {
+      await ctx.db.patch(user._id, {
+        replyCount: (user.replyCount ?? 0) + 1,
+      });
+    }
+
     await ctx.db.patch(comment._id, args.updates);
   },
 });

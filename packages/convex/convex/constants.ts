@@ -1,3 +1,9 @@
+const ADMIN_EMAILS = ["m.masurka@gmail.com"];
+
+export function isAdminEmail(email: string): boolean {
+  return ADMIN_EMAILS.includes(email.toLowerCase());
+}
+
 export const WHITELISTED_EMAILS = [
   "ryansiegelmusic@gmail.com",
   "gmeshmusic@gmail.com",

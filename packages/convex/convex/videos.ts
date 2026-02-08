@@ -105,6 +105,15 @@ export const addBatch = mutation({
       });
     }
 
+    if (stored > 0) {
+      const freshUser = await ctx.db.get(user._id);
+      if (freshUser) {
+        await ctx.db.patch(user._id, {
+          videoCount: (freshUser.videoCount ?? 0) + stored,
+        });
+      }
+    }
+
     return { stored, duplicates };
   },
 });
@@ -164,6 +173,12 @@ export const remove = mutation({
 
     if (video) {
       await ctx.db.delete(video._id);
+      const freshUser = await ctx.db.get(user._id);
+      if (freshUser) {
+        await ctx.db.patch(user._id, {
+          videoCount: Math.max(0, (freshUser.videoCount ?? 1) - 1),
+        });
+      }
     }
   },
 });
@@ -183,6 +198,9 @@ export const removeBatch = mutation({
       throw new Error("User not found");
     }
 
+    let deletedVideos = 0;
+    let deletedComments = 0;
+
     for (const videoId of args.videoIds) {
       const comments = await ctx.db
         .query("comments")
@@ -194,6 +212,7 @@ export const removeBatch = mutation({
       for (const comment of comments) {
         await ctx.db.delete(comment._id);
       }
+      deletedComments += comments.length;
 
       const video = await ctx.db
         .query("videos")
@@ -204,6 +223,17 @@ export const removeBatch = mutation({
 
       if (video) {
         await ctx.db.delete(video._id);
+        deletedVideos++;
+      }
+    }
+
+    if (deletedVideos > 0 || deletedComments > 0) {
+      const freshUser = await ctx.db.get(user._id);
+      if (freshUser) {
+        await ctx.db.patch(user._id, {
+          videoCount: Math.max(0, (freshUser.videoCount ?? deletedVideos) - deletedVideos),
+          commentCount: Math.max(0, (freshUser.commentCount ?? deletedComments) - deletedComments),
+        });
       }
     }
   },

@@ -5,7 +5,8 @@ import { HelpModal } from "@/components/HelpModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useHelpModal } from "@/hooks/useHelpModal";
 import { useAuth } from "@/providers/ConvexProvider";
-import { SignOutButton } from "@clerk/nextjs";
+import { SignOutButton, useUser } from "@clerk/nextjs";
+import { isAdminEmail } from "@/utils/admin";
 import { HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,7 +24,9 @@ function NavButton(props: ComponentProps<"button">) {
 
 export function Header() {
   const { userId, isLoaded } = useAuth();
+  const { user } = useUser();
   const isSignedIn = !!userId;
+  const isAdmin = isAdminEmail(user?.primaryEmailAddress?.emailAddress);
   const pathname = usePathname();
   const isDashboard = pathname === "/dashboard";
   const { isOpen, hasSeenHelp, openModal, closeModal } = useHelpModal();
@@ -46,6 +49,9 @@ export function Header() {
         <div className="flex items-center gap-6">
           {isLoaded && isSignedIn && (
             <NavLink href="/dashboard">Dashboard</NavLink>
+          )}
+          {isLoaded && isSignedIn && isAdmin && (
+            <NavLink href="/admin">Admin</NavLink>
           )}
           {isLoaded && isSignedIn ? (
             <SignOutButton>
