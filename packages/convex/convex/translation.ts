@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import { translateText, translateBatch, iso639_3to1 } from "./lib/translate";
+import { translateText, iso639_3to1 } from "./lib/translate";
 import { franc } from "franc-min";
 import { isEmailWhitelisted } from "./constants";
 import { detectLanguages } from "./lib/detectLanguage";
@@ -81,40 +81,6 @@ export const translateComment = action({
   },
 });
 
-export const translateBatchComments = action({
-  args: {
-    clerkId: v.string(),
-    targetLanguage: v.string(),
-  },
-  handler: async (ctx, args): Promise<void> => {
-    const user = await ctx.runQuery(internal.translation.getUserByClerkId, {
-      clerkId: args.clerkId,
-    });
-    if (!user || !isEmailWhitelisted(user.email ?? "")) {
-      throw new Error("Not authorized");
-    }
-
-    const untranslated = await ctx.runQuery(
-      internal.translation.getUntranslatedComments,
-      { userId: user._id, targetLanguage: args.targetLanguage },
-    );
-
-    const BATCH_SIZE = 100;
-    for (let i = 0; i < untranslated.length; i += BATCH_SIZE) {
-      const batch = untranslated.slice(i, i + BATCH_SIZE);
-      const texts = batch.map((c: { comment: string }) => c.comment);
-      const translated = await translateBatch(texts, args.targetLanguage);
-
-      for (let j = 0; j < batch.length; j++) {
-        await ctx.runMutation(internal.translation.patchTranslation, {
-          commentDocId: batch[j]._id,
-          translatedText: translated[j],
-        });
-      }
-    }
-  },
-});
-
 export const backfillLanguageDetection = action({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -181,26 +147,6 @@ export const getCommentByUserAndId = internalQuery({
         q.eq("userId", args.userId).eq("commentId", args.commentId),
       )
       .unique();
-  },
-});
-
-export const getUntranslatedComments = internalQuery({
-  args: {
-    userId: v.id("users"),
-    targetLanguage: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const all = await ctx.db
-      .query("comments")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    return all.filter(
-      (c) =>
-        c.detectedLanguage &&
-        c.detectedLanguage !== args.targetLanguage &&
-        !c.translatedText,
-    );
   },
 });
 

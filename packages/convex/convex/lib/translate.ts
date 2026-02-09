@@ -67,34 +67,3 @@ export async function translateText(
   };
 }
 
-/** Translates up to 128 texts in a single API call. */
-export async function translateBatch(
-  texts: string[],
-  targetLang: string,
-): Promise<string[]> {
-  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
-  if (!apiKey) throw new Error("GOOGLE_TRANSLATE_API_KEY not set");
-
-  const body = {
-    q: texts,
-    target: targetLang,
-    format: "text",
-  };
-
-  const res = await fetch(
-    `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-  );
-
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`Google Translate API error ${res.status}: ${errBody}`);
-  }
-
-  const json: TranslateResponse = await res.json();
-  return json.data.translations.map((t) => t.translatedText);
-}

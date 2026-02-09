@@ -140,13 +140,9 @@ export function DashboardContent() {
   const { ignoreList, addToIgnoreList, removeFromIgnoreList } = useIgnoreList();
 
   const {
-    showTranslated,
-    setShowTranslated,
     translatingIds,
-    translateAllInProgress,
     targetLanguage,
     translateComment: handleTranslateComment,
-    translateAll: handleTranslateAll,
   } = useTranslation(translationEnabled);
 
 
@@ -616,10 +612,6 @@ export function DashboardContent() {
                   onSortChange={handleSortChange}
                   isActive={activeTab === "comments"}
                   translationEnabled={translationEnabled}
-                  showTranslated={showTranslated}
-                  onToggleShowTranslated={setShowTranslated}
-                  onTranslateAll={handleTranslateAll}
-                  translateAllInProgress={translateAllInProgress}
                   translatingIds={translatingIds}
                   onTranslateComment={handleTranslateComment}
                   targetLanguage={targetLanguage}
@@ -673,10 +665,6 @@ export function DashboardContent() {
                   search={commenterSearch}
                   onSearchChange={setCommenterSearch}
                   translationEnabled={translationEnabled}
-                  showTranslated={showTranslated}
-                  onToggleShowTranslated={setShowTranslated}
-                  onTranslateAll={handleTranslateAll}
-                  translateAllInProgress={translateAllInProgress}
                   translatingIds={translatingIds}
                   onTranslateComment={handleTranslateComment}
                   targetLanguage={targetLanguage}

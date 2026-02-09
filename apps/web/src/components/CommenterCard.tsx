@@ -18,7 +18,6 @@ interface CommenterCardProps {
   replyingCommentId?: string | null;
   searchingMatchesCommentId?: string | null;
   translationEnabled?: boolean;
-  showTranslated?: boolean;
   translatingIds?: Set<string>;
   onTranslateComment?: (commentId: string) => void;
   targetLanguage?: string;
@@ -50,7 +49,6 @@ export function CommenterCard({
   replyingCommentId,
   searchingMatchesCommentId,
   translationEnabled,
-  showTranslated,
   translatingIds,
   onTranslateComment,
   targetLanguage,
@@ -174,7 +172,6 @@ export function CommenterCard({
               isSearchingMatches={searchingMatchesCommentId === comment.id}
               transparent
               translationEnabled={translationEnabled}
-              showTranslated={showTranslated}
               isTranslating={translatingIds?.has(comment.id)}
               onTranslate={onTranslateComment ? () => onTranslateComment(comment.id) : undefined}
               targetLanguage={targetLanguage}

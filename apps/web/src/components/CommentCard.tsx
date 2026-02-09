@@ -17,7 +17,6 @@ interface CommentCardProps {
   isSearchingMatches?: boolean;
   transparent?: boolean;
   translationEnabled?: boolean;
-  showTranslated?: boolean;
   isTranslating?: boolean;
   onTranslate?: () => void;
   targetLanguage?: string;
@@ -50,7 +49,6 @@ export function CommentCard({
   isSearchingMatches = false,
   transparent = false,
   translationEnabled,
-  showTranslated,
   isTranslating,
   onTranslate,
   targetLanguage,
@@ -69,12 +67,6 @@ export function CommentCard({
       setIsTruncated(el.scrollHeight > el.clientHeight);
     }
   }, [comment.comment]);
-
-  useEffect(() => {
-    if (showTranslated !== undefined) {
-      setLocalShowTranslated(showTranslated);
-    }
-  }, [showTranslated]);
 
   useEffect(() => {
     if (comment.translatedText) {
