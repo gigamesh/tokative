@@ -58,7 +58,7 @@ export function CommentCard({
   const [isTruncated, setIsTruncated] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
-  const [localShowTranslated, setLocalShowTranslated] = useState(false);
+  const [showingOriginal, setShowingOriginal] = useState(false);
   const commentRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
@@ -68,14 +68,8 @@ export function CommentCard({
     }
   }, [comment.comment]);
 
-  useEffect(() => {
-    if (comment.translatedText) {
-      setLocalShowTranslated(true);
-    }
-  }, [comment.translatedText]);
-
   const replyStatusText = comment.replyError ? "Reply failed" : "";
-  const showingTranslation = localShowTranslated && !!comment.translatedText;
+  const showingTranslation = !!comment.translatedText && !showingOriginal;
   const displayText = showingTranslation ? comment.translatedText! : comment.comment;
 
   return (
@@ -190,12 +184,16 @@ export function CommentCard({
                 {isCommentExpanded ? "Show less" : "Show more"}
               </button>
             )}
-            {comment.translatedText && (
+            {comment.translatedText && comment.translatedText.toLowerCase() !== comment.comment.toLowerCase() && (
               <button
-                onClick={() => setLocalShowTranslated(!localShowTranslated)}
-                className="text-xs text-accent-cyan-text mt-1 opacity-70 hover:opacity-100 transition-colors"
+                onMouseDown={() => setShowingOriginal(true)}
+                onMouseUp={() => setShowingOriginal(false)}
+                onMouseLeave={() => setShowingOriginal(false)}
+                onTouchStart={() => setShowingOriginal(true)}
+                onTouchEnd={() => setShowingOriginal(false)}
+                className={`text-xs mt-1 transition-all select-none rounded px-1.5 py-0.5 -ml-1.5 ${showingOriginal ? "bg-accent-cyan-500/20 text-accent-cyan-text" : "text-accent-cyan-text opacity-70 hover:opacity-100"}`}
               >
-                {showingTranslation ? "Show original" : "Show translation"}
+                Show original
               </button>
             )}
             {translationEnabled && !comment.translatedText && onTranslate && comment.source !== "app" &&
