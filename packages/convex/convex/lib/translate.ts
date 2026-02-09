@@ -12,9 +12,9 @@ const ISO_639_3_TO_1: Record<string, string> = {
   cmn: "zh", afr: "af", swa: "sw",
 };
 
-/** Converts a 3-letter ISO 639-3 code to 2-letter ISO 639-1. */
-export function iso639_3to1(code: string): string {
-  return ISO_639_3_TO_1[code] ?? code.slice(0, 2);
+/** Converts a 3-letter ISO 639-3 code to 2-letter ISO 639-1. Returns null if unmapped. */
+export function iso639_3to1(code: string): string | null {
+  return ISO_639_3_TO_1[code] ?? null;
 }
 
 interface TranslateResponse {
@@ -26,12 +26,17 @@ interface TranslateResponse {
   };
 }
 
+export interface TranslateResult {
+  translatedText: string;
+  detectedSourceLanguage?: string;
+}
+
 /** Translates a single text string via Google Cloud Translate v2 REST API. */
 export async function translateText(
   text: string,
   targetLang: string,
   sourceLang?: string,
-): Promise<string> {
+): Promise<TranslateResult> {
   const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_TRANSLATE_API_KEY not set");
 
@@ -41,7 +46,8 @@ export async function translateText(
     format: "text",
     key: apiKey,
   });
-  if (sourceLang) params.set("source", sourceLang);
+  const validSourceLangs = new Set(Object.values(ISO_639_3_TO_1));
+  if (sourceLang && validSourceLangs.has(sourceLang)) params.set("source", sourceLang);
 
   const res = await fetch(
     `https://translation.googleapis.com/language/translate/v2?${params}`,
@@ -54,7 +60,11 @@ export async function translateText(
   }
 
   const json: TranslateResponse = await res.json();
-  return json.data.translations[0].translatedText;
+  const t = json.data.translations[0];
+  return {
+    translatedText: t.translatedText,
+    detectedSourceLanguage: t.detectedSourceLanguage,
+  };
 }
 
 /** Translates up to 128 texts in a single API call. */

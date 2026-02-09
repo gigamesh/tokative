@@ -23,8 +23,12 @@ import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { useIgnoreList } from "@/hooks/useIgnoreList";
 import { useMessaging } from "@/hooks/useMessaging";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useVideoData } from "@/hooks/useVideoData";
 import { ScrapedComment } from "@/utils/constants";
+import { useAuth } from "@/providers/ConvexProvider";
+import { useQuery } from "convex/react";
+import { api } from "@tokative/convex";
 import { PauseCircle, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -41,6 +45,13 @@ interface IgnoreListModalState {
 }
 
 export function DashboardContent() {
+  const { userId } = useAuth();
+  const accessStatus = useQuery(
+    api.users.getAccessStatus,
+    userId ? { clerkId: userId } : "skip",
+  );
+  const translationEnabled = accessStatus?.features?.translation ?? false;
+
   const {
     activeTab,
     selectedPostId,
@@ -87,10 +98,11 @@ export function DashboardContent() {
 
   const handleReplyComplete = useCallback(
     (commentId: string) => {
-      updateComment(commentId, {
+      const updates: Partial<ScrapedComment> = {
         repliedTo: true,
         repliedAt: new Date().toISOString(),
-      });
+      };
+      updateComment(commentId, updates);
       setSelectedCommentIds((prev) => {
         const next = new Set(prev);
         next.delete(commentId);
@@ -126,6 +138,17 @@ export function DashboardContent() {
   } = useVideoData();
 
   const { ignoreList, addToIgnoreList, removeFromIgnoreList } = useIgnoreList();
+
+  const {
+    showTranslated,
+    setShowTranslated,
+    translatingIds,
+    translateAllInProgress,
+    targetLanguage,
+    translateComment: handleTranslateComment,
+    translateAll: handleTranslateAll,
+  } = useTranslation(translationEnabled);
+
 
   const { commentCountsByVideo, totalCount: totalCommentCount } =
     useCommentCounts();
@@ -424,6 +447,13 @@ export function DashboardContent() {
     setSelectedCommentIds(new Set());
   }, []);
 
+  const executeBulkReply = useCallback(
+    (messages: string[], deleteMissing: boolean) => {
+      startBulkReply(selectedCommentsForDisplay, messages, deleteMissing);
+    },
+    [selectedCommentsForDisplay, startBulkReply],
+  );
+
   const handleBulkReply = useCallback(
     (messages: string[]) => {
       if (selectedCommentIds.size === 0) return;
@@ -434,42 +464,28 @@ export function DashboardContent() {
         });
         return;
       }
-      startBulkReply(
-        selectedCommentsForDisplay,
-        messages,
-        deleteMissingComments,
-      );
+      executeBulkReply(messages, deleteMissingComments);
     },
-    [selectedCommentsForDisplay, selectedCommentIds.size, startBulkReply, deleteMissingComments],
+    [selectedCommentIds.size, deleteMissingComments, executeBulkReply],
   );
 
   const handleMissingCommentChoiceSkip = useCallback(() => {
     saveDeleteMissingComments(false);
-    startBulkReply(
-      selectedCommentsForDisplay,
-      missingCommentChoiceModal.pendingMessages,
-      false,
-    );
+    executeBulkReply(missingCommentChoiceModal.pendingMessages, false);
     setMissingCommentChoiceModal({ isOpen: false, pendingMessages: [] });
   }, [
-    selectedCommentsForDisplay,
     missingCommentChoiceModal.pendingMessages,
-    startBulkReply,
+    executeBulkReply,
     saveDeleteMissingComments,
   ]);
 
   const handleMissingCommentChoiceDelete = useCallback(() => {
     saveDeleteMissingComments(true);
-    startBulkReply(
-      selectedCommentsForDisplay,
-      missingCommentChoiceModal.pendingMessages,
-      true,
-    );
+    executeBulkReply(missingCommentChoiceModal.pendingMessages, true);
     setMissingCommentChoiceModal({ isOpen: false, pendingMessages: [] });
   }, [
-    selectedCommentsForDisplay,
     missingCommentChoiceModal.pendingMessages,
-    startBulkReply,
+    executeBulkReply,
     saveDeleteMissingComments,
   ]);
 
@@ -599,6 +615,14 @@ export function DashboardContent() {
                   sort={commentSort}
                   onSortChange={handleSortChange}
                   isActive={activeTab === "comments"}
+                  translationEnabled={translationEnabled}
+                  showTranslated={showTranslated}
+                  onToggleShowTranslated={setShowTranslated}
+                  onTranslateAll={handleTranslateAll}
+                  translateAllInProgress={translateAllInProgress}
+                  translatingIds={translatingIds}
+                  onTranslateComment={handleTranslateComment}
+                  targetLanguage={targetLanguage}
                   headerContent={
                     <>
                       <h2 className="text-lg font-medium text-foreground">
@@ -648,6 +672,14 @@ export function DashboardContent() {
                   isLoadingMore={isLoadingMoreCommenters}
                   search={commenterSearch}
                   onSearchChange={setCommenterSearch}
+                  translationEnabled={translationEnabled}
+                  showTranslated={showTranslated}
+                  onToggleShowTranslated={setShowTranslated}
+                  onTranslateAll={handleTranslateAll}
+                  translateAllInProgress={translateAllInProgress}
+                  translatingIds={translatingIds}
+                  onTranslateComment={handleTranslateComment}
+                  targetLanguage={targetLanguage}
                   headerContent={
                     <h2 className="text-lg font-medium text-foreground">
                       Commenters

@@ -1,11 +1,12 @@
 import { CommenterData } from "@/hooks/useCommenterData";
 import { ScrapedComment } from "@/utils/constants";
-import { X } from "lucide-react";
+import { Languages, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommenterCard } from "./CommenterCard";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { DangerButton } from "./DangerButton";
+import { Spinner } from "./Spinner";
 
 function CommenterSkeleton() {
   return (
@@ -73,6 +74,14 @@ interface CommenterTableProps {
   isLoadingMore?: boolean;
   search: string;
   onSearchChange: (search: string) => void;
+  translationEnabled?: boolean;
+  showTranslated?: boolean;
+  onToggleShowTranslated?: (show: boolean) => void;
+  onTranslateAll?: () => void;
+  translateAllInProgress?: boolean;
+  translatingIds?: Set<string>;
+  onTranslateComment?: (commentId: string) => void;
+  targetLanguage?: string;
 }
 
 export function CommenterTable({
@@ -92,6 +101,14 @@ export function CommenterTable({
   isLoadingMore,
   search,
   onSearchChange,
+  translationEnabled,
+  showTranslated,
+  onToggleShowTranslated,
+  onTranslateAll,
+  translateAllInProgress,
+  translatingIds,
+  onTranslateComment,
+  targetLanguage,
 }: CommenterTableProps) {
   const [expandedCommenterIds, setExpandedCommenterIds] = useState<Set<string>>(
     new Set(),
@@ -169,6 +186,32 @@ export function CommenterTable({
                 </button>
               )}
             </div>
+
+            {translationEnabled && (
+              <>
+                <label className="flex items-center gap-1.5 text-sm text-foreground-muted cursor-pointer whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={showTranslated ?? false}
+                    onChange={(e) => onToggleShowTranslated?.(e.target.checked)}
+                    className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
+                  />
+                  Show translations
+                </label>
+                <button
+                  onClick={onTranslateAll}
+                  disabled={translateAllInProgress}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground hover:border-accent-cyan-muted transition-colors disabled:opacity-50 whitespace-nowrap"
+                >
+                  {translateAllInProgress ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Languages className="w-4 h-4" />
+                  )}
+                  Translate All
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -231,6 +274,11 @@ export function CommenterTable({
                 videoThumbnails={videoThumbnails}
                 replyingCommentId={replyingCommentId}
                 searchingMatchesCommentId={searchingMatchesCommentId}
+                translationEnabled={translationEnabled}
+                showTranslated={showTranslated}
+                translatingIds={translatingIds}
+                onTranslateComment={onTranslateComment}
+                targetLanguage={targetLanguage}
               />
             </div>
           )}

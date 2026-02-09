@@ -908,7 +908,7 @@ async function handleBulkReply(
 
       for (let i = 0; i < videoComments.length; i++) {
         const comment = videoComments[i];
-        const replyMessage = replyMessages[commentIndex % replyMessages.length];
+        const replyMessage = comment.messageToSend || replyMessages[commentIndex % replyMessages.length];
         commentIndex++;
 
         progress.current = comment.handle;

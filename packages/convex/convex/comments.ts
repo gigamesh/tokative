@@ -3,6 +3,7 @@ import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { detectLanguages } from "./lib/detectLanguage";
 import { getOrCreate as getOrCreateProfile } from "./tiktokProfiles";
 import {
   insertCommentsBatch,
@@ -272,7 +273,6 @@ export const addBatch = mutation({
         if (doc) newDocIds.push(doc._id);
       }
       if (newDocIds.length > 0) {
-        const { detectLanguages } = await import("./lib/detectLanguage");
         await detectLanguages(ctx, newDocIds);
       }
     }

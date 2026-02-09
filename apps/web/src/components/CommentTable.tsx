@@ -1,11 +1,12 @@
 import { ScrapedComment } from "@/utils/constants";
-import { X } from "lucide-react";
+import { Languages, X } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { DangerButton } from "./DangerButton";
 import { ExpanderRow } from "./ExpanderRow";
+import { Spinner } from "./Spinner";
 
 export function CommentSkeleton({ depth = 0 }: { depth?: number }) {
   return (
@@ -90,6 +91,14 @@ interface CommentTableProps {
   sort: SortOption;
   onSortChange: (sort: SortOption) => void;
   isActive?: boolean;
+  translationEnabled?: boolean;
+  showTranslated?: boolean;
+  onToggleShowTranslated?: (show: boolean) => void;
+  onTranslateAll?: () => void;
+  translateAllInProgress?: boolean;
+  translatingIds?: Set<string>;
+  onTranslateComment?: (commentId: string) => void;
+  targetLanguage?: string;
 }
 
 export function CommentTable({
@@ -113,6 +122,14 @@ export function CommentTable({
   sort,
   onSortChange,
   isActive = true,
+  translationEnabled,
+  showTranslated,
+  onToggleShowTranslated,
+  onTranslateAll,
+  translateAllInProgress,
+  translatingIds,
+  onTranslateComment,
+  targetLanguage,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -347,6 +364,32 @@ export function CommentTable({
               <option value="newest">Newest Comments</option>
               <option value="oldest">Oldest Comments</option>
             </select>
+
+            {translationEnabled && (
+              <>
+                <label className="flex items-center gap-1.5 text-sm text-foreground-muted cursor-pointer whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={showTranslated ?? false}
+                    onChange={(e) => onToggleShowTranslated?.(e.target.checked)}
+                    className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
+                  />
+                  Show translations
+                </label>
+                <button
+                  onClick={onTranslateAll}
+                  disabled={translateAllInProgress}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground hover:border-accent-cyan-muted transition-colors disabled:opacity-50 whitespace-nowrap"
+                >
+                  {translateAllInProgress ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Languages className="w-4 h-4" />
+                  )}
+                  Translate All
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -422,6 +465,11 @@ export function CommentTable({
                   depth={item.depth}
                   isReplying={replyingCommentId === item.id}
                   isSearchingMatches={searchingMatchesCommentId === item.id}
+                  translationEnabled={translationEnabled}
+                  showTranslated={showTranslated}
+                  isTranslating={translatingIds?.has(item.id)}
+                  onTranslate={onTranslateComment ? () => onTranslateComment(item.id) : undefined}
+                  targetLanguage={targetLanguage}
                 />
               )}
             </div>

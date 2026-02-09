@@ -1,8 +1,11 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, action } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { translateText, translateBatch } from "./lib/translate";
+import { Id } from "./_generated/dataModel";
+import { translateText, translateBatch, iso639_3to1 } from "./lib/translate";
+import { franc } from "franc-min";
 import { isEmailWhitelisted } from "./constants";
+import { detectLanguages } from "./lib/detectLanguage";
 
 export const patchLanguage = internalMutation({
   args: {
@@ -33,7 +36,6 @@ export const detectLanguagesBatch = internalMutation({
     commentDocIds: v.array(v.id("comments")),
   },
   handler: async (ctx, args) => {
-    const { detectLanguages } = await import("./lib/detectLanguage");
     await detectLanguages(ctx, args.commentDocIds);
   },
 });
@@ -58,15 +60,23 @@ export const translateComment = action({
     );
     if (!comment) throw new Error("Comment not found");
 
-    const translated = await translateText(
+    const result = await translateText(
       comment.comment,
       args.targetLanguage,
       comment.detectedLanguage ?? undefined,
     );
 
+    if (result.detectedSourceLanguage === args.targetLanguage) {
+      await ctx.runMutation(internal.translation.patchLanguage, {
+        commentDocId: comment._id,
+        detectedLanguage: args.targetLanguage,
+      });
+      return;
+    }
+
     await ctx.runMutation(internal.translation.patchTranslation, {
       commentDocId: comment._id,
-      translatedText: translated,
+      translatedText: result.translatedText,
     });
   },
 });
@@ -76,7 +86,7 @@ export const translateBatchComments = action({
     clerkId: v.string(),
     targetLanguage: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<void> => {
     const user = await ctx.runQuery(internal.translation.getUserByClerkId, {
       clerkId: args.clerkId,
     });
@@ -92,7 +102,7 @@ export const translateBatchComments = action({
     const BATCH_SIZE = 100;
     for (let i = 0; i < untranslated.length; i += BATCH_SIZE) {
       const batch = untranslated.slice(i, i + BATCH_SIZE);
-      const texts = batch.map((c) => c.comment);
+      const texts = batch.map((c: { comment: string }) => c.comment);
       const translated = await translateBatch(texts, args.targetLanguage);
 
       for (let j = 0; j < batch.length; j++) {
@@ -102,29 +112,6 @@ export const translateBatchComments = action({
         });
       }
     }
-  },
-});
-
-export const translateReplyText = action({
-  args: {
-    clerkId: v.string(),
-    messages: v.array(v.string()),
-    targetLanguages: v.array(v.string()),
-  },
-  handler: async (ctx, args): Promise<Record<string, string[]>> => {
-    const user = await ctx.runQuery(internal.translation.getUserByClerkId, {
-      clerkId: args.clerkId,
-    });
-    if (!user || !isEmailWhitelisted(user.email ?? "")) {
-      throw new Error("Not authorized");
-    }
-
-    const result: Record<string, string[]> = {};
-    for (const lang of args.targetLanguages) {
-      const translated = await translateBatch(args.messages, lang);
-      result[lang] = translated;
-    }
-    return result;
   },
 });
 
@@ -148,6 +135,25 @@ export const backfillLanguageDetection = action({
         commentDocIds: batch,
       });
     }
+  },
+});
+
+export const backfillAllLanguageDetection = action({
+  args: {},
+  handler: async (ctx): Promise<{ processed: number }> => {
+    const commentIds: Id<"comments">[] = await ctx.runQuery(
+      internal.translation.getAllCommentIds,
+    );
+
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < commentIds.length; i += BATCH_SIZE) {
+      const batch = commentIds.slice(i, i + BATCH_SIZE);
+      await ctx.runMutation(internal.translation.detectLanguagesBatch, {
+        commentDocIds: batch,
+      });
+    }
+
+    return { processed: commentIds.length };
   },
 });
 
@@ -209,5 +215,76 @@ export const getCommentsWithoutLanguage = internalQuery({
     return all
       .filter((c) => !c.detectedLanguage)
       .map((c) => c._id);
+  },
+});
+
+export const getAllCommentsWithoutLanguage = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("comments").collect();
+    return all
+      .filter((c) => !c.detectedLanguage)
+      .map((c) => c._id);
+  },
+});
+
+export const getAllCommentIds = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("comments").collect();
+    return all.map((c) => c._id);
+  },
+});
+
+export const getAllCommentsText = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("comments").collect();
+    return all.map((c) => ({
+      commentId: c.commentId,
+      comment: c.comment,
+      detectedLanguage: c.detectedLanguage,
+    }));
+  },
+});
+
+/** Temporary diagnostic: runs franc on all comments and returns the analysis. */
+export const analyzeFrancDetection = action({
+  args: {},
+  handler: async (ctx): Promise<Array<{
+    comment: string;
+    cleanedLength: number;
+    francRaw: string;
+    francMapped: string | null;
+    storedLang: string | null;
+  }>> => {
+    const comments: Array<{ comment: string; detectedLanguage?: string }> =
+      await ctx.runQuery(internal.translation.getAllCommentsText);
+
+    const results = [];
+    for (const c of comments) {
+      let cleaned = c.comment.replace(/\[.*?\]/g, " ");
+      cleaned = cleaned.replace(/[^\p{L}\s]/gu, "");
+      cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+      let francRaw = "too_short";
+      let francMapped: string | null = null;
+      if (cleaned.length >= 20) {
+        francRaw = franc(cleaned);
+        if (francRaw !== "und") {
+          francMapped = iso639_3to1(francRaw);
+        }
+      }
+
+      results.push({
+        comment: c.comment.length > 120 ? c.comment.substring(0, 120) + "..." : c.comment,
+        cleanedLength: cleaned.length,
+        francRaw,
+        francMapped,
+        storedLang: c.detectedLanguage ?? null,
+      });
+    }
+
+    return results;
   },
 });

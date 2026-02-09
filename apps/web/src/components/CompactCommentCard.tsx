@@ -6,6 +6,7 @@ import { useState } from "react";
 interface CompactCommentCardProps {
   comment: ScrapedComment;
   onRemove: () => void;
+  showTranslated?: boolean;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -26,6 +27,7 @@ function formatRelativeTime(dateString: string): string {
 export function CompactCommentCard({
   comment,
   onRemove,
+  showTranslated,
 }: CompactCommentCardProps) {
   const [avatarFailed, setAvatarFailed] = useState(false);
 
@@ -50,7 +52,7 @@ export function CompactCommentCard({
       )}
 
       <span className="text-xs text-foreground-muted truncate flex-1 min-w-0">
-        {comment.comment}
+        {showTranslated && comment.translatedText ? comment.translatedText : comment.comment}
       </span>
 
       {comment.commentTimestamp && (
