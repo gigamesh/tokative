@@ -86,6 +86,8 @@ export function DashboardContent() {
     hasMore,
     isLoadingMore,
     findMatchingComments,
+    search: commentSearch,
+    setSearch: setCommentSearch,
   } = useCommentData({
     videoIdFilter: selectedPostId,
     sortOrder: commentSort === "newest" ? "desc" : "asc",
@@ -608,6 +610,8 @@ export function DashboardContent() {
                   isInitialLoading={loading}
                   replyingCommentId={null}
                   searchingMatchesCommentId={searchingMatchesCommentId}
+                  search={commentSearch}
+                  onSearchChange={setCommentSearch}
                   sort={commentSort}
                   onSortChange={handleSortChange}
                   isActive={activeTab === "comments"}

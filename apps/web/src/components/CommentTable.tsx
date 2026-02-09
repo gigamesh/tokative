@@ -87,6 +87,8 @@ interface CommentTableProps {
   replyingCommentId?: string | null;
   headerContent?: React.ReactNode;
   searchingMatchesCommentId?: string | null;
+  search: string;
+  onSearchChange: (search: string) => void;
   sort: SortOption;
   onSortChange: (sort: SortOption) => void;
   isActive?: boolean;
@@ -114,6 +116,8 @@ export function CommentTable({
   replyingCommentId,
   headerContent,
   searchingMatchesCommentId,
+  search,
+  onSearchChange,
   sort,
   onSortChange,
   isActive = true,
@@ -122,7 +126,6 @@ export function CommentTable({
   onTranslateComment,
   targetLanguage,
 }: CommentTableProps) {
-  const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
@@ -147,38 +150,14 @@ export function CommentTable({
     const topLevel = videoFiltered.filter((c) => !c.isReply);
     const replies = videoFiltered.filter((c) => c.isReply);
 
-    const matchesSearchText = (comment: ScrapedComment) =>
-      search === "" ||
-      comment.handle.toLowerCase().includes(search.toLowerCase()) ||
-      comment.comment.toLowerCase().includes(search.toLowerCase());
-
     const matchesFilterStatus = (comment: ScrapedComment) =>
       filter === "all" ||
       (filter === "replied" && comment.repliedTo) ||
       (filter === "not_replied" && !comment.repliedTo && !comment.replyError) ||
       (filter === "failed" && comment.replyError);
 
-    // Filter and sort only top-level comments based on criteria
-    let filteredTopLevel = topLevel.filter(
-      (c) => matchesSearchText(c) && matchesFilterStatus(c),
-    );
+    const filteredTopLevel = topLevel.filter((c) => matchesFilterStatus(c));
 
-    // If searching, also include parents of matching replies
-    if (search !== "") {
-      const matchingReplies = replies.filter((c) => matchesSearchText(c));
-      const parentIdsOfMatchingReplies = new Set(
-        matchingReplies.map((c) => c.parentCommentId).filter(Boolean),
-      );
-      const additionalParents = topLevel.filter(
-        (c) =>
-          c.commentId &&
-          parentIdsOfMatchingReplies.has(c.commentId) &&
-          !filteredTopLevel.some((f) => f.id === c.id),
-      );
-      filteredTopLevel = [...filteredTopLevel, ...additionalParents];
-    }
-
-    // Sort top-level comments
     const sortedTopLevel = filteredTopLevel.sort((a, b) => {
       const aTime = a.commentTimestamp
         ? new Date(a.commentTimestamp).getTime()
@@ -189,19 +168,17 @@ export function CommentTable({
       return sort === "newest" ? bTime - aTime : aTime - bTime;
     });
 
-    // Build set of parent commentIds that made it through filtering
     const includedParentCommentIds = new Set(
       sortedTopLevel.map((c) => c.commentId).filter(Boolean),
     );
 
-    // Include all replies whose parent is in the filtered set
     const includedReplies = replies.filter(
       (c) =>
         c.parentCommentId && includedParentCommentIds.has(c.parentCommentId),
     );
 
     return [...sortedTopLevel, ...includedReplies];
-  }, [comments, search, filter, sort, videoIdFilter]);
+  }, [comments, filter, sort, videoIdFilter]);
 
   const displayComments = useMemo((): DisplayComment[] => {
     const topLevel = filteredComments.filter((c) => !c.isReply);
@@ -322,12 +299,12 @@ export function CommentTable({
                 type="text"
                 placeholder="Search comments..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => onSearchChange(e.target.value)}
                 className="px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg min-w-80 text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted"
               />
               {search && (
                 <button
-                  onClick={() => setSearch("")}
+                  onClick={() => onSearchChange("")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground transition-colors"
                   aria-label="Clear search"
                 >
@@ -392,9 +369,11 @@ export function CommentTable({
         <CommentTableSkeleton count={5} />
       ) : displayComments.length === 0 ? (
         <div className="text-center py-12 text-foreground-muted">
-          {comments.length === 0
-            ? "No comments collected yet. Start collecting to see comments here."
-            : "No comments match your search/filter criteria."}
+          {search
+            ? "No comments match your search."
+            : comments.length === 0
+              ? "No comments collected yet. Start collecting to see comments here."
+              : "No comments match your filter criteria."}
         </div>
       ) : (
         <Virtuoso

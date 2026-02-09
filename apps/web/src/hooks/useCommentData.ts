@@ -17,6 +17,23 @@ interface CommentDataState {
 }
 
 const PAGE_SIZE = 50;
+const DEBOUNCE_MS = 300;
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 interface UseCommentDataOptions {
   videoIdFilter?: string | null;
@@ -27,6 +44,8 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
   const { videoIdFilter, sortOrder = "desc" } = options;
   const { userId } = useAuth();
   const convex = useConvex();
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, DEBOUNCE_MS);
   const [state, setState] = useState<CommentDataState>({
     commentLimit: 100,
     postLimit: 50,
@@ -46,7 +65,12 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
   } = usePaginatedQuery(
     api.comments.listPaginated,
     userId
-      ? { clerkId: userId, videoId: videoIdFilter ?? undefined, sortOrder }
+      ? {
+          clerkId: userId,
+          videoId: videoIdFilter ?? undefined,
+          sortOrder,
+          search: debouncedSearch || undefined,
+        }
       : "skip",
     { initialNumItems: PAGE_SIZE }
   );
@@ -286,5 +310,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     hasMore: paginationStatus === "CanLoadMore",
     isLoadingMore: paginationStatus === "LoadingMore",
     findMatchingComments,
+    search,
+    setSearch,
   };
 }

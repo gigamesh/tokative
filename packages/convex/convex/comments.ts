@@ -67,11 +67,62 @@ export const list = query({
   },
 });
 
+function formatComment(
+  c: {
+    commentId: string;
+    comment: string;
+    scrapedAt: number;
+    videoUrl?: string;
+    repliedTo?: boolean;
+    repliedAt?: number;
+    replyError?: string;
+    replyContent?: string;
+    commentTimestamp?: string;
+    videoId?: string;
+    parentCommentId?: string;
+    isReply?: boolean;
+    replyCount?: number;
+    source?: "app" | "scraped";
+    detectedLanguage?: string;
+    translatedText?: string;
+    replyOriginalContent?: string;
+    _id: Id<"comments">;
+    tiktokProfileId: Id<"tiktokProfiles">;
+  },
+  profile: { handle: string; profileUrl: string; avatarUrl?: string } | undefined,
+) {
+  return {
+    id: c.commentId,
+    handle: profile?.handle ?? "",
+    comment: c.comment,
+    scrapedAt: new Date(c.scrapedAt).toISOString(),
+    profileUrl: profile?.profileUrl ?? "",
+    avatarUrl: profile?.avatarUrl,
+    videoUrl: c.videoUrl,
+    repliedTo: c.repliedTo,
+    repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
+    replyError: c.replyError,
+    replyContent: c.replyContent,
+    commentTimestamp: c.commentTimestamp,
+    commentId: c.commentId,
+    videoId: c.videoId,
+    parentCommentId: c.parentCommentId,
+    isReply: c.isReply,
+    replyCount: c.replyCount,
+    source: c.source,
+    detectedLanguage: c.detectedLanguage,
+    translatedText: c.translatedText,
+    replyOriginalContent: c.replyOriginalContent,
+    _convexId: c._id,
+  };
+}
+
 export const listPaginated = query({
   args: {
     clerkId: v.string(),
     videoId: v.optional(v.string()),
     sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+    search: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
@@ -89,6 +140,73 @@ export const listPaginated = query({
     }
 
     const order = args.sortOrder ?? "desc";
+    const searchLower = args.search?.toLowerCase().trim() || "";
+
+    if (searchLower) {
+      const allComments = await (args.videoId
+        ? ctx.db
+            .query("comments")
+            .withIndex("by_user_video_and_timestamp", (q) =>
+              q.eq("userId", user._id).eq("videoId", args.videoId)
+            )
+            .order(order)
+            .collect()
+        : ctx.db
+            .query("comments")
+            .withIndex("by_user_and_timestamp", (q) =>
+              q.eq("userId", user._id)
+            )
+            .order(order)
+            .collect());
+
+      const profileIds = Array.from(new Set(allComments.map((c) => c.tiktokProfileId)));
+      const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
+      const profileMap = new Map(
+        profiles.filter(Boolean).map((p) => [p!._id, p!])
+      );
+
+      const matchingIds = new Set<string>();
+      const matching = allComments.filter((c) => {
+        const profile = profileMap.get(c.tiktokProfileId);
+        const handle = profile?.handle ?? "";
+        const matches =
+          c.comment.toLowerCase().includes(searchLower) ||
+          handle.toLowerCase().includes(searchLower);
+        if (matches) matchingIds.add(c.commentId);
+        return matches;
+      });
+
+      const commentIdMap = new Map(allComments.map((c) => [c.commentId, c]));
+      for (const c of matching) {
+        if (c.isReply && c.parentCommentId && !matchingIds.has(c.parentCommentId)) {
+          const parent = commentIdMap.get(c.parentCommentId);
+          if (parent) {
+            matching.push(parent);
+            matchingIds.add(parent.commentId);
+          }
+        }
+      }
+
+      matching.sort((a, b) => {
+        const aTime = a.commentTimestamp ? new Date(a.commentTimestamp).getTime() : a.scrapedAt;
+        const bTime = b.commentTimestamp ? new Date(b.commentTimestamp).getTime() : b.scrapedAt;
+        return order === "desc" ? bTime - aTime : aTime - bTime;
+      });
+
+      const cursor = args.paginationOpts.cursor
+        ? parseInt(args.paginationOpts.cursor, 10)
+        : 0;
+      const pageSize = args.paginationOpts.numItems;
+      const pageComments = matching.slice(cursor, cursor + pageSize);
+      const nextCursor = cursor + pageSize;
+      const isDone = nextCursor >= matching.length;
+
+      return {
+        page: pageComments.map((c) => formatComment(c, profileMap.get(c.tiktokProfileId) ?? undefined)),
+        isDone,
+        continueCursor: isDone ? "" : String(nextCursor),
+      };
+    }
 
     const result = args.videoId
       ? await ctx.db
@@ -112,36 +230,8 @@ export const listPaginated = query({
       profiles.filter(Boolean).map((p) => [p!._id, p!])
     );
 
-    const formattedComments = result.page.map((c) => {
-      const profile = profileMap.get(c.tiktokProfileId);
-      return {
-        id: c.commentId,
-        handle: profile?.handle ?? "",
-        comment: c.comment,
-        scrapedAt: new Date(c.scrapedAt).toISOString(),
-        profileUrl: profile?.profileUrl ?? "",
-        avatarUrl: profile?.avatarUrl,
-        videoUrl: c.videoUrl,
-        repliedTo: c.repliedTo,
-        repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
-        replyError: c.replyError,
-        replyContent: c.replyContent,
-        commentTimestamp: c.commentTimestamp,
-        commentId: c.commentId,
-        videoId: c.videoId,
-        parentCommentId: c.parentCommentId,
-        isReply: c.isReply,
-        replyCount: c.replyCount,
-        source: c.source,
-        detectedLanguage: c.detectedLanguage,
-        translatedText: c.translatedText,
-        replyOriginalContent: c.replyOriginalContent,
-        _convexId: c._id,
-      };
-    });
-
     return {
-      page: formattedComments,
+      page: result.page.map((c) => formatComment(c, profileMap.get(c.tiktokProfileId) ?? undefined)),
       isDone: result.isDone,
       continueCursor: result.continueCursor,
     };
