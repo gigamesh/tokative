@@ -90,6 +90,10 @@ interface CommentTableProps {
   sort: SortOption;
   onSortChange: (sort: SortOption) => void;
   isActive?: boolean;
+  translationEnabled?: boolean;
+  translatingIds?: Set<string>;
+  onTranslateComment?: (commentId: string) => void;
+  targetLanguage?: string;
 }
 
 export function CommentTable({
@@ -113,6 +117,10 @@ export function CommentTable({
   sort,
   onSortChange,
   isActive = true,
+  translationEnabled,
+  translatingIds,
+  onTranslateComment,
+  targetLanguage,
 }: CommentTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -422,6 +430,10 @@ export function CommentTable({
                   depth={item.depth}
                   isReplying={replyingCommentId === item.id}
                   isSearchingMatches={searchingMatchesCommentId === item.id}
+                  translationEnabled={translationEnabled}
+                  isTranslating={translatingIds?.has(item.id)}
+                  onTranslate={onTranslateComment ? () => onTranslateComment(item.id) : undefined}
+                  targetLanguage={targetLanguage}
                 />
               )}
             </div>

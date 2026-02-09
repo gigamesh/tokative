@@ -1,179 +1,215 @@
 # Language Translation Feature for Tokative
 
-## Feature Overview
+## Status: Phases 1–5 Complete
 
-Add language detection for stored comments and translation capability for replies:
-1. **Background process** detects the language of every stored comment
-2. **UI** shows detected language and offers translation option
-3. **Reply flow** translates user's reply into the comment's language before sending
+All code changes are implemented. Phase 6 (migration & verification) requires manual steps.
 
 ---
 
-## Current Architecture
+## What Was Built
 
-**App Type**: Chrome Extension + Next.js Web Dashboard (monorepo)
-
-**Key Files**:
-- `packages/shared/src/types.ts` - `ScrapedComment` interface (no language field currently)
-- `apps/extension/src/utils/storage.ts` - Chrome storage layer
-- `apps/web/src/components/ReplyComposer.tsx` - Reply composition UI
-- `apps/extension/src/content/tiktok/comment-replier.ts` - Sends replies to TikTok
-- `apps/extension/src/background/index.ts` - Background service worker
-
-**Reply Data Flow**:
-```
-ReplyComposer → useMessaging hook → Extension Bridge → Background Worker → Content Script → TikTok
-```
+1. **Language detection** — `franc-min` detects language of every incoming comment server-side (Convex mutation), stores ISO 639-1 code
+2. **Per-comment translation** — "Translate" button on non-native-language comments, calls Google Cloud Translate v2
+3. **Global translation controls** — "Show translations" toggle + "Translate All" button on both Comments and Commenters tabs
+4. **Reply translation** — "Respond in commenter's language" checkbox in ReplyComposer auto-translates outbound replies
+5. **Feature gating** — All UI gated behind `WHITELISTED_EMAILS` via `features.translation` from `getAccessStatus`
 
 ---
 
-## Language Detection: franc (Recommended)
-
-### Why franc?
-- **Completely free** - no API costs, no limits
-- **Offline** - works entirely in the extension, no network calls
-- **Fast** - instant detection, no latency
-- **Lightweight** - 180KB-2MB depending on language coverage
-
-### How It Works
-
-franc uses **n-gram frequency matching**:
-
-1. **N-grams**: Breaks text into overlapping character sequences (trigrams).
-   - Example: "hello" → `"hel"`, `"ell"`, `"llo"`
-
-2. **Language profiles**: Pre-computed frequency profiles for each language.
-   - English: common trigrams like `"the"`, `"ing"`, `"tion"`
-   - Japanese: `"です"`, `"ます"`, etc.
-
-3. **Matching**: Compares input text's n-gram frequencies against all profiles, returns closest match.
-
-### Usage
-
-```javascript
-import { franc } from 'franc';
-
-franc('Hello, how are you?');          // 'eng'
-franc('Bonjour, comment allez-vous?'); // 'fra'
-franc('こんにちは');                     // 'jpn'
-franc('Hola, ¿cómo estás?');           // 'spa'
-
-// Returns ISO 639-3 codes (3-letter)
-// Returns 'und' (undetermined) if detection fails
-```
-
-### Package Options
-
-| Package | Languages | Size | Use Case |
-|---------|-----------|------|----------|
-| `franc-min` | 82 (8M+ speakers) | ~180KB | **Recommended** - covers 99% of TikTok comments |
-| `franc` | 187 (1M+ speakers) | ~480KB | More coverage if needed |
-| `franc-all` | 414 | ~2MB | Maximum coverage |
-
-### Limitations
-
-- **Short text**: Needs ~20+ characters for reliable detection
-- **Mixed language**: Returns best guess, doesn't handle code-switching
-- **Similar languages**: May confuse Norwegian/Danish/Swedish or Spanish/Portuguese
-
----
-
-## Translation API Comparison
-
-### Pricing Summary
-
-| Provider | Cost per 1M chars | Free Tier | Languages |
-|----------|-------------------|-----------|-----------|
-| [Microsoft Azure](https://azure.microsoft.com/en-us/pricing/details/translator/) | **$10** | 2M chars/mo (12 months) | 135+ |
-| [Amazon Translate](https://aws.amazon.com/translate/pricing/) | $15 | 2M chars/mo (12 months) | 75+ |
-| [Google Cloud](https://cloud.google.com/translate/pricing) | $20 | 500K chars/mo (forever) | 130+ |
-| [DeepL](https://support.deepl.com/hc/en-us/articles/360021200939-DeepL-API-plans) | $25 + $5.49/mo base | 500K chars/mo | 30+ |
-
-### When to Choose Each
-
-| Provider | Best For |
-|----------|----------|
-| **Google Cloud** | Getting started - free tier never expires |
-| **Microsoft Azure** | High volume - cheapest per-character rate |
-| **DeepL** | Quality-critical, especially European languages |
-| **Amazon Translate** | Already using AWS ecosystem |
-
-### Cost Estimates
-
-Assuming typical usage: ~10,000 comments detected/month, ~1,000 replies translated (~50 chars each):
-
-| Setup | Detection Cost | Translation Cost | Monthly Total |
-|-------|---------------|------------------|---------------|
-| franc + Google | $0 | $0 (within free tier) | **$0** |
-| franc + Azure | $0 | ~$0.50 | ~$0.50 |
-| franc + DeepL | $0 | $5.49 base + ~$1.25 | ~$6.74 |
-
----
-
-## Recommended Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    LANGUAGE DETECTION                        │
-│                                                              │
-│  New comments → franc (offline) → detectedLanguage stored   │
-│                                                              │
-│  Cost: $0 | Speed: Instant | Runs in: Extension             │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    TRANSLATION (on reply)                    │
-│                                                              │
-│  User's reply → Google/Azure/DeepL API → Translated text    │
-│                                                              │
-│  Cost: ~$0 (free tier) | Runs in: Background worker         │
-└─────────────────────────────────────────────────────────────┘
+Incoming comments
+  → addBatch (Convex mutation)
+  → detectLanguages (franc-min, inline in same mutation)
+  → stores detectedLanguage on comment doc
+
+Translation (on demand)
+  → User clicks "Translate" or "Translate All"
+  → Convex action calls Google Cloud Translate v2 REST API
+  → Stores translatedText on comment doc
+
+Reply translation
+  → User checks "Respond in commenter's language"
+  → Dashboard calls translateReplyText action (batch translates message variations per language)
+  → Attaches messageToSend to each comment before sending to extension
+  → Extension uses messageToSend as reply text instead of original messages
+  → replyOriginalContent stored for audit trail
 ```
 
-**Key insight**: Use free offline detection for high-volume comment processing, only call paid translation API when user actually sends a reply (much lower volume).
+**Translation API**: Google Cloud Translate v2 (REST), keyed by `GOOGLE_TRANSLATE_API_KEY` Convex env var
+**Language detection**: `franc-min` running inline in Convex mutations (server-side)
+**Target language**: User's browser language (`navigator.language`)
 
 ---
 
-## Implementation Plan
+## Implementation Details
 
-### Phase 1: Language Detection
+### Phase 1: Backend — Schema, Detection, Translation Infrastructure
 
-1. Add `detectedLanguage?: string` field to `ScrapedComment` interface
-2. Install `franc-min` package in extension
-3. Detect language when comments are stored in `addScrapedComments()`
-4. Store ISO 639-3 codes (convert to ISO 639-1 for API compatibility)
+**Schema changes** (`packages/convex/convex/schema.ts`):
+- `detectedLanguage: v.optional(v.string())` — ISO 639-1 code (e.g. "es", "fr", "ja")
+- `translatedText: v.optional(v.string())` — translated comment text
+- `replyOriginalContent: v.optional(v.string())` — original text before reply translation
 
-### Phase 2: UI Updates
+**New files**:
+- `packages/convex/convex/lib/translate.ts` — Google Translate API wrapper (`translateText`, `translateBatch`) + ISO 639-3→1 mapper
+- `packages/convex/convex/lib/detectLanguage.ts` — shared helper that runs `franc` on comment docs and patches `detectedLanguage`
+- `packages/convex/convex/translation.ts` — all translation actions/mutations:
+  - `translateComment` — single comment translation
+  - `translateBatchComments` — bulk translate all untranslated non-native comments
+  - `translateReplyText` — translate message variations to multiple target languages
+  - `backfillLanguageDetection` — migrate existing comments
+  - Internal helpers: `patchLanguage`, `patchTranslation`, `detectLanguagesBatch`
 
-1. Add language badge to `CommentCard` component
-2. Add "Translate reply" toggle in `ReplyComposer`
-3. Show target language based on detected comment language
+**Modified files**:
+- `packages/convex/convex/comments.ts` — inline language detection in `addBatch`, new fields in query return objects, `replyOriginalContent` in update mutation
+- `packages/convex/convex/commenters.ts` — new fields in query return objects
+- `packages/convex/convex/users.ts` — `features: { translation: isAllowed }` in `getAccessStatus`
+- `packages/convex/package.json` — added `franc-min` dependency
 
-### Phase 3: Translation Integration
+**Design decision**: Language detection runs inline in the `addBatch` mutation (not scheduled via `scheduler.runAfter`) because `convex-test` doesn't support scheduled functions properly. This is synchronous within the transaction.
 
-1. Add translation API configuration in settings
-2. Create `translation.ts` service wrapper
-3. Hook into reply flow (in `useMessaging` or background worker)
-4. Translate before sending when toggle is enabled
+### Phase 2: Shared Types
 
-### Files to Modify
+**`packages/shared/src/types.ts`** — added to `ScrapedComment`:
+- `detectedLanguage?: string`
+- `translatedText?: string`
+- `replyOriginalContent?: string`
+- `messageToSend?: string` — transient field for per-comment translated reply during bulk send (not persisted)
 
-| File | Changes |
-|------|---------|
-| `packages/shared/src/types.ts` | Add `detectedLanguage` field |
-| `apps/extension/src/utils/storage.ts` | Integrate franc detection on save |
-| `apps/extension/src/background/index.ts` | Handle translation API calls |
-| `apps/web/src/components/CommentCard.tsx` | Display language badge |
-| `apps/web/src/components/ReplyComposer.tsx` | Add translate toggle |
-| `apps/web/src/hooks/useMessaging.ts` | Integrate translation before send |
-| New: `apps/extension/src/utils/translation.ts` | Translation service wrapper |
+### Phase 3: Dashboard Hook & Wiring
+
+**New file**: `apps/web/src/hooks/useTranslation.ts`
+- Manages `showTranslated` toggle state, `translatingIds` loading set, `translateAllInProgress` flag
+- Exposes `translateComment(commentId)` and `translateAll()` via `useAction`
+- Derives `targetLanguage` from `navigator.language`
+
+**`apps/web/src/components/DashboardContent.tsx`**:
+- Queries `getAccessStatus` for `features.translation`
+- Calls `useTranslation(translationEnabled)`
+- Passes translation props to `CommentTable`, `CommenterTable`, `ReplyComposer`
+
+### Phase 4: Comment UI
+
+**`CommentCard.tsx`**:
+- Shows `translatedText` or original `comment` based on local toggle
+- "Show original" / "Show translation" toggle link when translation exists
+- "Translate" button with Languages icon and loading spinner for untranslated non-native comments
+
+**`CommentTable.tsx`** and **`CommenterTable.tsx`**:
+- "Show translations" checkbox in sticky header (global toggle)
+- "Translate All" button with Languages icon and spinner
+- Passes translation props through to child cards
+
+**`CommenterCard.tsx`**:
+- Passes translation props through to child `CommentCard` instances
+
+**`CompactCommentCard.tsx`**:
+- Shows `translatedText` when `showTranslated` is true
+
+### Phase 5: Reply Translation
+
+**`ReplyComposer.tsx`**:
+- "Respond in commenter's language" checkbox (only shown when `translationEnabled`)
+- `onSend` signature includes `respondInNativeLanguage` flag
+
+**`DashboardContent.tsx`**:
+- `executeBulkReply` async helper: collects unique non-English languages from selected comments, calls `translateReplyText` action, attaches `messageToSend` and `replyOriginalContent` to each comment
+- `replyTranslationsRef` maps commentId → original message text for Convex updates on reply completion
+- `handleReplyComplete` stores `replyOriginalContent` when available
+- Missing-comment-choice modal flow passes `respondInNativeLanguage` through
+
+**`useMessaging.ts`**:
+- Includes `messageToSend` and `replyOriginalContent` in trimmed comments sent to extension
+
+**`useCommentData.ts`**:
+- `updateComment` maps `replyOriginalContent` to Convex updates
+
+**`apps/extension/src/background/index.ts`**:
+- Uses `comment.messageToSend` (if present) instead of cycling through message variations
+- Stores `replyOriginalContent` in local storage after successful reply
 
 ---
 
-## Verification
+## Files Summary
 
-1. Store a comment in a non-English language → verify `detectedLanguage` is set
-2. Open reply composer → verify detected language badge appears
-3. Enable translation toggle, compose English reply → verify translated text
-4. Send reply → verify translated content appears on TikTok
+| File | Type | Changes |
+|------|------|---------|
+| `packages/convex/package.json` | Modified | Added `franc-min` |
+| `packages/convex/convex/schema.ts` | Modified | +3 fields on comments |
+| `packages/convex/convex/lib/translate.ts` | **New** | Google Translate wrapper + ISO mapping |
+| `packages/convex/convex/lib/detectLanguage.ts` | **New** | Shared franc detection helper |
+| `packages/convex/convex/translation.ts` | **New** | All translation actions/mutations |
+| `packages/convex/convex/comments.ts` | Modified | Inline detection, return new fields, accept `replyOriginalContent` |
+| `packages/convex/convex/commenters.ts` | Modified | Return new fields |
+| `packages/convex/convex/users.ts` | Modified | `features.translation` in getAccessStatus |
+| `packages/convex/convex/_generated/api.d.ts` | Modified | Added translation module |
+| `packages/shared/src/types.ts` | Modified | +4 fields on ScrapedComment |
+| `apps/web/src/hooks/useTranslation.ts` | **New** | Translation state + actions hook |
+| `apps/web/src/hooks/useCommentData.ts` | Modified | `replyOriginalContent` in updateComment |
+| `apps/web/src/hooks/useMessaging.ts` | Modified | `messageToSend` + `replyOriginalContent` in trimmed comments |
+| `apps/web/src/components/DashboardContent.tsx` | Modified | Feature gate, translation hook, reply translation flow |
+| `apps/web/src/components/CommentCard.tsx` | Modified | Translate button, text toggle |
+| `apps/web/src/components/CommentTable.tsx` | Modified | Global toggle, Translate All, pass props |
+| `apps/web/src/components/CommenterTable.tsx` | Modified | Global toggle, Translate All, pass props |
+| `apps/web/src/components/CommenterCard.tsx` | Modified | Pass translation props to children |
+| `apps/web/src/components/CompactCommentCard.tsx` | Modified | Show translated text |
+| `apps/web/src/components/ReplyComposer.tsx` | Modified | "Respond in commenter's language" checkbox |
+| `apps/extension/src/background/index.ts` | Modified | Use `messageToSend`, store `replyOriginalContent` |
+
+---
+
+## Phase 6: Migration & Verification
+
+### 6.1 Environment Setup
+
+Set the Google Translate API key in Convex:
+
+```bash
+# Dev
+npx convex env set GOOGLE_TRANSLATE_API_KEY "your-api-key-here"
+
+# Prod
+npx convex env set GOOGLE_TRANSLATE_API_KEY "your-api-key-here" --prod
+```
+
+To get a key:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable the **Cloud Translation API**
+3. Create an API key (restrict to Cloud Translation API)
+
+### 6.2 Install Dependencies
+
+```bash
+cd packages/convex && npm install
+```
+
+This installs `franc-min` which was added to `package.json` in Phase 1.
+
+### 6.3 Deploy Schema + Functions
+
+```bash
+npx convex deploy
+```
+
+This pushes the new schema fields and translation module to Convex.
+
+### 6.4 Backfill Existing Comments
+
+Run the backfill action for each user to detect languages on existing comments:
+
+```bash
+# From the Convex dashboard or via CLI
+npx convex run translation:backfillLanguageDetection '{"clerkId": "user_xxx"}'
+```
+
+### 6.5 Verification Checklist
+
+1. **Language detection**: Scrape new comments → verify `detectedLanguage` appears on non-English comments (runs inline in addBatch)
+2. **Translate button**: Non-English comment shows "Translate" button → click → spinner → translated text appears → "Show original" toggle works
+3. **Global toggle**: "Show translations" checkbox switches all translated comments between original/translated
+4. **Translate All**: Click → spinner → translations appear progressively → button returns to normal
+5. **Reply translation**: Select non-English comments → check "Respond in commenter's language" → type English reply → send → verify TikTok receives translated text → verify `replyOriginalContent` stored in Convex
+6. **Feature gating**: Non-whitelisted user sees zero translation UI elements
+7. **Edge cases**: Very short comments (< 10 chars) → no `detectedLanguage`. Comments already in user's language → no Translate button.

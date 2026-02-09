@@ -17,6 +17,10 @@ interface CommenterCardProps {
   videoThumbnails: Map<string, string>;
   replyingCommentId?: string | null;
   searchingMatchesCommentId?: string | null;
+  translationEnabled?: boolean;
+  translatingIds?: Set<string>;
+  onTranslateComment?: (commentId: string) => void;
+  targetLanguage?: string;
 }
 
 function formatRelativeTime(timestamp: number): string {
@@ -44,6 +48,10 @@ export function CommenterCard({
   videoThumbnails,
   replyingCommentId,
   searchingMatchesCommentId,
+  translationEnabled,
+  translatingIds,
+  onTranslateComment,
+  targetLanguage,
 }: CommenterCardProps) {
   const [avatarFailed, setAvatarFailed] = useState(false);
 
@@ -163,6 +171,10 @@ export function CommenterCard({
               isReplying={replyingCommentId === comment.id}
               isSearchingMatches={searchingMatchesCommentId === comment.id}
               transparent
+              translationEnabled={translationEnabled}
+              isTranslating={translatingIds?.has(comment.id)}
+              onTranslate={onTranslateComment ? () => onTranslateComment(comment.id) : undefined}
+              targetLanguage={targetLanguage}
             />
           ))}
         </div>

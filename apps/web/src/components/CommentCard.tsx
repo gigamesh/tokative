@@ -2,7 +2,7 @@ import { Button } from "@/components/Button";
 import { ExternalLink } from "@/components/ExternalLink";
 import { getAvatarColor } from "@/utils/avatar";
 import { ScrapedComment } from "@/utils/constants";
-import { Check, ExternalLink as ExternalLinkIcon, Loader2, Trash2, X } from "lucide-react";
+import { Check, ExternalLink as ExternalLinkIcon, Languages, Loader2, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface CommentCardProps {
@@ -16,6 +16,10 @@ interface CommentCardProps {
   isReplying?: boolean;
   isSearchingMatches?: boolean;
   transparent?: boolean;
+  translationEnabled?: boolean;
+  isTranslating?: boolean;
+  onTranslate?: () => void;
+  targetLanguage?: string;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -44,12 +48,17 @@ export function CommentCard({
   isReplying = false,
   isSearchingMatches = false,
   transparent = false,
+  translationEnabled,
+  isTranslating,
+  onTranslate,
+  targetLanguage,
 }: CommentCardProps) {
   const isReply = depth > 0;
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [showingOriginal, setShowingOriginal] = useState(false);
   const commentRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
@@ -60,6 +69,8 @@ export function CommentCard({
   }, [comment.comment]);
 
   const replyStatusText = comment.replyError ? "Reply failed" : "";
+  const showingTranslation = !!comment.translatedText && !showingOriginal;
+  const displayText = showingTranslation ? comment.translatedText! : comment.comment;
 
   return (
     <div
@@ -146,7 +157,7 @@ export function CommentCard({
           </div>
 
           <div
-            className={`flex gap-2 text-sm text-foreground-muted mt-1 ${isCommentExpanded ? "" : ""}`}
+            className={`flex gap-2 text-sm text-foreground-secondary mt-1 ${isCommentExpanded ? "" : ""}`}
           >
             {comment.videoUrl && (
               <ExternalLink
@@ -161,17 +172,46 @@ export function CommentCard({
               ref={commentRef}
               className={isCommentExpanded ? "" : "line-clamp-2"}
             >
-              {comment.comment}
+              {displayText}
             </span>
           </div>
-          {(isTruncated || isCommentExpanded) && (
-            <button
-              onClick={() => setIsCommentExpanded(!isCommentExpanded)}
-              className="text-xs text-foreground-secondary hover:text-foreground underline decoration-foreground-muted transition-colors"
-            >
-              {isCommentExpanded ? "Show less" : "Show more"}
-            </button>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {(isTruncated || isCommentExpanded) && (
+              <button
+                onClick={() => setIsCommentExpanded(!isCommentExpanded)}
+                className="text-xs text-foreground-secondary hover:text-foreground underline decoration-foreground-muted transition-colors"
+              >
+                {isCommentExpanded ? "Show less" : "Show more"}
+              </button>
+            )}
+            {comment.translatedText && comment.translatedText.toLowerCase() !== comment.comment.toLowerCase() && (
+              <button
+                onMouseDown={() => setShowingOriginal(true)}
+                onMouseUp={() => setShowingOriginal(false)}
+                onMouseLeave={() => setShowingOriginal(false)}
+                onTouchStart={() => setShowingOriginal(true)}
+                onTouchEnd={() => setShowingOriginal(false)}
+                className={`text-xs mt-1 transition-all select-none rounded px-1.5 py-0.5 -ml-1.5 ${showingOriginal ? "bg-accent-cyan-500/20 text-accent-cyan-text" : "text-accent-cyan-text opacity-70 hover:opacity-100"}`}
+              >
+                Show original
+              </button>
+            )}
+            {translationEnabled && !comment.translatedText && onTranslate && comment.source !== "app" &&
+              comment.detectedLanguage && comment.detectedLanguage !== targetLanguage && (
+              <button
+                onClick={onTranslate}
+                disabled={isTranslating}
+                className="inline-flex items-center gap-1 text-xs text-accent-cyan-text mt-1 opacity-70 hover:opacity-100 transition-colors disabled:opacity-50"
+              >
+                {isTranslating ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Languages className="w-3 h-3" />
+                )}
+                Translate
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-2 flex-shrink-0 self-center items-center">

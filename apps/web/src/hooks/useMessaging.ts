@@ -114,6 +114,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       videoUrl: c.videoUrl,
       videoId: c.videoId,
       repliedTo: c.repliedTo,
+      ...(c.messageToSend && { messageToSend: c.messageToSend }),
     }));
 
     bridge.send(MessageType.BULK_REPLY_START, { comments: trimmedComments, messages, deleteMissingComments });

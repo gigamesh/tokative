@@ -49,6 +49,7 @@ export const getAccessStatus = query({
       isAllowed,
       hasCompletedOnboarding: user.hasCompletedOnboarding ?? false,
       email,
+      features: { translation: isAllowed },
     };
   },
 });

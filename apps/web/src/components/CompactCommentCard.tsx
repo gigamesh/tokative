@@ -50,7 +50,7 @@ export function CompactCommentCard({
       )}
 
       <span className="text-xs text-foreground-muted truncate flex-1 min-w-0">
-        {comment.comment}
+        {comment.translatedText ?? comment.comment}
       </span>
 
       {comment.commentTimestamp && (

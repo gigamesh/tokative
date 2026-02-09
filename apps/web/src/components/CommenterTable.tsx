@@ -73,6 +73,10 @@ interface CommenterTableProps {
   isLoadingMore?: boolean;
   search: string;
   onSearchChange: (search: string) => void;
+  translationEnabled?: boolean;
+  translatingIds?: Set<string>;
+  onTranslateComment?: (commentId: string) => void;
+  targetLanguage?: string;
 }
 
 export function CommenterTable({
@@ -92,6 +96,10 @@ export function CommenterTable({
   isLoadingMore,
   search,
   onSearchChange,
+  translationEnabled,
+  translatingIds,
+  onTranslateComment,
+  targetLanguage,
 }: CommenterTableProps) {
   const [expandedCommenterIds, setExpandedCommenterIds] = useState<Set<string>>(
     new Set(),
@@ -169,6 +177,7 @@ export function CommenterTable({
                 </button>
               )}
             </div>
+
           </div>
         </div>
 
@@ -231,6 +240,10 @@ export function CommenterTable({
                 videoThumbnails={videoThumbnails}
                 replyingCommentId={replyingCommentId}
                 searchingMatchesCommentId={searchingMatchesCommentId}
+                translationEnabled={translationEnabled}
+                translatingIds={translatingIds}
+                onTranslateComment={onTranslateComment}
+                targetLanguage={targetLanguage}
               />
             </div>
           )}

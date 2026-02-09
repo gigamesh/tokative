@@ -3,6 +3,7 @@ import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { detectLanguages } from "./lib/detectLanguage";
 import { getOrCreate as getOrCreateProfile } from "./tiktokProfiles";
 import {
   insertCommentsBatch,
@@ -57,6 +58,9 @@ export const list = query({
         isReply: c.isReply,
         replyCount: c.replyCount,
         source: c.source,
+        detectedLanguage: c.detectedLanguage,
+        translatedText: c.translatedText,
+        replyOriginalContent: c.replyOriginalContent,
         _convexId: c._id,
       };
     });
@@ -129,6 +133,9 @@ export const listPaginated = query({
         isReply: c.isReply,
         replyCount: c.replyCount,
         source: c.source,
+        detectedLanguage: c.detectedLanguage,
+        translatedText: c.translatedText,
+        replyOriginalContent: c.replyOriginalContent,
         _convexId: c._id,
       };
     });
@@ -254,6 +261,22 @@ export const addBatch = mutation({
     // Use helper to insert comments and update profile counts
     const newCount = await insertCommentsBatch(ctx, user._id, commentsToInsert);
 
+    if (commentsToInsert.length > 0) {
+      const newDocIds: Id<"comments">[] = [];
+      for (const item of commentsToInsert) {
+        const doc = await ctx.db
+          .query("comments")
+          .withIndex("by_user_and_comment_id", (q) =>
+            q.eq("userId", user._id).eq("commentId", item.data.commentId),
+          )
+          .unique();
+        if (doc) newDocIds.push(doc._id);
+      }
+      if (newDocIds.length > 0) {
+        await detectLanguages(ctx, newDocIds);
+      }
+    }
+
     for (const avatar of avatarsToStore) {
       await ctx.scheduler.runAfter(0, internal.imageStorage.storeAvatar, {
         profileId: avatar.profileId,
@@ -278,6 +301,7 @@ export const update = mutation({
       repliedAt: v.optional(v.number()),
       replyError: v.optional(v.string()),
       replyContent: v.optional(v.string()),
+      replyOriginalContent: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {

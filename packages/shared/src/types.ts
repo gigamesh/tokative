@@ -130,6 +130,10 @@ export interface ScrapedComment {
   isReply?: boolean;
   replyCount?: number;
   source?: "app" | "scraped";
+  detectedLanguage?: string;
+  translatedText?: string;
+  replyOriginalContent?: string;
+  messageToSend?: string;
 }
 
 export interface ExtensionMessage<T = unknown> {
