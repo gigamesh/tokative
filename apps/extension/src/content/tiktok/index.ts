@@ -1,6 +1,7 @@
 import { MessageType, ExtensionMessage, ScrapedComment } from "../../types";
 import { guardExtensionContext } from "../../utils/dom";
 import { replyToComment } from "./comment-replier";
+import { showOverlay, updateOverlayProgress, updateOverlayPaused, updateOverlayResumed, updateOverlayComplete, updateOverlayError, hideOverlay } from "./overlay";
 import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape } from "./video-scraper";
 import { loadConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
@@ -87,14 +88,17 @@ function handleMessage(
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
       const { maxComments } = (message.payload as { maxComments?: number }) || {};
+      showOverlay("comments");
 
       scrapeVideoComments(maxComments, (progress) => {
+        updateOverlayProgress(progress);
         chrome.runtime.sendMessage({
           type: MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
           payload: progress,
         });
       })
         .then((result) => {
+          updateOverlayComplete(result.stats);
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
             payload: { comments: result.comments, stats: result.stats },
@@ -103,6 +107,7 @@ function handleMessage(
         })
         .catch((error) => {
           logger.error("[TikTok] Scraping error:", error);
+          updateOverlayError(error instanceof Error ? error.message : "Unknown error");
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
             payload: {
@@ -117,6 +122,7 @@ function handleMessage(
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_STOP: {
       cancelVideoScrape();
+      hideOverlay();
       sendResponse({ success: true });
       return true;
     }
@@ -124,20 +130,24 @@ function handleMessage(
     case MessageType.SCRAPE_VIDEOS_START: {
       const { postLimit } = (message.payload as { postLimit?: number }) || {};
       sendResponse({ success: true, started: true });
+      showOverlay("profile");
 
       scrapeProfileVideoMetadata(postLimit ?? Infinity, (progress) => {
+        updateOverlayProgress(progress);
         chrome.runtime.sendMessage({
           type: MessageType.SCRAPE_VIDEOS_PROGRESS,
           payload: progress,
         });
       })
         .then(({ videos, limitReached }) => {
+          updateOverlayComplete();
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEOS_COMPLETE,
             payload: { videos, limitReached },
           });
         })
         .catch((error) => {
+          updateOverlayError(error instanceof Error ? error.message : "Unknown error");
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEOS_ERROR,
             payload: {
@@ -151,18 +161,22 @@ function handleMessage(
 
     case MessageType.SCRAPE_VIDEOS_STOP: {
       cancelVideoScrape();
+      hideOverlay();
       sendResponse({ success: true });
       return true;
     }
 
     case MessageType.SCRAPE_PAUSE: {
+      const payload = message.payload as { commentsFound?: number } | undefined;
       pauseVideoScrape();
+      updateOverlayPaused(payload?.commentsFound ?? 0);
       sendResponse({ success: true });
       return true;
     }
 
     case MessageType.SCRAPE_RESUME: {
       resumeVideoScrape();
+      updateOverlayResumed();
       sendResponse({ success: true });
       return true;
     }
@@ -177,13 +191,16 @@ function handlePortMessage(message: ExtensionMessage): void {
     case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
       if (port) {
         const { maxComments } = (message.payload as { maxComments?: number }) || {};
+        showOverlay("comments");
         scrapeVideoComments(maxComments, (progress) => {
+          updateOverlayProgress(progress);
           port?.postMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
             payload: progress,
           });
         })
           .then((result) => {
+            updateOverlayComplete(result.stats);
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
               payload: { comments: result.comments, stats: result.stats },
@@ -191,6 +208,7 @@ function handlePortMessage(message: ExtensionMessage): void {
           })
           .catch((error) => {
             logger.error("[TikTok] Port: Scraping error:", error);
+            updateOverlayError(error instanceof Error ? error.message : "Unknown error");
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
               payload: {
@@ -204,25 +222,30 @@ function handlePortMessage(message: ExtensionMessage): void {
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_STOP: {
       cancelVideoScrape();
+      hideOverlay();
       break;
     }
 
     case MessageType.SCRAPE_VIDEOS_START: {
       if (port) {
         const { postLimit } = (message.payload as { postLimit?: number }) || {};
+        showOverlay("profile");
         scrapeProfileVideoMetadata(postLimit ?? Infinity, (progress) => {
+          updateOverlayProgress(progress);
           port?.postMessage({
             type: MessageType.SCRAPE_VIDEOS_PROGRESS,
             payload: progress,
           });
         })
           .then(({ videos, limitReached }) => {
+            updateOverlayComplete();
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEOS_COMPLETE,
               payload: { videos, limitReached },
             });
           })
           .catch((error) => {
+            updateOverlayError(error instanceof Error ? error.message : "Unknown error");
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEOS_ERROR,
               payload: {
@@ -236,6 +259,7 @@ function handlePortMessage(message: ExtensionMessage): void {
 
     case MessageType.SCRAPE_VIDEOS_STOP: {
       cancelVideoScrape();
+      hideOverlay();
       break;
     }
 

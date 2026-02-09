@@ -1672,7 +1672,7 @@ export async function scrapeVideoComments(
       totalVideos: 1,
       commentsFound: stats.found,
       status: "scraping" as const,
-      message: `Found ${stats.found}, new ${stats.new}`,
+      message: `Found ${stats.found} (${stats.new} new)`,
       stats,
     };
     logger.log("[Tokative] Calling onProgress with:", JSON.stringify(progress));
