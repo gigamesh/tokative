@@ -50,7 +50,7 @@ function updateScrapingStatusUI(
     if (btn) btn.disabled = true;
   } else if (state.status === "complete") {
     statusEl.className = "scrape-status success";
-    statusEl.textContent = `Scraped ${state.commentsFound} comments`;
+    statusEl.textContent = `Collected ${state.commentsFound} comments`;
     if (btn) btn.disabled = false;
   }
 }
@@ -106,7 +106,7 @@ function renderStatsTable(
     spinner.className = "scrape-spinner";
 
     const headerText = document.createElement("span");
-    headerText.textContent = "Scraping in progress...";
+    headerText.textContent = "Collecting in progress...";
 
     header.appendChild(spinner);
     header.appendChild(headerText);
@@ -177,9 +177,9 @@ function showRateLimitWarning(state: RateLimitState): void {
             const resumeTime = new Date(state.resumeAt!).getTime();
             const remaining = Math.max(0, Math.ceil((resumeTime - Date.now()) / 1000));
             if (remaining > 0) {
-              errorTextEl.textContent = `TikTok rate limit (429) - scraping paused. Resuming in ${remaining}s...`;
+              errorTextEl.textContent = `TikTok rate limit (429) - collecting paused. Resuming in ${remaining}s...`;
             } else {
-              errorTextEl.textContent = `TikTok rate limit (429) - resuming scraping...`;
+              errorTextEl.textContent = `TikTok rate limit (429) - resuming collecting...`;
               if (rateLimitCountdownInterval) {
                 clearInterval(rateLimitCountdownInterval);
                 rateLimitCountdownInterval = null;
@@ -189,7 +189,7 @@ function showRateLimitWarning(state: RateLimitState): void {
           updateCountdown();
           rateLimitCountdownInterval = setInterval(updateCountdown, 1000);
         } else {
-          errorTextEl.textContent = `TikTok rate limit detected (${state.errorCount} errors). Try waiting a few minutes before scraping again.`;
+          errorTextEl.textContent = `TikTok rate limit detected (${state.errorCount} errors). Try waiting a few minutes before collecting again.`;
         }
       }
       return;
@@ -415,7 +415,7 @@ async function init(): Promise<void> {
     if (message.type === MessageType.SCRAPE_VIDEOS_PROGRESS) {
       const progress = message.payload;
       isProfileScraping = true;
-      updateScrapeButtonState(scrapeProfileBtn, true, "Scrape Profile");
+      updateScrapeButtonState(scrapeProfileBtn, true, "Collect Profile");
       if (scrapeStatusEl) {
         scrapeStatusEl.className = "scrape-status active";
         renderSpinnerWithText(scrapeStatusEl, progress.message || `${progress.videosFound} posts found...`);
@@ -423,18 +423,18 @@ async function init(): Promise<void> {
     } else if (message.type === MessageType.SCRAPE_VIDEOS_COMPLETE) {
       const { videos: scrapedVideos, limitReached } = message.payload as { videos: unknown[]; limitReached?: boolean };
       isProfileScraping = false;
-      updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
+      updateScrapeButtonState(scrapeProfileBtn, false, "Collect Profile");
       if (scrapeStatusEl) {
         scrapeStatusEl.className = "scrape-status success";
         const limitText = limitReached ? " · Limit reached" : "";
-        scrapeStatusEl.textContent = `Scraped ${scrapedVideos?.length || 0} posts${limitText}`;
+        scrapeStatusEl.textContent = `Collected ${scrapedVideos?.length || 0} posts${limitText}`;
       }
     } else if (message.type === MessageType.SCRAPE_VIDEOS_ERROR) {
       isProfileScraping = false;
-      updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
+      updateScrapeButtonState(scrapeProfileBtn, false, "Collect Profile");
       if (scrapeStatusEl) {
         scrapeStatusEl.className = "scrape-status error";
-        scrapeStatusEl.textContent = message.payload.error || "Scraping failed";
+        scrapeStatusEl.textContent = message.payload.error || "Collecting failed";
       }
     }
 
@@ -442,33 +442,33 @@ async function init(): Promise<void> {
     if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
       const progress = message.payload as { message?: string; stats?: { found: number; new: number; ignored: number; preexisting: number } };
       isCommentScraping = true;
-      updateScrapeButtonState(scrapeCommentsBtn, true, "Scrape Comments");
+      updateScrapeButtonState(scrapeCommentsBtn, true, "Collect Comments");
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status active";
         if (progress.stats) {
           renderStatsTable(commentScrapeStatusEl, progress.stats, false);
         } else {
-          renderSpinnerWithText(commentScrapeStatusEl, progress.message || "Scraping...");
+          renderSpinnerWithText(commentScrapeStatusEl, progress.message || "Collecting...");
         }
       }
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
       const payload = message.payload as { comments?: unknown[]; stats?: { found: number; new: number; ignored: number; preexisting: number } };
       isCommentScraping = false;
-      updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
+      updateScrapeButtonState(scrapeCommentsBtn, false, "Collect Comments");
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status success";
         if (payload.stats) {
           renderStatsTable(commentScrapeStatusEl, payload.stats, true);
         } else {
-          commentScrapeStatusEl.textContent = `Scraped ${payload.comments?.length || 0} comments`;
+          commentScrapeStatusEl.textContent = `Collected ${payload.comments?.length || 0} comments`;
         }
       }
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
       isCommentScraping = false;
-      updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
+      updateScrapeButtonState(scrapeCommentsBtn, false, "Collect Comments");
       if (commentScrapeStatusEl) {
         commentScrapeStatusEl.className = "scrape-status error";
-        commentScrapeStatusEl.textContent = message.payload.error || "Comment scraping failed";
+        commentScrapeStatusEl.textContent = message.payload.error || "Comment collecting failed";
       }
     }
 
@@ -515,9 +515,9 @@ async function init(): Promise<void> {
         }
       }
       isProfileScraping = false;
-      updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
+      updateScrapeButtonState(scrapeProfileBtn, false, "Collect Profile");
       scrapeStatusEl.className = "scrape-status error";
-      scrapeStatusEl.textContent = "Scraping cancelled";
+      scrapeStatusEl.textContent = "Collecting cancelled";
       return;
     }
 
@@ -532,9 +532,9 @@ async function init(): Promise<void> {
     const postLimit = await getPostLimit();
 
     isProfileScraping = true;
-    updateScrapeButtonState(scrapeProfileBtn, true, "Scrape Profile");
+    updateScrapeButtonState(scrapeProfileBtn, true, "Collect Profile");
     scrapeStatusEl.className = "scrape-status active";
-    renderSpinnerWithText(scrapeStatusEl, `Scraping up to ${postLimit} posts...`);
+    renderSpinnerWithText(scrapeStatusEl, `Collecting up to ${postLimit} posts...`);
 
     try {
       const response = await chrome.tabs.sendMessage(currentTab.id, {
@@ -544,15 +544,15 @@ async function init(): Promise<void> {
 
       if (!response?.success) {
         scrapeStatusEl.className = "scrape-status error";
-        scrapeStatusEl.textContent = response?.error || "Failed to start scraping";
+        scrapeStatusEl.textContent = response?.error || "Failed to start collecting";
         isProfileScraping = false;
-        updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
+        updateScrapeButtonState(scrapeProfileBtn, false, "Collect Profile");
       }
     } catch (error) {
       scrapeStatusEl.className = "scrape-status error";
       scrapeStatusEl.textContent = error instanceof Error ? error.message : "Unknown error";
       isProfileScraping = false;
-      updateScrapeButtonState(scrapeProfileBtn, false, "Scrape Profile");
+      updateScrapeButtonState(scrapeProfileBtn, false, "Collect Profile");
     }
   });
 
@@ -578,9 +578,9 @@ async function init(): Promise<void> {
         }
       }
       isCommentScraping = false;
-      updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
+      updateScrapeButtonState(scrapeCommentsBtn, false, "Collect Comments");
       commentScrapeStatusEl.className = "scrape-status error";
-      commentScrapeStatusEl.textContent = "Scraping cancelled";
+      commentScrapeStatusEl.textContent = "Collecting cancelled";
       return;
     }
 
@@ -595,9 +595,9 @@ async function init(): Promise<void> {
     const commentLimit = await getCommentLimit();
 
     isCommentScraping = true;
-    updateScrapeButtonState(scrapeCommentsBtn, true, "Scrape Comments");
+    updateScrapeButtonState(scrapeCommentsBtn, true, "Collect Comments");
     commentScrapeStatusEl.className = "scrape-status active";
-    renderSpinnerWithText(commentScrapeStatusEl, `Scraping up to ${commentLimit} comments...`);
+    renderSpinnerWithText(commentScrapeStatusEl, `Collecting up to ${commentLimit} comments...`);
 
     try {
       const response = await chrome.tabs.sendMessage(currentTab.id, {
@@ -607,15 +607,15 @@ async function init(): Promise<void> {
 
       if (!response?.success) {
         commentScrapeStatusEl.className = "scrape-status error";
-        commentScrapeStatusEl.textContent = response?.error || "Failed to start comment scraping";
+        commentScrapeStatusEl.textContent = response?.error || "Failed to start comment collecting";
         isCommentScraping = false;
-        updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
+        updateScrapeButtonState(scrapeCommentsBtn, false, "Collect Comments");
       }
     } catch (error) {
       commentScrapeStatusEl.className = "scrape-status error";
       commentScrapeStatusEl.textContent = error instanceof Error ? error.message : "Unknown error";
       isCommentScraping = false;
-      updateScrapeButtonState(scrapeCommentsBtn, false, "Scrape Comments");
+      updateScrapeButtonState(scrapeCommentsBtn, false, "Collect Comments");
     }
   });
 }

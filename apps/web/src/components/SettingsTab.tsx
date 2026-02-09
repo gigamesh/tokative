@@ -53,7 +53,7 @@ export function SettingsTab({
     <div className="bg-surface-elevated rounded-lg p-6 space-y-8">
       <div>
         <h2 className="text-lg font-medium text-foreground mb-4">
-          Scraping Limits
+          Collecting Limits
         </h2>
         <div className="flex gap-6">
           <div>
@@ -69,7 +69,7 @@ export function SettingsTab({
               className="w-24 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
             />
             <p className="text-xs text-foreground-muted mt-1">
-              Max posts to scrape from profile
+              Max posts to collect from profile
             </p>
           </div>
           <div>
@@ -85,7 +85,7 @@ export function SettingsTab({
               className="w-24 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
             />
             <p className="text-xs text-foreground-muted mt-1">
-              Max comments per scrape
+              Max comments per collection
             </p>
           </div>
         </div>
@@ -135,7 +135,7 @@ export function SettingsTab({
         </h2>
         <p className="text-sm text-foreground-muted mb-4">
           Comments matching these texts will be automatically filtered out when
-          scraping.
+          collecting.
         </p>
 
         <div className="flex gap-2 mb-4">

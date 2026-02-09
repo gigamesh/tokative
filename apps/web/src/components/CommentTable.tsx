@@ -393,7 +393,7 @@ export function CommentTable({
       ) : displayComments.length === 0 ? (
         <div className="text-center py-12 text-foreground-muted">
           {comments.length === 0
-            ? "No comments scraped yet. Start scraping to see comments here."
+            ? "No comments collected yet. Start collecting to see comments here."
             : "No comments match your search/filter criteria."}
         </div>
       ) : (

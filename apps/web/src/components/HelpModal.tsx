@@ -36,12 +36,12 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
       </h2>
 
       <div className="space-y-5 text-sm mt-6">
-        <Step number={1} title="Scrape Profile">
+        <Step number={1} title="Collect Profile">
           Start by going to a TikTok profile page. Open the extension and click
-          &quot;Scrape Profile&quot;.
+          &quot;Collect Profile&quot;.
         </Step>
 
-        <Step number={2} title="Scrape Comments">
+        <Step number={2} title="Collect Comments">
           Select any of the posts in the posts tab, then click Fetch Comments.
           TikTok will open in a new browser tab and you&apos;ll see all the
           comments getting loaded. You&apos;ll need to keep this tab open until

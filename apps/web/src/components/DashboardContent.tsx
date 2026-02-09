@@ -522,10 +522,10 @@ export function DashboardContent() {
             <PauseCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
             <div>
               <span className="text-yellow-400 font-medium">
-                Scraping Paused
+                Collecting Paused
               </span>
               <span className="text-yellow-400/80 ml-2">
-                Return to the TikTok tab to continue scraping.
+                Return to the TikTok tab to continue collecting.
               </span>
             </div>
           </div>
@@ -536,7 +536,7 @@ export function DashboardContent() {
             <Spinner size="md" />
             <div>
               <span className="text-accent-cyan-text font-medium">
-                Scraping post {batchProgress.currentVideoIndex}/
+                Collecting post {batchProgress.currentVideoIndex}/
                 {batchProgress.totalVideos}
               </span>
               <span className="text-accent-cyan-text/80 ml-2">

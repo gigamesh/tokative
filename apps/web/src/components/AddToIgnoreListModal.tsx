@@ -27,7 +27,7 @@ export function AddToIgnoreListModal({
       </h3>
       <p className="text-foreground-muted mb-2">
         Do you also want to add this text to your ignore list to automatically
-        skip matching comments when scraping in the future?
+        skip matching comments when collecting in the future?
       </p>
       <p className="text-foreground-muted text-sm mb-6 p-3 bg-surface-secondary rounded-lg break-words">
         &ldquo;{truncatedText}&rdquo;

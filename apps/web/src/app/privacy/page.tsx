@@ -62,7 +62,7 @@ export default function PrivacyPolicy() {
             <ul className="list-disc pl-6 space-y-1">
               <li>
                 <strong className="text-foreground">Locally</strong> —
-                Authentication tokens and ephemeral scraping state are stored in
+                Authentication tokens and ephemeral collection state are stored in
                 Chrome extension local storage on your device.
               </li>
               <li>

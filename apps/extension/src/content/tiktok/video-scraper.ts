@@ -1433,7 +1433,7 @@ export async function scrapeProfileVideos(
       totalVideos: videosToProcess,
       commentsFound: allComments.length,
       status: "cancelled",
-      message: "Scraping cancelled",
+      message: "Collecting cancelled",
     });
     return allComments;
   }
@@ -1446,7 +1446,7 @@ export async function scrapeProfileVideos(
     totalVideos: videosToProcess,
     commentsFound: allComments.length,
     status: "complete",
-    message: `Scraped ${allComments.length} comments from ${videosToProcess} videos`,
+    message: `Collected ${allComments.length} comments from ${videosToProcess} videos`,
   });
 
   return allComments;
@@ -1568,7 +1568,7 @@ export async function scrapeProfileVideoMetadata(
     onProgress?.({
       videosFound: allVideos.length,
       status: "cancelled",
-      message: "Scraping cancelled",
+      message: "Collecting cancelled",
     });
     return { videos: allVideos, limitReached: false };
   } else {
@@ -1579,7 +1579,7 @@ export async function scrapeProfileVideoMetadata(
     onProgress?.({
       videosFound: allVideos.length,
       status: "complete",
-      message: `Scraped ${allVideos.length} posts from @${profileHandle}`,
+      message: `Collected ${allVideos.length} posts from @${profileHandle}`,
       limitReached,
     });
     return { videos: allVideos, limitReached };

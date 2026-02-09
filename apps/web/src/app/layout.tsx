@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "tiktok engagement",
     "tiktok manager",
     "bulk reply",
-    "comment scraper",
+    "comment collector",
     "tiktok tool",
     "social media management",
   ],

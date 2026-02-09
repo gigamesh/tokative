@@ -39,7 +39,7 @@ export function SetupBanner() {
         <div className="flex items-center gap-3">
           <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
           <span className="text-green-400">
-            You're all set! Go to TikTok to start scraping.
+            You're all set! Go to TikTok to start collecting.
           </span>
         </div>
         <button
@@ -64,7 +64,7 @@ export function SetupBanner() {
           <div className="flex-1">
             <h3 className="text-yellow-400 font-medium mb-1">Setup Required</h3>
             <p className="text-yellow-400/80 text-sm mb-3">
-              Install the Tokative Chrome extension to start scraping.
+              Install the Tokative Chrome extension to start collecting.
             </p>
             <a
               href="#install-extension"

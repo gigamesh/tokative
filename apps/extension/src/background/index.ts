@@ -152,7 +152,7 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
       : MessageType.GET_VIDEO_COMMENTS_ERROR;
     broadcastToDashboard({
       type: errorType,
-      payload: { error: "Scraping cancelled - TikTok tab was closed" },
+      payload: { error: "Collecting cancelled - TikTok tab was closed" },
     });
   }
 });
@@ -196,7 +196,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     await updateAndBroadcastScrapingState({
       isPaused: false,
       status: "scraping",
-      message: "Scraping comments...",
+      message: "Collecting comments...",
     });
   }
 });
@@ -1030,12 +1030,12 @@ async function handleGetVideoComments(
 
     await updateAndBroadcastScrapingState({
       status: "scraping",
-      message: "Scraping comments...",
+      message: "Collecting comments...",
     });
 
     port.postMessage({
       type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
-      payload: { videoId, status: "scraping", message: "Scraping comments..." },
+      payload: { videoId, status: "scraping", message: "Collecting comments..." },
     });
 
     const commentLimit = await getCommentLimit();
@@ -1049,7 +1049,7 @@ async function handleGetVideoComments(
         const count = payload.commentsFound || 0;
         await updateAndBroadcastScrapingState({
           commentsFound: count,
-          message: payload.message || "Scraping...",
+          message: payload.message || "Collecting...",
         });
         updateBadge(count.toString(), colors.status.info);
         const progressPayload = (msg.payload || {}) as Record<string, unknown>;
@@ -1247,7 +1247,7 @@ async function handleGetBatchComments(
       port.postMessage({
         type: MessageType.GET_BATCH_COMMENTS_ERROR,
         payload: {
-          error: "Batch scraping cancelled",
+          error: "Batch collecting cancelled",
           completedVideos,
           totalComments,
         },
@@ -1331,7 +1331,7 @@ async function scrapeVideoComments(
         chrome.runtime.onMessage.removeListener(responseHandler);
         reject(
           new Error(
-            (msg.payload as { error?: string })?.error || "Scraping failed",
+            (msg.payload as { error?: string })?.error || "Collecting failed",
           ),
         );
       }

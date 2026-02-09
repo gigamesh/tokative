@@ -214,7 +214,7 @@ export function CommenterTable({
         <div className="text-center py-12 text-foreground-muted">
           {search
             ? "No commenters match your search."
-            : "No comments scraped yet. Start scraping to see commenters here."}
+            : "No comments collected yet. Start collecting to see commenters here."}
         </div>
       ) : (
         <Virtuoso

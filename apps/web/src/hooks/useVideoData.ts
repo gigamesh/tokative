@@ -178,7 +178,7 @@ export function useVideoData() {
           };
         });
         console.error("Failed to scrape comments:", error);
-        toast.error("Failed to scrape comments. Check console for details.");
+        toast.error("Failed to collect comments. Check console for details.");
         if (videoId) {
           processNextInQueue();
         }
@@ -283,7 +283,7 @@ export function useVideoData() {
             `Batch failed after ${completedVideos} videos (${totalComments} comments). Check console for details.`
           );
         } else {
-          toast.error("Failed to scrape comments. Check console for details.");
+          toast.error("Failed to collect comments. Check console for details.");
         }
       }),
     ];
@@ -319,7 +319,7 @@ export function useVideoData() {
       scrapingState: null,
     }));
     isProcessingRef.current = false;
-    toast.info("Scraping cancelled");
+    toast.info("Collecting cancelled");
   }, []);
 
   const closeScrapeReport = useCallback(() => {

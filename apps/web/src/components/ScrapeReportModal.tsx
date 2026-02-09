@@ -20,7 +20,7 @@ export function ScrapeReportModal({
 }: ScrapeReportModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h3 className="text-lg font-medium text-foreground mb-4">Scraping Complete</h3>
+      <h3 className="text-lg font-medium text-foreground mb-4">Collecting Complete</h3>
 
       <div className="space-y-3 mb-4">
         <div className="flex justify-between items-center py-2 border-b border-border">

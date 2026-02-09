@@ -233,7 +233,7 @@ export default function OnboardingPage() {
         <div className="space-y-4">
           <Section number={1} title="Download the Extension">
             <p className="text-foreground-muted mb-3">
-              The Chrome extension lets you scrape comments and send replies on
+              The Chrome extension lets you collect comments and send replies on
               TikTok.
             </p>
             <LinkButton

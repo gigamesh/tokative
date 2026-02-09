@@ -179,12 +179,12 @@ export function PostsGrid({
       ) : videos.length === 0 ? (
         <div className="text-center py-12 text-foreground-muted">
           <Image className="w-16 h-16 mx-auto mb-4 text-foreground-muted" strokeWidth={1.5} />
-          <p className="mb-2">No posts scraped yet</p>
+          <p className="mb-2">No posts collected yet</p>
           <p className="text-sm text-foreground-muted">
-            To scrape posts, navigate to a TikTok profile and click
+            To collect posts, navigate to a TikTok profile and click
             <br />
             <span className="font-semibold text-foreground-secondary">
-              Scrape Profile
+              Collect Profile
             </span>{" "}
             in the extension popup.
           </p>
