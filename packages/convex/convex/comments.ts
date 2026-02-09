@@ -11,6 +11,7 @@ import {
   deleteCommentsBatch,
   CommentInsertData,
 } from "./commentHelpers";
+import { buildSearchResults } from "./searchHelpers";
 
 export const list = query({
   args: { clerkId: v.string() },
@@ -165,27 +166,11 @@ export const listPaginated = query({
         profiles.filter(Boolean).map((p) => [p!._id, p!])
       );
 
-      const matchingIds = new Set<string>();
-      const matching = allComments.filter((c) => {
-        const profile = profileMap.get(c.tiktokProfileId);
-        const handle = profile?.handle ?? "";
-        const matches =
-          c.comment.toLowerCase().includes(searchLower) ||
-          handle.toLowerCase().includes(searchLower);
-        if (matches) matchingIds.add(c.commentId);
-        return matches;
-      });
-
-      const commentIdMap = new Map(allComments.map((c) => [c.commentId, c]));
-      for (const c of matching) {
-        if (c.isReply && c.parentCommentId && !matchingIds.has(c.parentCommentId)) {
-          const parent = commentIdMap.get(c.parentCommentId);
-          if (parent) {
-            matching.push(parent);
-            matchingIds.add(parent.commentId);
-          }
-        }
-      }
+      const { results: matching } = buildSearchResults(
+        allComments,
+        profileMap,
+        searchLower,
+      );
 
       matching.sort((a, b) => {
         const aTime = a.commentTimestamp ? new Date(a.commentTimestamp).getTime() : a.scrapedAt;

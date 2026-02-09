@@ -6,6 +6,7 @@ import { useAuth } from "@/providers/ConvexProvider";
 import { api } from "@tokative/convex";
 import { bridge } from "@/utils/extension-bridge";
 import { MessageType, ScrapedComment } from "@/utils/constants";
+import { useDebounce } from "./useDebounce";
 
 interface CommentDataState {
   commentLimit: number;
@@ -18,22 +19,6 @@ interface CommentDataState {
 
 const PAGE_SIZE = 50;
 const DEBOUNCE_MS = 300;
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 interface UseCommentDataOptions {
   videoIdFilter?: string | null;

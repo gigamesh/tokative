@@ -19,6 +19,7 @@ import type * as imageStorage from "../imageStorage.js";
 import type * as lib_detectLanguage from "../lib/detectLanguage.js";
 import type * as lib_r2 from "../lib/r2.js";
 import type * as lib_translate from "../lib/translate.js";
+import type * as searchHelpers from "../searchHelpers.js";
 import type * as settings from "../settings.js";
 import type * as tiktokProfiles from "../tiktokProfiles.js";
 import type * as translation from "../translation.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   "lib/detectLanguage": typeof lib_detectLanguage;
   "lib/r2": typeof lib_r2;
   "lib/translate": typeof lib_translate;
+  searchHelpers: typeof searchHelpers;
   settings: typeof settings;
   tiktokProfiles: typeof tiktokProfiles;
   translation: typeof translation;

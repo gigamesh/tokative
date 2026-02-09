@@ -1,11 +1,11 @@
 import { CommenterData } from "@/hooks/useCommenterData";
 import { ScrapedComment } from "@/utils/constants";
-import { X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommenterCard } from "./CommenterCard";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { DangerButton } from "./DangerButton";
+import { SearchInput } from "./SearchInput";
 
 function CommenterSkeleton() {
   return (
@@ -159,24 +159,7 @@ export function CommenterTable({
         {headerContent}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-wrap items-center">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by handle..."
-                value={search}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg min-w-80 text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted"
-              />
-              {search && (
-                <button
-                  onClick={() => onSearchChange("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+            <SearchInput value={search} onChange={onSearchChange} />
 
           </div>
         </div>

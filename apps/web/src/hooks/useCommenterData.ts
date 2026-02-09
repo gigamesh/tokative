@@ -1,10 +1,11 @@
 "use client";
 
 import { usePaginatedQuery, useQuery } from "convex/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAuth } from "@/providers/ConvexProvider";
 import { api } from "@tokative/convex";
 import { ScrapedComment } from "@/utils/constants";
+import { useDebounce } from "./useDebounce";
 
 export interface CommenterData {
   profileId: string;
@@ -19,22 +20,6 @@ export interface CommenterData {
 
 const PAGE_SIZE = 30;
 const DEBOUNCE_MS = 300;
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 export function useCommenterData() {
   const { userId } = useAuth();

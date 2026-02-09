@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
+import { Doc } from "./_generated/dataModel";
 
 export const listPaginated = query({
   args: {
@@ -25,26 +26,51 @@ export const listPaginated = query({
 
     const searchLower = args.search?.toLowerCase().trim() || "";
 
-    // Get all profiles for this user with comments
-    // We need to filter and sort in memory since Convex doesn't support
-    // complex sorting with filters on non-indexed fields
     const allProfiles = await ctx.db
       .query("tiktokProfiles")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    // Filter profiles with comments and optionally by search
     let filteredProfiles = allProfiles.filter(
       (p) => (p.commentCount ?? 0) > 0
     );
 
+    const profileByIdStr = new Map(
+      allProfiles.map((p) => [p._id as string, p])
+    );
+
+    let commentsByProfile: Map<string, Doc<"comments">[]> | undefined;
+
     if (searchLower) {
-      filteredProfiles = filteredProfiles.filter((p) =>
-        p.handle.toLowerCase().includes(searchLower)
+      const allComments = await ctx.db
+        .query("comments")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect();
+
+      const matchingProfileIds = new Set<string>();
+      commentsByProfile = new Map();
+
+      for (const c of allComments) {
+        const profile = profileByIdStr.get(c.tiktokProfileId as string);
+        const handle = profile?.handle ?? "";
+        if (
+          c.comment.toLowerCase().includes(searchLower) ||
+          handle.toLowerCase().includes(searchLower)
+        ) {
+          const pid = c.tiktokProfileId as string;
+          matchingProfileIds.add(pid);
+          if (!commentsByProfile.has(pid)) commentsByProfile.set(pid, []);
+          commentsByProfile.get(pid)!.push(c);
+        }
+      }
+
+      filteredProfiles = filteredProfiles.filter(
+        (p) =>
+          p.handle.toLowerCase().includes(searchLower) ||
+          matchingProfileIds.has(p._id as string),
       );
     }
 
-    // Sort by commentCount desc, then by lastSeenAt desc
     filteredProfiles.sort((a, b) => {
       const countDiff = (b.commentCount ?? 0) - (a.commentCount ?? 0);
       if (countDiff !== 0) return countDiff;
@@ -53,7 +79,6 @@ export const listPaginated = query({
 
     const totalCount = filteredProfiles.length;
 
-    // Manual pagination since we're sorting in memory
     const cursor = args.paginationOpts.cursor
       ? parseInt(args.paginationOpts.cursor, 10)
       : 0;
@@ -62,18 +87,21 @@ export const listPaginated = query({
     const nextCursor = cursor + pageSize;
     const isDone = nextCursor >= filteredProfiles.length;
 
-    // Fetch comments for each profile in the page (limit per commenter to avoid document limits)
     const MAX_COMMENTS_PER_COMMENTER = 100;
     const commentersWithComments = await Promise.all(
       pageProfiles.map(async (profile) => {
-        const comments = await ctx.db
-          .query("comments")
-          .withIndex("by_user_and_profile", (q) =>
-            q.eq("userId", user._id).eq("tiktokProfileId", profile._id)
-          )
-          .take(MAX_COMMENTS_PER_COMMENTER);
+        const comments = commentsByProfile
+          ? (commentsByProfile.get(profile._id as string) ?? []).slice(
+              0,
+              MAX_COMMENTS_PER_COMMENTER,
+            )
+          : await ctx.db
+              .query("comments")
+              .withIndex("by_user_and_profile", (q) =>
+                q.eq("userId", user._id).eq("tiktokProfileId", profile._id)
+              )
+              .take(MAX_COMMENTS_PER_COMMENTER);
 
-        // Sort comments by timestamp desc
         comments.sort((a, b) => {
           const aTime = a.commentTimestamp
             ? new Date(a.commentTimestamp).getTime()
