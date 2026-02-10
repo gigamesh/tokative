@@ -10,6 +10,7 @@ import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
 import { PostsGrid } from "@/components/PostsGrid";
 import { ReplyComposer } from "@/components/ReplyComposer";
+import { LimitReachedModal } from "@/components/LimitReachedModal";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
 import { Spinner } from "@/components/Spinner";
@@ -205,6 +206,11 @@ export function DashboardContent() {
     failed: number;
     skipped: number;
   } | null>(null);
+  const [replyLimitModal, setReplyLimitModal] = useState<{
+    completed: number;
+    failed: number;
+    skipped: number;
+  } | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToast({ isVisible: true, message });
@@ -237,23 +243,6 @@ export function DashboardContent() {
     }
   }, [searchParams, showToast, router]);
 
-  useEffect(() => {
-    if (bulkReplyProgress?.status === "complete") {
-      setReplyReport({
-        completed: bulkReplyProgress.completed,
-        failed: bulkReplyProgress.failed,
-        skipped: bulkReplyProgress.skipped,
-      });
-    }
-  }, [bulkReplyProgress]);
-
-  const handlePostLimitBlur = useCallback(() => {
-    const parsed = parseInt(postLimitInput);
-    const value = isNaN(parsed) || parsed < 1 ? 50 : parsed;
-    setPostLimitInput(String(value));
-    savePostLimit(value);
-  }, [postLimitInput, savePostLimit]);
-
   const maxCommentLimit =
     accessStatus?.subscription?.monthlyLimit ??
     PLAN_LIMITS.free.monthlyComments;
@@ -263,6 +252,30 @@ export function DashboardContent() {
   const repliesUsed = accessStatus?.subscription?.repliesUsed ?? 0;
   const replyBudget = Math.max(0, replyLimit - repliesUsed);
   const replyLimitReached = replyBudget === 0;
+  const commentLimitReached =
+    (accessStatus?.subscription?.monthlyUsed ?? 0) >= (accessStatus?.subscription?.monthlyLimit ?? Infinity);
+
+  useEffect(() => {
+    if (bulkReplyProgress?.status === "complete") {
+      const stats = {
+        completed: bulkReplyProgress.completed,
+        failed: bulkReplyProgress.failed,
+        skipped: bulkReplyProgress.skipped,
+      };
+      if (replyLimitReached) {
+        setReplyLimitModal(stats);
+      } else {
+        setReplyReport(stats);
+      }
+    }
+  }, [bulkReplyProgress, replyLimitReached]);
+
+  const handlePostLimitBlur = useCallback(() => {
+    const parsed = parseInt(postLimitInput);
+    const value = isNaN(parsed) || parsed < 1 ? 50 : parsed;
+    setPostLimitInput(String(value));
+    savePostLimit(value);
+  }, [postLimitInput, savePostLimit]);
   const [commentLimitError, setCommentLimitError] = useState<string | null>(
     null,
   );
@@ -622,10 +635,10 @@ export function DashboardContent() {
                     </span>
                   </div>
                   <Link
-                    href={plan === "free" ? "/pricing" : "/account"}
+                    href="/pricing"
                     className="text-sm text-red-400 hover:text-red-300 underline flex-shrink-0"
                   >
-                    {plan === "free" ? "Upgrade" : "Manage"}
+                    Upgrade
                   </Link>
                 </div>
               );
@@ -643,14 +656,12 @@ export function DashboardContent() {
                       {monthlyLimit.toLocaleString()})
                     </span>
                   </div>
-                  {plan === "free" && (
-                    <Link
-                      href="/pricing"
-                      className="text-sm text-yellow-400 hover:text-yellow-300 underline flex-shrink-0"
-                    >
-                      Upgrade
-                    </Link>
-                  )}
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-yellow-400 hover:text-yellow-300 underline flex-shrink-0"
+                  >
+                    Upgrade
+                  </Link>
                 </div>
               );
             }
@@ -659,7 +670,7 @@ export function DashboardContent() {
 
         {accessStatus?.subscription &&
           (() => {
-            const { repliesUsed, replyLimit, plan } = accessStatus.subscription;
+            const { repliesUsed, replyLimit } = accessStatus.subscription;
             const pct = Math.round((repliesUsed / replyLimit) * 100);
             if (repliesUsed >= replyLimit) {
               return (
@@ -675,10 +686,10 @@ export function DashboardContent() {
                     </span>
                   </div>
                   <Link
-                    href={plan === "free" ? "/pricing" : "/account"}
+                    href="/pricing"
                     className="text-sm text-red-400 hover:text-red-300 underline flex-shrink-0"
                   >
-                    {plan === "free" ? "Upgrade" : "Manage"}
+                    Upgrade
                   </Link>
                 </div>
               );
@@ -696,14 +707,12 @@ export function DashboardContent() {
                       {replyLimit.toLocaleString()})
                     </span>
                   </div>
-                  {plan === "free" && (
-                    <Link
-                      href="/pricing"
-                      className="text-sm text-yellow-400 hover:text-yellow-300 underline flex-shrink-0"
-                    >
-                      Upgrade
-                    </Link>
-                  )}
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-yellow-400 hover:text-yellow-300 underline flex-shrink-0"
+                  >
+                    Upgrade
+                  </Link>
                 </div>
               );
             }
@@ -740,6 +749,7 @@ export function DashboardContent() {
                 postLimitInput={postLimitInput}
                 onPostLimitChange={setPostLimitInput}
                 onPostLimitBlur={handlePostLimitBlur}
+                commentLimitReached={commentLimitReached}
               />
             </div>
 
@@ -915,10 +925,34 @@ export function DashboardContent() {
       />
 
       {scrapeReport && (
-        <ScrapeReportModal
+        scrapeReport.limitReached ? (
+          <LimitReachedModal
+            isOpen={true}
+            onClose={closeScrapeReport}
+            type="comments"
+            used={accessStatus?.subscription?.monthlyUsed ?? 0}
+            limit={accessStatus?.subscription?.monthlyLimit ?? 0}
+            plan={currentPlan}
+            scrapeStats={scrapeReport.stats}
+          />
+        ) : (
+          <ScrapeReportModal
+            isOpen={true}
+            onClose={closeScrapeReport}
+            stats={scrapeReport.stats}
+          />
+        )
+      )}
+
+      {replyLimitModal && (
+        <LimitReachedModal
           isOpen={true}
-          onClose={closeScrapeReport}
-          stats={scrapeReport.stats}
+          onClose={() => setReplyLimitModal(null)}
+          type="replies"
+          used={repliesUsed}
+          limit={replyLimit}
+          plan={currentPlan}
+          replyStats={replyLimitModal}
         />
       )}
 

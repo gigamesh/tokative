@@ -23,6 +23,7 @@ interface ScrapeStats {
 
 interface ScrapeReport {
   stats: ScrapeStats;
+  limitReached?: boolean;
 }
 
 interface VideoDataState {
@@ -185,9 +186,10 @@ export function useVideoData() {
       }),
 
       bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE, (payload) => {
-        const { comments, stats } = payload as {
+        const { comments, stats, limitReached } = payload as {
           comments: Array<{ videoId?: string }>;
           stats?: ScrapeStats;
+          limitReached?: boolean;
         };
         const videoId =
           comments?.[0]?.videoId || currentFetchingVideoId.current;
@@ -201,7 +203,7 @@ export function useVideoData() {
             ...prev,
             getCommentsProgress: newProgress,
             scrapingState: null,
-            scrapeReport: stats ? { stats } : prev.scrapeReport,
+            scrapeReport: stats ? { stats, limitReached } : prev.scrapeReport,
           };
         });
       }),
@@ -247,11 +249,12 @@ export function useVideoData() {
       }),
 
       bridge.on(MessageType.GET_BATCH_COMMENTS_COMPLETE, (payload) => {
-        const { stats } = payload as {
+        const { stats, limitReached } = payload as {
           totalVideos: number;
           totalComments: number;
           videoIds: string[];
           stats?: ScrapeStats;
+          limitReached?: boolean;
         };
         setState((prev) => {
           return {
@@ -259,7 +262,7 @@ export function useVideoData() {
             batchProgress: null,
             getCommentsProgress: new Map(),
             scrapingState: null,
-            scrapeReport: stats ? { stats } : null,
+            scrapeReport: stats ? { stats, limitReached } : null,
           };
         });
       }),

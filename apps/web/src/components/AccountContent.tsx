@@ -150,19 +150,29 @@ export function AccountContent() {
           )}
 
           <div className="flex gap-3 pt-2">
-            {subscription.plan === "free" ? (
-              <Link href="/pricing">
-                <Button variant="primary">Upgrade Plan</Button>
-              </Link>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={handleManageSubscription}
-                disabled={loading}
-              >
-                {loading ? "Loading..." : "Manage Subscription"}
-              </Button>
-            )}
+            {(() => {
+              const commentLimitReached = subscription.monthlyUsed >= subscription.monthlyLimit;
+              const replyLimitReached = (subscription.repliesUsed ?? 0) >= (subscription.replyLimit ?? Infinity);
+              const atLimit = commentLimitReached || replyLimitReached;
+
+              if (subscription.plan === "free" || atLimit) {
+                return (
+                  <Link href="/pricing">
+                    <Button variant="primary">Upgrade</Button>
+                  </Link>
+                );
+              }
+
+              return (
+                <Button
+                  variant="outline"
+                  onClick={handleManageSubscription}
+                  disabled={loading}
+                >
+                  {loading ? "Loading..." : "Manage Subscription"}
+                </Button>
+              );
+            })()}
           </div>
         </div>
       </main>

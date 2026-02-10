@@ -43,6 +43,7 @@ interface PostsGridProps {
   postLimitInput: string;
   onPostLimitChange: (value: string) => void;
   onPostLimitBlur: () => void;
+  commentLimitReached?: boolean;
 }
 
 export function PostsGrid({
@@ -61,6 +62,7 @@ export function PostsGrid({
   postLimitInput,
   onPostLimitChange,
   onPostLimitBlur,
+  commentLimitReached = false,
 }: PostsGridProps) {
   const lastSelectedIndexRef = useRef<number | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -179,10 +181,12 @@ export function PostsGrid({
               Cancel
             </Button>
           ) : (
-            <FetchCommentsButton
-              onClick={handleGetCommentsSelected}
-              disabled={selectedVideoIds.size === 0}
-            />
+            <span title={commentLimitReached ? "Monthly comment limit reached" : undefined}>
+              <FetchCommentsButton
+                onClick={handleGetCommentsSelected}
+                disabled={selectedVideoIds.size === 0 || commentLimitReached}
+              />
+            </span>
           )}
         </div>
         </div>

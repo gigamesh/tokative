@@ -1,3 +1,5 @@
+import { isEmailWhitelisted } from "./constants";
+
 export type PlanName = "free" | "pro" | "premium";
 
 interface PlanLimits {
@@ -10,8 +12,8 @@ export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
   free: { monthlyComments: 500, monthlyReplies: 50, translation: false },
   pro: { monthlyComments: 2_500, monthlyReplies: 500, translation: true },
   premium: {
-    monthlyComments: 17,
-    monthlyReplies: 2,
+    monthlyComments: 25_000,
+    monthlyReplies: 5_000,
     translation: true,
   },
 };
@@ -34,6 +36,16 @@ export const PRICE_ID_TO_PLAN: Record<string, PlanName> = {
   [STRIPE_PRICE_IDS.premium.month]: "premium",
   [STRIPE_PRICE_IDS.premium.year]: "premium",
 };
+
+/** Resolves a user's effective plan, accounting for email whitelisting. */
+export function getEffectivePlan(user: {
+  email?: string;
+  subscriptionPlan?: PlanName;
+}): PlanName {
+  return isEmailWhitelisted(user.email ?? "")
+    ? "premium"
+    : (user.subscriptionPlan ?? "free");
+}
 
 export function getMonthlyLimit(plan: PlanName): number {
   return PLAN_LIMITS[plan].monthlyComments;
