@@ -119,7 +119,7 @@ export function PricingContent() {
       <main className="max-w-5xl mx-auto px-6 py-20">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-foreground">
-            Simple, transparent pricing
+            Tokative pricing
           </h1>
           <p className="mt-3 text-foreground-muted text-lg">
             Start free. Upgrade when you need more.

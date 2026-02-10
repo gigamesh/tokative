@@ -1,9 +1,9 @@
 "use node";
 
-import Stripe from "stripe";
-import { action } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import Stripe from "stripe";
+import { internal } from "./_generated/api";
+import { action } from "./_generated/server";
 import { PRICE_ID_TO_PLAN, type PlanName } from "./plans";
 
 function getStripe(): Stripe {
@@ -16,7 +16,7 @@ function priceIdToPlan(priceId: string): PlanName {
 
 /** Maps Stripe subscription status to our local status. */
 function mapStripeStatus(
-  status: Stripe.Subscription.Status
+  status: Stripe.Subscription.Status,
 ): "active" | "past_due" | "canceled" | "incomplete" {
   switch (status) {
     case "active":
@@ -55,13 +55,13 @@ export const createCheckoutSession = action({
       });
     }
 
-    const dashboardUrl = process.env.DASHBOARD_URL!;
+    const tokativeEndpoint = process.env.TOKATIVE_ENDPOINT!;
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: args.priceId, quantity: 1 }],
-      success_url: `${dashboardUrl}/dashboard?checkout=success`,
-      cancel_url: `${dashboardUrl}/pricing`,
+      success_url: `${tokativeEndpoint}/dashboard?checkout=success`,
+      cancel_url: `${tokativeEndpoint}/pricing`,
       allow_promotion_codes: true,
     });
 
@@ -80,10 +80,10 @@ export const createPortalSession = action({
     }
 
     const stripe = getStripe();
-    const dashboardUrl = process.env.DASHBOARD_URL!;
+    const tokativeEndpoint = process.env.TOKATIVE_ENDPOINT!;
     const session = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
-      return_url: `${dashboardUrl}/dashboard?tab=settings`,
+      return_url: `${tokativeEndpoint}/dashboard?tab=settings`,
     });
 
     return { url: session.url };
@@ -97,7 +97,7 @@ export const handleWebhook = action({
     const event = stripe.webhooks.constructEvent(
       args.payload,
       args.signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET!,
     );
 
     switch (event.type) {
@@ -111,7 +111,7 @@ export const handleWebhook = action({
 
         const user = await ctx.runQuery(
           internal.stripeHelpers.getUserByStripeCustomerId,
-          { stripeCustomerId: customerId }
+          { stripeCustomerId: customerId },
         );
         if (!user) {
           console.error("No user found for Stripe customer:", customerId);
@@ -143,7 +143,7 @@ export const handleWebhook = action({
 
         const user = await ctx.runQuery(
           internal.stripeHelpers.getUserByStripeCustomerId,
-          { stripeCustomerId: customerId }
+          { stripeCustomerId: customerId },
         );
         if (!user) return;
 
@@ -168,7 +168,7 @@ export const handleWebhook = action({
 
         const user = await ctx.runQuery(
           internal.stripeHelpers.getUserByStripeCustomerId,
-          { stripeCustomerId: customerId }
+          { stripeCustomerId: customerId },
         );
         if (!user) return;
 

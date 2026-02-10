@@ -102,7 +102,7 @@ Set in Convex:
 ```bash
 npx convex env set STRIPE_SECRET_KEY sk_live_...
 npx convex env set STRIPE_WEBHOOK_SECRET whsec_...
-npx convex env set DASHBOARD_URL https://your-domain.com
+npx convex env set TOKATIVE_ENDPOINT https://your-domain.com
 ```
 
 For local development, use test mode keys:
@@ -110,7 +110,7 @@ For local development, use test mode keys:
 ```bash
 npx convex env set STRIPE_SECRET_KEY sk_test_...
 npx convex env set STRIPE_WEBHOOK_SECRET whsec_...
-npx convex env set DASHBOARD_URL http://localhost:3000
+npx convex env set TOKATIVE_ENDPOINT http://localhost:3000
 ```
 
 No Stripe-related env vars are needed in `.env.local` — the price IDs are constants in code.
