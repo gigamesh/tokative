@@ -19,6 +19,10 @@ export interface ConvexSyncResult {
   preexisting: number;
   ignored: number;
   missingTiktokUserId: number;
+  limitReached?: boolean;
+  monthlyLimit?: number;
+  currentCount?: number;
+  plan?: string;
 }
 
 export interface ConvexSettings {
