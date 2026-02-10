@@ -665,6 +665,7 @@ async function expandAndSaveReplies(
       }
     }
   } catch (error) {
+    if (error instanceof CommentLimitError) throw error;
     logger.error(`[Tokative] Error in expandAndSaveReplies:`, error);
   }
 
@@ -887,6 +888,7 @@ async function scrollAndWaitForContent(
 interface ScrapeResult {
   comments: ScrapedComment[];
   stats: ScrapeStats;
+  limitReached: boolean;
 }
 
 async function scrollToLoadComments(
@@ -921,11 +923,13 @@ async function scrollToLoadComments(
     return {
       comments: [],
       stats: { found: 0, new: 0, preexisting: 0, ignored: 0 },
+      limitReached: false,
     };
   }
 
   let loopIteration = 0;
   let exitReason = "unknown";
+  let limitReached = false;
   const allComments: ScrapedComment[] = [];
   const savedCommentIds = new Set<string>();
   let lastIterationTime = Date.now();
@@ -1020,8 +1024,12 @@ async function scrollToLoadComments(
         onProgress?.(cumulativeStats);
       } catch (err) {
         if (err instanceof CommentLimitError) {
+          cumulativeStats.new += err.partialResult.new;
+          cumulativeStats.preexisting += err.partialResult.preexisting;
+          cumulativeStats.ignored += err.partialResult.ignored;
           logger.log(`[Tokative] Comment limit reached: ${err.currentCount}/${err.monthlyLimit} (${err.plan})`);
           exitReason = "comment_limit_reached";
+          limitReached = true;
           break;
         }
         throw err;
@@ -1049,8 +1057,12 @@ async function scrollToLoadComments(
         );
       } catch (err) {
         if (err instanceof CommentLimitError) {
+          cumulativeStats.new += err.partialResult.new;
+          cumulativeStats.preexisting += err.partialResult.preexisting;
+          cumulativeStats.ignored += err.partialResult.ignored;
           logger.log(`[Tokative] Comment limit reached during reply expansion`);
           exitReason = "comment_limit_reached";
+          limitReached = true;
           break;
         }
         throw err;
@@ -1121,12 +1133,24 @@ async function scrollToLoadComments(
   if (!isCancelled) {
     logger.log(`[Tokative] === FINAL PASS ===`);
     const preCount = allComments.length;
-    await expandAndSaveReplies(
-      savedCommentIds,
-      allComments,
-      cumulativeStats,
-      onProgress,
-    );
+    try {
+      await expandAndSaveReplies(
+        savedCommentIds,
+        allComments,
+        cumulativeStats,
+        onProgress,
+      );
+    } catch (err) {
+      if (err instanceof CommentLimitError) {
+        cumulativeStats.new += err.partialResult.new;
+        cumulativeStats.preexisting += err.partialResult.preexisting;
+        cumulativeStats.ignored += err.partialResult.ignored;
+        exitReason = "comment_limit_reached";
+        limitReached = true;
+      } else {
+        throw err;
+      }
+    }
     const addedCount = allComments.length - preCount;
 
     if (addedCount > 0) {
@@ -1144,10 +1168,11 @@ async function scrollToLoadComments(
     return {
       comments: allComments.slice(0, maxComments),
       stats: cumulativeStats,
+      limitReached,
     };
   }
 
-  return { comments: allComments, stats: cumulativeStats };
+  return { comments: allComments, stats: cumulativeStats, limitReached };
 }
 
 async function waitForCommentContent(
@@ -1610,6 +1635,7 @@ export async function scrapeProfileVideoMetadata(
 export interface ScrapeCommentsResult {
   comments: ScrapedComment[];
   stats: ScrapeStats;
+  limitReached: boolean;
 }
 
 export async function scrapeVideoComments(
@@ -1649,7 +1675,7 @@ export async function scrapeVideoComments(
       message: "Could not open comments panel",
       stats: emptyStats,
     });
-    return { comments: [], stats: emptyStats };
+    return { comments: [], stats: emptyStats, limitReached: false };
   }
 
   onProgress?.({
@@ -1678,7 +1704,7 @@ export async function scrapeVideoComments(
       message: "Comments failed to load",
       stats: emptyStats,
     });
-    return { comments: [], stats: emptyStats };
+    return { comments: [], stats: emptyStats, limitReached: false };
   }
 
   logger.log("[Tokative] Starting scroll loop...");

@@ -12,7 +12,7 @@ import {
   CommentInsertData,
 } from "./commentHelpers";
 import { buildSearchResults } from "./searchHelpers";
-import { getMonthlyLimit, getMonthlyReplyLimit, getCurrentMonthStart, type PlanName } from "./plans";
+import { getMonthlyLimit, getMonthlyReplyLimit, getCurrentMonthStart, getEffectivePlan } from "./plans";
 
 export const list = query({
   args: { clerkId: v.string() },
@@ -262,7 +262,7 @@ export const addBatch = mutation({
       throw new Error("User not found");
     }
 
-    const plan: PlanName = user.subscriptionPlan ?? "free";
+    const plan = getEffectivePlan(user);
     const monthlyLimit = getMonthlyLimit(plan);
     const monthStart = getCurrentMonthStart();
 
@@ -456,7 +456,7 @@ export const update = mutation({
     let replyLimitReached = false;
 
     if (args.updates.repliedTo === true && !comment.repliedTo) {
-      const plan: PlanName = user.subscriptionPlan ?? "free";
+      const plan = getEffectivePlan(user);
       const replyLimit = getMonthlyReplyLimit(plan);
       const monthStart = getCurrentMonthStart();
 

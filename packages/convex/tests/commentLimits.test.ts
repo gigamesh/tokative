@@ -1,5 +1,6 @@
 import { describe, it, beforeEach } from "vitest";
 import { api } from "../convex/_generated/api";
+import { PLAN_LIMITS } from "../convex/plans";
 import { createTestContext, createTestUser, makeComment, expect } from "./helpers";
 
 describe("addBatch limit enforcement", () => {
@@ -180,5 +181,76 @@ describe("addBatch limit enforcement", () => {
 
     expect(result.limitReached).toBe(false);
     expect(result.new).toBe(1);
+  });
+
+  it("uses premium plan limits for whitelisted users (no subscription)", async () => {
+    const premiumLimit = PLAN_LIMITS.premium.monthlyComments;
+
+    await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+        .unique();
+      if (!user) throw new Error("User not found");
+      await ctx.db.patch(user._id, {
+        email: "testwhitelist@gmail.com",
+      });
+    });
+
+    const result = await t.mutation(api.comments.addBatch, {
+      clerkId,
+      comments: [makeComment()],
+    });
+
+    expect(result.plan).toBe("premium");
+    expect(result.monthlyLimit).toBe(premiumLimit);
+  });
+
+  it("caps whitelisted user at premium limit, not free limit", async () => {
+    const premiumLimit = PLAN_LIMITS.premium.monthlyComments;
+
+    await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+        .unique();
+      if (!user) throw new Error("User not found");
+      await ctx.db.patch(user._id, {
+        email: "testwhitelist@gmail.com",
+        monthlyCommentCount: premiumLimit,
+        monthlyCommentResetAt: Date.now(),
+      });
+    });
+
+    const result = await t.mutation(api.comments.addBatch, {
+      clerkId,
+      comments: [makeComment()],
+    });
+
+    expect(result.limitReached).toBe(true);
+    expect(result.new).toBe(0);
+    expect(result.plan).toBe("premium");
+  });
+
+  it("whitelisted user without subscription resolves to premium, not free", async () => {
+    await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+        .unique();
+      if (!user) throw new Error("User not found");
+      await ctx.db.patch(user._id, {
+        email: "testwhitelist@gmail.com",
+      });
+    });
+
+    const result = await t.mutation(api.comments.addBatch, {
+      clerkId,
+      comments: [makeComment()],
+    });
+
+    expect(result.plan).not.toBe("free");
+    expect(result.plan).toBe("premium");
+    expect(result.monthlyLimit).toBe(PLAN_LIMITS.premium.monthlyComments);
   });
 });

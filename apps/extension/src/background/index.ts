@@ -1193,6 +1193,7 @@ async function handleGetBatchComments(
   let totalComments = 0;
   let completedVideos = 0;
   let tab: chrome.tabs.Tab | null = null;
+  let batchLimitReached = false;
 
   // Cumulative stats across all videos
   const cumulativeStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
@@ -1292,6 +1293,7 @@ async function handleGetBatchComments(
       cumulativeStats.new += result.stats.new;
       cumulativeStats.preexisting += result.stats.preexisting;
       cumulativeStats.ignored += result.stats.ignored;
+      if (result.limitReached) batchLimitReached = true;
       completedVideos++;
       lastBatchProgress = { completedVideos, totalComments };
       await updateVideo(video.videoId, { commentsScraped: true });
@@ -1333,6 +1335,7 @@ async function handleGetBatchComments(
           totalComments,
           videoIds: videosToProcess.map((v) => v.videoId),
           stats: cumulativeStats,
+          limitReached: batchLimitReached || totalComments >= totalCommentLimit,
         },
       });
     }
@@ -1367,6 +1370,7 @@ async function handleGetBatchComments(
 interface VideoScrapeResult {
   commentCount: number;
   stats: { found: number; new: number; preexisting: number; ignored: number };
+  limitReached: boolean;
 }
 
 async function scrapeVideoComments(
@@ -1387,7 +1391,7 @@ async function scrapeVideoComments(
           payload.message || `Found ${payload.commentsFound || 0} comments...`,
         );
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-        const { comments, stats } = msg.payload as {
+        const { comments, stats, limitReached } = msg.payload as {
           comments: ScrapedComment[];
           stats?: {
             found: number;
@@ -1395,11 +1399,13 @@ async function scrapeVideoComments(
             preexisting: number;
             ignored: number;
           };
+          limitReached?: boolean;
         };
         chrome.runtime.onMessage.removeListener(responseHandler);
         resolve({
           commentCount: comments?.length || 0,
           stats: stats || { found: 0, new: 0, preexisting: 0, ignored: 0 },
+          limitReached: limitReached ?? false,
         });
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
         chrome.runtime.onMessage.removeListener(responseHandler);

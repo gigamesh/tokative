@@ -6,7 +6,7 @@ import {
   getMonthlyReplyLimit,
   hasTranslation,
   getCurrentMonthStart,
-  type PlanName,
+  getEffectivePlan,
 } from "./plans";
 
 export const getOrCreate = mutation({
@@ -51,9 +51,7 @@ export const getAccessStatus = query({
 
     const email = user.email ?? "";
     const whitelisted = isEmailWhitelisted(email);
-    const effectivePlan: PlanName = whitelisted
-      ? "premium"
-      : (user.subscriptionPlan ?? "free");
+    const effectivePlan = getEffectivePlan(user);
 
     const monthlyLimit = getMonthlyLimit(effectivePlan);
     const replyLimit = getMonthlyReplyLimit(effectivePlan);

@@ -106,9 +106,9 @@ function handleMessage(
           updateOverlayComplete(result.stats);
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
-            payload: { comments: result.comments, stats: result.stats },
+            payload: { comments: result.comments, stats: result.stats, limitReached: result.limitReached },
           });
-          sendResponse({ success: true, comments: result.comments, stats: result.stats });
+          sendResponse({ success: true, comments: result.comments, stats: result.stats, limitReached: result.limitReached });
         })
         .catch((error) => {
           logger.error("[TikTok] Scraping error:", error);
@@ -219,7 +219,7 @@ function handlePortMessage(message: ExtensionMessage): void {
             updateOverlayComplete(result.stats);
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
-              payload: { comments: result.comments, stats: result.stats },
+              payload: { comments: result.comments, stats: result.stats, limitReached: result.limitReached },
             });
           })
           .catch((error) => {

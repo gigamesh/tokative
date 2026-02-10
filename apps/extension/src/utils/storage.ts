@@ -18,13 +18,15 @@ export class CommentLimitError extends Error {
   monthlyLimit: number;
   currentCount: number;
   plan: string;
+  partialResult: AddCommentsResult;
 
-  constructor(monthlyLimit: number, currentCount: number, plan: string) {
+  constructor(monthlyLimit: number, currentCount: number, plan: string, partialResult: AddCommentsResult) {
     super(`Monthly comment limit reached (${currentCount}/${monthlyLimit})`);
     this.name = "CommentLimitError";
     this.monthlyLimit = monthlyLimit;
     this.currentCount = currentCount;
     this.plan = plan;
+    this.partialResult = partialResult;
   }
 }
 
@@ -46,6 +48,7 @@ export async function addScrapedComments(newComments: ScrapedComment[]): Promise
       result.monthlyLimit ?? 0,
       result.currentCount ?? 0,
       result.plan ?? "free",
+      { new: result.new, preexisting: result.preexisting, ignored: result.ignored },
     );
   }
   return result;
