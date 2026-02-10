@@ -2,8 +2,8 @@ import { EXTENSION_SOURCE, ExtensionMessage, MessageType } from "../types";
 import { guardExtensionContext } from "../utils/dom";
 import { logger } from "../utils/logger";
 
-declare const TOKATIVE_URL_PLACEHOLDER: string;
-const DASHBOARD_ORIGIN = TOKATIVE_URL_PLACEHOLDER;
+declare const TOKATIVE_ENDPOINT_PLACEHOLDER: string;
+const DASHBOARD_ORIGIN = TOKATIVE_ENDPOINT_PLACEHOLDER;
 
 const BRIDGE_ID = "tokative-bridge";
 

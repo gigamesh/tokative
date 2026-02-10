@@ -41,5 +41,8 @@ function getEnvWithDefault(name, defaultValue) {
 
 module.exports = {
   CONVEX_SITE_URL: getRequiredEnv("CONVEX_SITE_URL"),
-  TOKATIVE_URL: getEnvWithDefault("TOKATIVE_URL", "http://localhost:3000"),
+  TOKATIVE_ENDPOINT: getEnvWithDefault(
+    "TOKATIVE_ENDPOINT",
+    "http://localhost:3000",
+  ),
 };

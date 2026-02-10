@@ -37,9 +37,9 @@ import {
   updateVideo,
 } from "../utils/storage";
 
-declare const TOKATIVE_URL_PLACEHOLDER: string;
-const TOKATIVE_URL = TOKATIVE_URL_PLACEHOLDER;
-const TOKATIVE_URL_PATTERN = TOKATIVE_URL + "/*";
+declare const TOKATIVE_ENDPOINT_PLACEHOLDER: string;
+const TOKATIVE_ENDPOINT = TOKATIVE_ENDPOINT_PLACEHOLDER;
+const TOKATIVE_ENDPOINT_PATTERN = TOKATIVE_ENDPOINT + "/*";
 
 const activePorts = new Map<string, chrome.runtime.Port>();
 let activeScrapingTabId: number | null = null;
@@ -79,7 +79,7 @@ async function updateAndBroadcastScrapingState(
 
 async function getDashboardTab(): Promise<chrome.tabs.Tab | null> {
   try {
-    const tabs = await chrome.tabs.query({ url: TOKATIVE_URL_PATTERN });
+    const tabs = await chrome.tabs.query({ url: TOKATIVE_ENDPOINT_PATTERN });
     return tabs.length > 0 && tabs[0].id ? tabs[0] : null;
   } catch {
     return null;
@@ -94,7 +94,7 @@ function getErrorMessage(error: unknown): string {
 
 async function getDashboardTabIndex(): Promise<number | undefined> {
   try {
-    const tabs = await chrome.tabs.query({ url: TOKATIVE_URL_PATTERN });
+    const tabs = await chrome.tabs.query({ url: TOKATIVE_ENDPOINT_PATTERN });
     if (tabs.length > 0 && tabs[0].index !== undefined) {
       return tabs[0].index + 1;
     }
@@ -448,7 +448,7 @@ export async function handleMessage(
 
     case MessageType.GET_AUTH_TOKEN: {
       // Request token from dashboard - forward to dashboard tabs
-      const tabs = await chrome.tabs.query({ url: TOKATIVE_URL_PATTERN });
+      const tabs = await chrome.tabs.query({ url: TOKATIVE_ENDPOINT_PATTERN });
       for (const tab of tabs) {
         if (tab.id) {
           chrome.tabs
@@ -470,7 +470,7 @@ export async function handleMessage(
         }
       } else {
         await chrome.tabs.create({
-          url: TOKATIVE_URL,
+          url: TOKATIVE_ENDPOINT,
           active: true,
         });
       }
@@ -726,7 +726,7 @@ async function broadcastToDashboard(message: ExtensionMessage): Promise<void> {
   // Only use tabs API as backup if port wasn't available
   if (!sentViaPort) {
     try {
-      const tabs = await chrome.tabs.query({ url: TOKATIVE_URL_PATTERN });
+      const tabs = await chrome.tabs.query({ url: TOKATIVE_ENDPOINT_PATTERN });
       for (const tab of tabs) {
         if (tab.id) {
           chrome.tabs.sendMessage(tab.id, message).catch(() => {
@@ -1525,7 +1525,7 @@ getScrapingState().then((state) => {
 async function injectContentScripts(): Promise<void> {
   try {
     const dashboardTabs = await chrome.tabs.query({
-      url: TOKATIVE_URL_PATTERN,
+      url: TOKATIVE_ENDPOINT_PATTERN,
     });
     for (const tab of dashboardTabs) {
       if (tab.id) {
