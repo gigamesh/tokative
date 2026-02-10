@@ -1,5 +1,4 @@
 import { DashboardTab } from "@/hooks/useDashboardUrl";
-import { Settings } from "lucide-react";
 
 interface TabNavigationProps {
   activeTab: DashboardTab;
@@ -60,20 +59,6 @@ export function TabNavigation({
         >
           Commenters
           <span className="ml-2 text-xs text-foreground-muted">({commenterCount.toLocaleString()})</span>
-        </button>
-        <button
-          onClick={() => onTabChange("settings")}
-          className={`relative px-5 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors flex items-center gap-2 ${
-            activeTab === "settings"
-              ? "bg-surface-elevated text-foreground border-border z-10"
-              : "bg-surface-secondary/50 text-foreground-muted border-border hover:text-foreground-secondary hover:bg-surface-secondary"
-          }`}
-          style={{
-            marginBottom: activeTab === "settings" ? "-1px" : "0",
-          }}
-        >
-          Settings
-          <Settings className="w-4 h-4" />
         </button>
       </div>
       <div className="h-px bg-border" />

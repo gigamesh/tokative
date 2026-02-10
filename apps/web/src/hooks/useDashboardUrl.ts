@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { STORAGE_KEYS } from "@/utils/constants";
 import { getStorageItem, setStorageItem } from "@/utils/localStorage";
 
-export type DashboardTab = "posts" | "comments" | "commenters" | "settings";
+export type DashboardTab = "posts" | "comments" | "commenters";
 
 interface DashboardState {
   tab: DashboardTab;
@@ -26,7 +26,8 @@ export function useDashboardUrl() {
       STORAGE_KEYS.DASHBOARD_STATE,
       DEFAULT_STATE
     );
-    setActiveTab(stored.tab || "posts");
+    const validTabs: DashboardTab[] = ["posts", "comments", "commenters"];
+    setActiveTab(validTabs.includes(stored.tab as DashboardTab) ? (stored.tab as DashboardTab) : "posts");
     setSelectedPostId(stored.postId || null);
   }, []);
 

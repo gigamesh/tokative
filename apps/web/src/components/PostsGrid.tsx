@@ -40,6 +40,9 @@ interface PostsGridProps {
   onPostSelectionChange?: (videoIds: string[], selected: boolean) => void;
   isScraping?: boolean;
   onCancelScraping?: () => void;
+  postLimitInput: string;
+  onPostLimitChange: (value: string) => void;
+  onPostLimitBlur: () => void;
 }
 
 export function PostsGrid({
@@ -55,6 +58,9 @@ export function PostsGrid({
   onPostSelectionChange,
   isScraping = false,
   onCancelScraping,
+  postLimitInput,
+  onPostLimitChange,
+  onPostLimitBlur,
 }: PostsGridProps) {
   const lastSelectedIndexRef = useRef<number | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -122,7 +128,20 @@ export function PostsGrid({
 
   const stickyHeader = (
     <>
-      <h2 className="text-lg font-medium text-foreground mb-3">Posts</h2>
+      <div className="flex items-center gap-4 mb-3">
+        <h2 className="text-lg font-medium text-foreground">Posts</h2>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-foreground-muted">Post Limit</label>
+          <input
+            type="number"
+            value={postLimitInput}
+            onChange={(e) => onPostLimitChange(e.target.value)}
+            onBlur={onPostLimitBlur}
+            min={1}
+            className="w-20 px-2 py-1 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
+          />
+        </div>
+      </div>
 
       {videos.length > 0 && (
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">

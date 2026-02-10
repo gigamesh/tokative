@@ -11,7 +11,7 @@ import { PostsGrid } from "@/components/PostsGrid";
 import { ReplyComposer } from "@/components/ReplyComposer";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
-import { SettingsTab } from "@/components/SettingsTab";
+import { CollapsibleSettings } from "@/components/CollapsibleSettings";
 import { Spinner } from "@/components/Spinner";
 import { TabContentContainer } from "@/components/TabContentContainer";
 import { TabNavigation } from "@/components/TabNavigation";
@@ -588,6 +588,9 @@ export function DashboardContent() {
                 onViewPostComments={handleViewPostComments}
                 isScraping={isScraping}
                 onCancelScraping={handleCancelScraping}
+                postLimitInput={postLimitInput}
+                onPostLimitChange={setPostLimitInput}
+                onPostLimitBlur={handlePostLimitBlur}
               />
             </div>
 
@@ -644,6 +647,18 @@ export function DashboardContent() {
                           </Button>
                         </div>
                       )}
+                      <CollapsibleSettings
+                        commentLimitInput={commentLimitInput}
+                        onCommentLimitChange={setCommentLimitInput}
+                        onCommentLimitBlur={handleCommentLimitBlur}
+                        ignoreList={ignoreList}
+                        onAddToIgnoreList={addToIgnoreList}
+                        onRemoveFromIgnoreList={removeFromIgnoreList}
+                        hideOwnReplies={hideOwnReplies}
+                        onHideOwnRepliesChange={saveHideOwnReplies}
+                        deleteMissingComments={deleteMissingComments}
+                        onDeleteMissingCommentsChange={saveDeleteMissingComments}
+                      />
                     </>
                   }
                 />
@@ -673,31 +688,28 @@ export function DashboardContent() {
                   onTranslateComment={handleTranslateComment}
                   targetLanguage={targetLanguage}
                   headerContent={
-                    <h2 className="text-lg font-medium text-foreground">
-                      Commenters
-                    </h2>
+                    <>
+                      <h2 className="text-lg font-medium text-foreground">
+                        Commenters
+                      </h2>
+                      <CollapsibleSettings
+                        commentLimitInput={commentLimitInput}
+                        onCommentLimitChange={setCommentLimitInput}
+                        onCommentLimitBlur={handleCommentLimitBlur}
+                        ignoreList={ignoreList}
+                        onAddToIgnoreList={addToIgnoreList}
+                        onRemoveFromIgnoreList={removeFromIgnoreList}
+                        hideOwnReplies={hideOwnReplies}
+                        onHideOwnRepliesChange={saveHideOwnReplies}
+                        deleteMissingComments={deleteMissingComments}
+                        onDeleteMissingCommentsChange={saveDeleteMissingComments}
+                      />
+                    </>
                   }
                 />
               </TabContentContainer>
             </div>
 
-            <div className={activeTab !== "settings" ? "hidden" : ""}>
-              <SettingsTab
-                postLimitInput={postLimitInput}
-                commentLimitInput={commentLimitInput}
-                onPostLimitChange={setPostLimitInput}
-                onCommentLimitChange={setCommentLimitInput}
-                onPostLimitBlur={handlePostLimitBlur}
-                onCommentLimitBlur={handleCommentLimitBlur}
-                ignoreList={ignoreList}
-                onAddToIgnoreList={addToIgnoreList}
-                onRemoveFromIgnoreList={removeFromIgnoreList}
-                hideOwnReplies={hideOwnReplies}
-                onHideOwnRepliesChange={saveHideOwnReplies}
-                deleteMissingComments={deleteMissingComments}
-                onDeleteMissingCommentsChange={saveDeleteMissingComments}
-              />
-            </div>
           </div>
 
           <div
