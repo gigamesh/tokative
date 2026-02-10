@@ -300,6 +300,30 @@ export function updateOverlayComplete(stats?: ScrapeStats): void {
   autoHideTimer = setTimeout(hideOverlay, 3000);
 }
 
+declare const DASHBOARD_URL_PLACEHOLDER: string;
+
+/** Shows limit-reached state with upgrade prompt. */
+export function updateOverlayLimitReached(
+  monthlyLimit: number,
+  currentCount: number,
+  plan: string,
+): void {
+  if (!shadowRoot) return;
+  clearAutoHide();
+
+  const statusText = el("status-text");
+  if (statusText) {
+    statusText.className = "status-text error";
+    const dashboardUrl = DASHBOARD_URL_PLACEHOLDER;
+    statusText.innerHTML =
+      `Monthly comment limit reached (${currentCount.toLocaleString()}/${monthlyLimit.toLocaleString()}).` +
+      ` <a href="${dashboardUrl}/pricing" target="_blank" ` +
+      `style="color: ${colors.brand.primary}; text-decoration: underline;">Upgrade to collect more.</a>`;
+  }
+
+  setStatusIndicator("icon", "!", colors.status.warning);
+}
+
 /** Shows error state, auto-hides after 5 seconds. */
 export function updateOverlayError(message: string): void {
   if (!shadowRoot) return;

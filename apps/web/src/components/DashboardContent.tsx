@@ -29,8 +29,10 @@ import { ScrapedComment } from "@/utils/constants";
 import { useAuth } from "@/providers/ConvexProvider";
 import { useQuery } from "convex/react";
 import { api } from "@tokative/convex";
-import { PauseCircle, X } from "lucide-react";
+import { AlertTriangle, PauseCircle, X } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 interface DeleteModalState {
   isOpen: boolean;
@@ -191,6 +193,9 @@ export function DashboardContent() {
     commentText: "",
   });
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [toast, setToast] = useState({ isVisible: false, message: "" });
   const [missingCommentChoiceModal, setMissingCommentChoiceModal] = useState<{
     isOpen: boolean;
@@ -226,6 +231,13 @@ export function DashboardContent() {
       setDismissedError(null);
     }
   }, [error, dismissedError]);
+
+  useEffect(() => {
+    if (searchParams.get("checkout") === "success") {
+      showToast("Subscription activated! Your plan is now active.");
+      router.replace("/dashboard", { scroll: false });
+    }
+  }, [searchParams, showToast, router]);
 
   useEffect(() => {
     if (bulkReplyProgress?.status === "complete") {
@@ -560,6 +572,56 @@ export function DashboardContent() {
             </button>
           </div>
         )}
+
+        {accessStatus?.subscription && (() => {
+          const { monthlyUsed, monthlyLimit, plan } = accessStatus.subscription;
+          const pct = Math.round((monthlyUsed / monthlyLimit) * 100);
+          if (monthlyUsed >= monthlyLimit) {
+            return (
+              <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="text-red-400 font-medium">
+                    Monthly comment limit reached
+                  </span>
+                  <span className="text-red-400/80 ml-2">
+                    ({monthlyUsed.toLocaleString()}/{monthlyLimit.toLocaleString()})
+                  </span>
+                </div>
+                <Link
+                  href={plan === "free" ? "/pricing" : "/account"}
+                  className="text-sm text-red-400 hover:text-red-300 underline flex-shrink-0"
+                >
+                  {plan === "free" ? "Upgrade" : "Manage"}
+                </Link>
+              </div>
+            );
+          }
+          if (pct >= 80) {
+            return (
+              <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="text-yellow-400 font-medium">
+                    {pct}% of monthly comment limit used
+                  </span>
+                  <span className="text-yellow-400/80 ml-2">
+                    ({monthlyUsed.toLocaleString()}/{monthlyLimit.toLocaleString()})
+                  </span>
+                </div>
+                {plan === "free" && (
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-yellow-400 hover:text-yellow-300 underline flex-shrink-0"
+                  >
+                    Upgrade
+                  </Link>
+                )}
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         <div className="sticky top-[60px] z-10 bg-surface py-4 -mx-4 px-4 -mt-1">
           <TabNavigation
