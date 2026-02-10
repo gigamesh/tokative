@@ -10,7 +10,31 @@ export default defineSchema({
     commentCount: v.optional(v.number()),
     replyCount: v.optional(v.number()),
     videoCount: v.optional(v.number()),
-  }).index("by_clerk_id", ["clerkId"]),
+    stripeCustomerId: v.optional(v.string()),
+    subscriptionPlan: v.optional(
+      v.union(v.literal("free"), v.literal("pro"), v.literal("premium"))
+    ),
+    subscriptionStatus: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("past_due"),
+        v.literal("canceled"),
+        v.literal("incomplete")
+      )
+    ),
+    stripeSubscriptionId: v.optional(v.string()),
+    subscriptionPriceId: v.optional(v.string()),
+    subscriptionInterval: v.optional(
+      v.union(v.literal("month"), v.literal("year"))
+    ),
+    currentPeriodEnd: v.optional(v.number()),
+    monthlyCommentCount: v.optional(v.number()),
+    monthlyCommentResetAt: v.optional(v.number()),
+    monthlyReplyCount: v.optional(v.number()),
+    monthlyReplyResetAt: v.optional(v.number()),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_stripe_customer_id", ["stripeCustomerId"]),
 
   tiktokProfiles: defineTable({
     userId: v.id("users"),

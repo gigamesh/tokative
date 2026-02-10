@@ -1,5 +1,9 @@
 import { colors } from "@tokative/shared";
-import type { VideoScrapeProgress, VideoMetadataScrapeProgress, ScrapeStats } from "../../types";
+import type {
+  ScrapeStats,
+  VideoMetadataScrapeProgress,
+  VideoScrapeProgress,
+} from "../../types";
 
 const OVERLAY_HOST_ID = "tokative-overlay-host";
 
@@ -214,7 +218,11 @@ function clearAutoHide(): void {
   }
 }
 
-function setStatusIndicator(type: "spinner" | "icon", content?: string, color?: string): void {
+function setStatusIndicator(
+  type: "spinner" | "icon",
+  content?: string,
+  color?: string,
+): void {
   const indicator = el("status-indicator");
   if (!indicator) return;
 
@@ -241,7 +249,8 @@ export function showOverlay(mode: OverlayMode, onCancel?: () => void): void {
 
   const statusText = el("status-text");
   if (statusText) {
-    statusText.textContent = mode === "comments" ? "Collecting comments..." : "Collecting videos...";
+    statusText.textContent =
+      mode === "comments" ? "Collecting comments..." : "Collecting videos...";
   }
 
   const cancelBtn = el("cancel-btn");
@@ -253,7 +262,9 @@ export function showOverlay(mode: OverlayMode, onCancel?: () => void): void {
 }
 
 /** Updates overlay with comment or profile scraping progress. */
-export function updateOverlayProgress(progress: VideoScrapeProgress | VideoMetadataScrapeProgress): void {
+export function updateOverlayProgress(
+  progress: VideoScrapeProgress | VideoMetadataScrapeProgress,
+): void {
   if (!shadowRoot) return;
 
   const statusText = el("status-text");
@@ -264,7 +275,8 @@ export function updateOverlayProgress(progress: VideoScrapeProgress | VideoMetad
 
     if (statusText) {
       statusText.className = "status-text";
-      statusText.textContent = p.message || `Collecting comments... (${p.commentsFound} found)`;
+      statusText.textContent =
+        p.message || `Collecting comments... (${p.commentsFound} found)`;
     }
 
     if (p.stats) {
@@ -272,7 +284,10 @@ export function updateOverlayProgress(progress: VideoScrapeProgress | VideoMetad
     }
 
     if (rateLimit) {
-      rateLimit.classList.toggle("visible", p.message?.toLowerCase().includes("rate") ?? false);
+      rateLimit.classList.toggle(
+        "visible",
+        p.message?.toLowerCase().includes("rate") ?? false,
+      );
     }
 
     setStatusIndicator("spinner");
@@ -281,7 +296,8 @@ export function updateOverlayProgress(progress: VideoScrapeProgress | VideoMetad
 
     if (statusText) {
       statusText.className = "status-text";
-      statusText.textContent = p.message || `Collecting videos... (${p.videosFound} found)`;
+      statusText.textContent =
+        p.message || `Collecting videos... (${p.videosFound} found)`;
     }
 
     setStatusIndicator("spinner");
@@ -308,7 +324,10 @@ export function updateOverlayResumed(): void {
   const statusText = el("status-text");
   if (statusText) {
     statusText.className = "status-text";
-    statusText.textContent = currentMode === "comments" ? "Collecting comments..." : "Collecting videos...";
+    statusText.textContent =
+      currentMode === "comments"
+        ? "Collecting comments..."
+        : "Collecting videos...";
   }
 
   setStatusIndicator("spinner");
@@ -337,6 +356,30 @@ export function updateOverlayComplete(stats?: ScrapeStats): void {
 
   hideActiveControls();
   autoHideTimer = setTimeout(hideOverlay, 3000);
+}
+
+declare const TOKATIVE_ENDPOINT_PLACEHOLDER: string;
+
+/** Shows limit-reached state with upgrade prompt. */
+export function updateOverlayLimitReached(
+  monthlyLimit: number,
+  currentCount: number,
+  plan: string,
+): void {
+  if (!shadowRoot) return;
+  clearAutoHide();
+
+  const statusText = el("status-text");
+  if (statusText) {
+    statusText.className = "status-text error";
+    const tokativeEndpoint = TOKATIVE_ENDPOINT_PLACEHOLDER;
+    statusText.innerHTML =
+      `Monthly comment limit reached (${currentCount.toLocaleString()}/${monthlyLimit.toLocaleString()}).` +
+      ` <a href="${tokativeEndpoint}/pricing" target="_blank" ` +
+      `style="color: ${colors.brand.primary}; text-decoration: underline;">Upgrade to collect more.</a>`;
+  }
+
+  setStatusIndicator("icon", "!", colors.status.warning);
 }
 
 /** Shows error state, auto-hides after 5 seconds. */

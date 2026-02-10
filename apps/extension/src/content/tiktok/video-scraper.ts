@@ -6,7 +6,7 @@ import type {
   VideoScrapeProgress,
 } from "../../types";
 import { humanDelay, humanDelayWithJitter, isVisible } from "../../utils/dom";
-import { addScrapedComments, addVideos } from "../../utils/storage";
+import { addScrapedComments, addVideos, CommentLimitError } from "../../utils/storage";
 import { querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { getAllCommentElements, VIDEO_SELECTORS } from "./video-selectors";
 import { getLoadedConfig } from "../../config/loader";
@@ -629,15 +629,19 @@ async function expandAndSaveReplies(
         cumulativeStats.found += newReplies.length;
 
         if (newReplies.length > 0) {
-          const result = await addScrapedComments(newReplies);
-          cumulativeStats.new += result.new;
-          cumulativeStats.preexisting += result.preexisting;
-          cumulativeStats.ignored += result.ignored;
-          logger.log(
-            `[Tokative] Replies: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored`,
-          );
-          consecutiveNoNewReplies = 0; // Reset counter
-          // Report progress during reply expansion
+          try {
+            const result = await addScrapedComments(newReplies);
+            cumulativeStats.new += result.new;
+            cumulativeStats.preexisting += result.preexisting;
+            cumulativeStats.ignored += result.ignored;
+            logger.log(
+              `[Tokative] Replies: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored`,
+            );
+          } catch (err) {
+            if (err instanceof CommentLimitError) throw err;
+            logger.error("[Tokative] Error saving replies:", err);
+          }
+          consecutiveNoNewReplies = 0;
           onProgress?.(cumulativeStats);
         } else {
           consecutiveNoNewReplies++;
@@ -1005,15 +1009,23 @@ async function scrollToLoadComments(
     cumulativeStats.found += newComments.length;
 
     if (newComments.length > 0) {
-      const result = await addScrapedComments(newComments);
-      cumulativeStats.new += result.new;
-      cumulativeStats.preexisting += result.preexisting;
-      cumulativeStats.ignored += result.ignored;
-      logger.log(
-        `[Tokative] Storage result: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored (totals: ${cumulativeStats.new}/${cumulativeStats.found})`,
-      );
-      // Report progress immediately after main comments (before potentially slow reply expansion)
-      onProgress?.(cumulativeStats);
+      try {
+        const result = await addScrapedComments(newComments);
+        cumulativeStats.new += result.new;
+        cumulativeStats.preexisting += result.preexisting;
+        cumulativeStats.ignored += result.ignored;
+        logger.log(
+          `[Tokative] Storage result: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored (totals: ${cumulativeStats.new}/${cumulativeStats.found})`,
+        );
+        onProgress?.(cumulativeStats);
+      } catch (err) {
+        if (err instanceof CommentLimitError) {
+          logger.log(`[Tokative] Comment limit reached: ${err.currentCount}/${err.monthlyLimit} (${err.plan})`);
+          exitReason = "comment_limit_reached";
+          break;
+        }
+        throw err;
+      }
     }
 
     // Always try to expand reply threads and save replies incrementally
@@ -1028,12 +1040,21 @@ async function scrollToLoadComments(
 
     if (viewButtons.length > 0) {
       logger.log(`[Tokative] Found ${viewButtons.length} expandable reply buttons`);
-      await expandAndSaveReplies(
-        savedCommentIds,
-        allComments,
-        cumulativeStats,
-        onProgress,
-      );
+      try {
+        await expandAndSaveReplies(
+          savedCommentIds,
+          allComments,
+          cumulativeStats,
+          onProgress,
+        );
+      } catch (err) {
+        if (err instanceof CommentLimitError) {
+          logger.log(`[Tokative] Comment limit reached during reply expansion`);
+          exitReason = "comment_limit_reached";
+          break;
+        }
+        throw err;
+      }
       logger.log(
         `[Tokative] Total comments after expansion: ${allComments.length}, stats: ${JSON.stringify(cumulativeStats)}`,
       );
