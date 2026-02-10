@@ -10,8 +10,8 @@ export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
   free: { monthlyComments: 500, monthlyReplies: 50, translation: false },
   pro: { monthlyComments: 2_500, monthlyReplies: 500, translation: true },
   premium: {
-    monthlyComments: 25_000,
-    monthlyReplies: 5_000,
+    monthlyComments: 17,
+    monthlyReplies: 2,
     translation: true,
   },
 };
