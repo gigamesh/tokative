@@ -22,6 +22,8 @@ class ExtensionBridge {
 
     if (type === MessageType.BRIDGE_READY) {
       this.setConnected(true);
+    } else if (type === "EXTENSION_CONTEXT_INVALID") {
+      this.setConnected(false);
     }
 
     const typeHandlers = this.handlers.get(type);

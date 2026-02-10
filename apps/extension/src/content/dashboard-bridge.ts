@@ -40,21 +40,96 @@ function initBridge(): void {
   marker.style.display = "none";
   document.body.appendChild(marker);
 
-  let port: chrome.runtime.Port | null = chrome.runtime.connect({ name: "dashboard" });
+  let port: chrome.runtime.Port | null = null;
+  let reconnectAttempts = 0;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-  port.onMessage.addListener((message: ExtensionMessage) => {
-    window.postMessage(
-      {
-        ...message,
-        source: EXTENSION_SOURCE,
-      },
-      DASHBOARD_ORIGIN
-    );
-  });
+  /** Attaches onMessage and onDisconnect listeners to a port. */
+  function setupPort(p: chrome.runtime.Port): void {
+    port = p;
+    reconnectAttempts = 0;
 
-  port.onDisconnect.addListener(() => {
-    port = null;
-  });
+    p.onMessage.addListener((message: ExtensionMessage) => {
+      window.postMessage(
+        {
+          ...message,
+          source: EXTENSION_SOURCE,
+        },
+        DASHBOARD_ORIGIN
+      );
+    });
+
+    p.onDisconnect.addListener(() => {
+      port = null;
+      scheduleReconnect();
+    });
+  }
+
+  /** Proactively reconnects with exponential backoff after port disconnect. */
+  function scheduleReconnect(): void {
+    if (reconnectTimer) return;
+
+    if (!guardExtensionContext()) {
+      window.postMessage(
+        {
+          type: "EXTENSION_CONTEXT_INVALID",
+          source: EXTENSION_SOURCE,
+        },
+        DASHBOARD_ORIGIN
+      );
+      return;
+    }
+
+    if (reconnectAttempts >= 5) {
+      logger.warn("[Bridge] Max reconnect attempts reached");
+      return;
+    }
+
+    const delay = Math.min(500 * Math.pow(2, reconnectAttempts), 8000);
+    reconnectAttempts++;
+
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      try {
+        const p = chrome.runtime.connect({ name: "dashboard" });
+        setupPort(p);
+        logger.log("[Bridge] Port reconnected");
+      } catch (e) {
+        logger.warn("[Bridge] Reconnect failed:", e);
+        scheduleReconnect();
+      }
+    }, delay);
+  }
+
+  /** Sends a message through the port, reconnecting once on failure. */
+  async function sendViaPort(message: ExtensionMessage): Promise<void> {
+    if (!port) {
+      try {
+        const p = chrome.runtime.connect({ name: "dashboard" });
+        setupPort(p);
+      } catch (e) {
+        logger.warn("[Bridge] Connect failed:", e);
+        return;
+      }
+    }
+
+    try {
+      port!.postMessage(message);
+    } catch {
+      port = null;
+      await new Promise((r) => setTimeout(r, 300));
+      try {
+        const p = chrome.runtime.connect({ name: "dashboard" });
+        setupPort(p);
+        p.postMessage(message);
+        logger.log("[Bridge] Retry send succeeded");
+      } catch (e) {
+        logger.warn("[Bridge] Retry send failed:", e);
+      }
+    }
+  }
+
+  setupPort(chrome.runtime.connect({ name: "dashboard" }));
 
   const handleWindowMessage = (event: MessageEvent): void => {
     if (event.source !== window) return;
@@ -97,16 +172,7 @@ function initBridge(): void {
     }
 
     if (isPortMessage(message.type)) {
-      if (!port) {
-        port = chrome.runtime.connect({ name: "dashboard" });
-        port.onMessage.addListener((msg: ExtensionMessage) => {
-          window.postMessage({ ...msg, source: EXTENSION_SOURCE }, DASHBOARD_ORIGIN);
-        });
-        port.onDisconnect.addListener(() => {
-          port = null;
-        });
-      }
-      port.postMessage(message);
+      sendViaPort(message);
     } else {
       chrome.runtime.sendMessage(message)
         .then((response) => {
@@ -153,6 +219,7 @@ function initBridge(): void {
   window.__tokativeBridge = {
     handler: handleWindowMessage,
     cleanup: () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       port?.disconnect();
       chrome.runtime.onMessage.removeListener(runtimeMessageHandler);
     },

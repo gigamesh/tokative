@@ -233,6 +233,10 @@ chrome.runtime.onMessage.addListener(
 chrome.runtime.onConnect.addListener((port) => {
   activePorts.set(port.name, port);
 
+  if (port.name === "dashboard") {
+    port.postMessage({ type: "PORT_READY" });
+  }
+
   port.onMessage.addListener((message: ExtensionMessage) => {
     handlePortMessage(message, port);
   });

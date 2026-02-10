@@ -26,6 +26,8 @@ export function useExtensionStatus() {
 
       if (event.data?.type === MessageType.BRIDGE_READY) {
         setIsExtensionConnected(true);
+      } else if (event.data?.type === "EXTENSION_CONTEXT_INVALID") {
+        setIsExtensionConnected(false);
       }
     };
 
