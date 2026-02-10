@@ -2,11 +2,15 @@
 
 import { Button, LinkButton } from "@/components/Button";
 import { useAuth } from "@/providers/ConvexProvider";
-import { EXTENSION_SOURCE, MessageType } from "@/utils/constants";
+import {
+  CHROME_WEB_STORE_URL,
+  EXTENSION_SOURCE,
+  MessageType,
+} from "@/utils/constants";
 import { useUser } from "@clerk/nextjs";
 import { api } from "@tokative/convex";
 import { useMutation, useQuery } from "convex/react";
-import { AlertTriangle, Download } from "lucide-react";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -231,74 +235,30 @@ export default function OnboardingPage() {
         </div>
 
         <div className="space-y-4">
-          <Section number={1} title="Download the Extension">
+          <Section number={1} title="Install the Extension">
             <p className="text-foreground-muted mb-3">
               The Chrome extension lets you collect comments and send replies on
               TikTok.
             </p>
             <LinkButton
-              href="/downloads/tokative-extension.zip"
-              download
+              href={CHROME_WEB_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               variant="primary"
               size="lg"
             >
-              <Download className="w-5 h-5" />
-              Download Extension
+              <ExternalLink className="w-5 h-5" />
+              Add to Chrome
             </LinkButton>
           </Section>
 
-          <Section number={2} title="Install in Chrome">
-            <ol className="space-y-2 text-foreground-muted ml-4">
-              <li className="flex gap-2">
-                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
-                  1
-                </span>
-                <span>
-                  <strong className="text-foreground">Unzip</strong> the
-                  downloaded file
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
-                  2
-                </span>
-                <span>
-                  Open{" "}
-                  <code className="bg-surface-elevated px-1.5 py-0.5 rounded text-sm">
-                    chrome://extensions/
-                  </code>
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
-                  3
-                </span>
-                <span>
-                  Enable{" "}
-                  <strong className="text-foreground">Developer mode</strong>{" "}
-                  (top right toggle)
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
-                  4
-                </span>
-                <span>
-                  Click{" "}
-                  <strong className="text-foreground">Load unpacked</strong> and
-                  select the unzipped folder
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="flex-shrink-0 w-6 h-6 border border-foreground-muted text-foreground-muted text-sm rounded-full flex items-center justify-center">
-                  5
-                </span>
-                <span>
-                  <strong className="text-foreground">Pin</strong> the extension
-                  to your toolbar
-                </span>
-              </li>
-            </ol>
+          <Section number={2} title="Pin the Extension">
+            <p className="text-foreground-muted">
+              After installing, click the{" "}
+              <strong className="text-foreground">puzzle icon</strong> in your
+              toolbar and <strong className="text-foreground">pin</strong>{" "}
+              Tokative for easy access.
+            </p>
           </Section>
 
           <div className="bg-surface-elevated rounded-lg p-4 text-center">

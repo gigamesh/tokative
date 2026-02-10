@@ -5,7 +5,8 @@ import { useExtensionStatus } from "@/hooks/useExtensionStatus";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@tokative/convex";
 import { useAuth } from "@/providers/ConvexProvider";
-import { AlertTriangle, Check, Zap } from "lucide-react";
+import { CHROME_WEB_STORE_URL } from "@/utils/constants";
+import { AlertTriangle, Check, ExternalLink, Zap } from "lucide-react";
 
 export function SetupBanner() {
   const { setupState, dismissSetup, recheckConnection } = useExtensionStatus();
@@ -67,17 +68,13 @@ export function SetupBanner() {
               Install the Tokative Chrome extension to start collecting.
             </p>
             <a
-              href="#install-extension"
-              onClick={(e) => {
-                e.preventDefault();
-                alert(
-                  "Extension installation: Load the extension from apps/extension/dist in Chrome's extension manager (chrome://extensions) with Developer mode enabled."
-                );
-              }}
+              href={CHROME_WEB_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-medium rounded-md transition-colors text-sm"
             >
-              Install Extension
-              <Zap className="w-4 h-4" />
+              Add to Chrome
+              <ExternalLink className="w-4 h-4" />
             </a>
           </div>
         </div>
