@@ -11,15 +11,20 @@ function loadEnvFile(filePath) {
     if (trimmed && !trimmed.startsWith("#")) {
       const [key, ...valueParts] = trimmed.split("=");
       if (key && valueParts.length > 0) {
-        process.env[key.trim()] = valueParts.join("=").trim();
+        const k = key.trim();
+        if (!(k in process.env)) {
+          process.env[k] = valueParts.join("=").trim();
+        }
       }
     }
   }
 }
 
-// Use .env.production for prod builds, .env for dev builds
-const isProd = process.env.BUILD_ENV === "production";
-const envFile = isProd ? ".env.production" : ".env";
+const envFileMap = {
+  production: ".env.production",
+  staging: ".env.staging",
+};
+const envFile = envFileMap[process.env.BUILD_ENV] || ".env";
 const envPath = path.join(__dirname, "..", envFile);
 
 console.log(`Loading environment from ${envFile}`);

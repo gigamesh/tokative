@@ -5,6 +5,7 @@
   "scripts": {
     "build": "node scripts/build.js",
     "build:prod": "BUILD_ENV=production node scripts/build.js",
+    "build:staging": "BUILD_ENV=staging node scripts/build.js",
     "dev": "node scripts/dev.js",
     "clean": "rm -rf dist",
     "test": "vitest run",
