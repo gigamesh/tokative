@@ -2,8 +2,10 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   define: {
-    DASHBOARD_URL_PLACEHOLDER: JSON.stringify("https://test.tokative.com"),
-    CONVEX_SITE_URL_PLACEHOLDER: JSON.stringify("https://test-convex.tokative.com"),
+    TOKATIVE_URL_PLACEHOLDER: JSON.stringify("https://test.tokative.com"),
+    CONVEX_SITE_URL_PLACEHOLDER: JSON.stringify(
+      "https://test-convex.tokative.com",
+    ),
   },
   test: {
     environment: "jsdom",

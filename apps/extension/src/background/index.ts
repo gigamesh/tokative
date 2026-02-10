@@ -1,3 +1,5 @@
+import { colors } from "@tokative/shared";
+import { getLoadedConfig, loadConfig, refreshConfig } from "../config/loader";
 import {
   BulkReplyProgress,
   ExtensionMessage,
@@ -5,16 +7,9 @@ import {
   ScrapedComment,
   ScrapedVideo,
 } from "../types";
-import { colors } from "@tokative/shared";
 import { setAuthToken } from "../utils/convex-api";
-import { loadConfig, refreshConfig, getLoadedConfig } from "../config/loader";
 import { logger } from "../utils/logger";
-
-declare const DASHBOARD_URL_PLACEHOLDER: string;
-const DASHBOARD_URL = DASHBOARD_URL_PLACEHOLDER;
-const DASHBOARD_URL_PATTERN = DASHBOARD_URL + "/*";
 import {
-  addScrapedComments,
   addToIgnoreList,
   addVideos,
   clearRateLimitState,
@@ -41,6 +36,10 @@ import {
   updateScrapedComment,
   updateVideo,
 } from "../utils/storage";
+
+declare const TOKATIVE_URL_PLACEHOLDER: string;
+const TOKATIVE_URL = TOKATIVE_URL_PLACEHOLDER;
+const TOKATIVE_URL_PATTERN = TOKATIVE_URL + "/*";
 
 const activePorts = new Map<string, chrome.runtime.Port>();
 let activeScrapingTabId: number | null = null;
@@ -72,7 +71,7 @@ async function cleanupScrapingSession(): Promise<void> {
 }
 
 async function updateAndBroadcastScrapingState(
-  state: Partial<Parameters<typeof saveScrapingState>[0]>
+  state: Partial<Parameters<typeof saveScrapingState>[0]>,
 ): Promise<void> {
   await saveScrapingState(state);
   broadcastScrapingState();
@@ -80,7 +79,7 @@ async function updateAndBroadcastScrapingState(
 
 async function getDashboardTab(): Promise<chrome.tabs.Tab | null> {
   try {
-    const tabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
+    const tabs = await chrome.tabs.query({ url: TOKATIVE_URL_PATTERN });
     return tabs.length > 0 && tabs[0].id ? tabs[0] : null;
   } catch {
     return null;
@@ -95,7 +94,7 @@ function getErrorMessage(error: unknown): string {
 
 async function getDashboardTabIndex(): Promise<number | undefined> {
   try {
-    const tabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
+    const tabs = await chrome.tabs.query({ url: TOKATIVE_URL_PATTERN });
     if (tabs.length > 0 && tabs[0].index !== undefined) {
       return tabs[0].index + 1;
     }
@@ -177,7 +176,9 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     await chrome.tabs.get(scrapingTabId);
   } catch {
     // Tab no longer exists - clear stale state
-    logger.log("[Background] Scraping tab no longer exists, clearing stale state");
+    logger.log(
+      "[Background] Scraping tab no longer exists, clearing stale state",
+    );
     activeScrapingTabId = null;
     await clearScrapingState();
     return;
@@ -447,7 +448,7 @@ export async function handleMessage(
 
     case MessageType.GET_AUTH_TOKEN: {
       // Request token from dashboard - forward to dashboard tabs
-      const tabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
+      const tabs = await chrome.tabs.query({ url: TOKATIVE_URL_PATTERN });
       for (const tab of tabs) {
         if (tab.id) {
           chrome.tabs
@@ -469,7 +470,7 @@ export async function handleMessage(
         }
       } else {
         await chrome.tabs.create({
-          url: DASHBOARD_URL,
+          url: TOKATIVE_URL,
           active: true,
         });
       }
@@ -521,12 +522,21 @@ async function handlePortMessage(
     }
 
     case MessageType.BULK_REPLY_START: {
-      const { comments: incomingComments, messages: replyMessages, deleteMissingComments } = message.payload as {
+      const {
+        comments: incomingComments,
+        messages: replyMessages,
+        deleteMissingComments,
+      } = message.payload as {
         comments: ScrapedComment[];
         messages: string[];
         deleteMissingComments: boolean;
       };
-      await handleBulkReply(incomingComments, replyMessages, deleteMissingComments, port);
+      await handleBulkReply(
+        incomingComments,
+        replyMessages,
+        deleteMissingComments,
+        port,
+      );
       break;
     }
 
@@ -716,7 +726,7 @@ async function broadcastToDashboard(message: ExtensionMessage): Promise<void> {
   // Only use tabs API as backup if port wasn't available
   if (!sentViaPort) {
     try {
-      const tabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
+      const tabs = await chrome.tabs.query({ url: TOKATIVE_URL_PATTERN });
       for (const tab of tabs) {
         if (tab.id) {
           chrome.tabs.sendMessage(tab.id, message).catch(() => {
@@ -760,7 +770,10 @@ async function handleReplyToComment(
     });
 
     if (existingTabId) {
-      await chrome.tabs.update(existingTabId, { url: comment.videoUrl, muted: true });
+      await chrome.tabs.update(existingTabId, {
+        url: comment.videoUrl,
+        muted: true,
+      });
       tabId = existingTabId;
       await waitForTabLoad(tabId);
     } else {
@@ -793,7 +806,11 @@ async function handleReplyToComment(
           closingTabsIntentionally.add(tabId);
           chrome.tabs.remove(tabId).catch(() => {});
         }
-        resolve({ success: false, error: "Timeout", tabId: existingTabId ? tabId : undefined });
+        resolve({
+          success: false,
+          error: "Timeout",
+          tabId: existingTabId ? tabId : undefined,
+        });
       }, config.timeouts.replyTimeout);
 
       const responseHandler = (msg: ExtensionMessage) => {
@@ -806,7 +823,10 @@ async function handleReplyToComment(
               closingTabsIntentionally.add(tabId);
               chrome.tabs.remove(tabId).catch(() => {});
             }
-            resolve({ success: true, tabId: existingTabId ? tabId : undefined });
+            resolve({
+              success: true,
+              tabId: existingTabId ? tabId : undefined,
+            });
           }
         } else if (msg.type === MessageType.REPLY_COMMENT_ERROR) {
           const payload = msg.payload as { commentId?: string; error?: string };
@@ -817,7 +837,11 @@ async function handleReplyToComment(
               closingTabsIntentionally.add(tabId);
               chrome.tabs.remove(tabId).catch(() => {});
             }
-            resolve({ success: false, error: payload.error, tabId: existingTabId ? tabId : undefined });
+            resolve({
+              success: false,
+              error: payload.error,
+              tabId: existingTabId ? tabId : undefined,
+            });
           }
         }
       };
@@ -866,16 +890,15 @@ async function handleBulkReply(
   };
 
   try {
-    const targetComments = comments.filter(
-      (c) => !c.repliedTo && c.videoUrl,
-    );
+    const targetComments = comments.filter((c) => !c.repliedTo && c.videoUrl);
 
     progress.total = targetComments.length;
 
     // Group comments by videoId for tab reuse
     const commentsByVideo = new Map<string, ScrapedComment[]>();
     for (const comment of targetComments) {
-      const videoId = comment.videoId || extractVideoIdFromUrl(comment.videoUrl || "");
+      const videoId =
+        comment.videoId || extractVideoIdFromUrl(comment.videoUrl || "");
       if (videoId) {
         const existing = commentsByVideo.get(videoId) || [];
         existing.push(comment);
@@ -908,7 +931,9 @@ async function handleBulkReply(
 
       for (let i = 0; i < videoComments.length; i++) {
         const comment = videoComments[i];
-        const replyMessage = comment.messageToSend || replyMessages[commentIndex % replyMessages.length];
+        const replyMessage =
+          comment.messageToSend ||
+          replyMessages[commentIndex % replyMessages.length];
         commentIndex++;
 
         progress.current = comment.handle;
@@ -918,7 +943,12 @@ async function handleBulkReply(
         });
 
         // Reuse tab for same video (pass existing tabId after first reply)
-        const result = await handleReplyToComment(comment, replyMessage, port, tabId);
+        const result = await handleReplyToComment(
+          comment,
+          replyMessage,
+          port,
+          tabId,
+        );
 
         if (result.success) {
           progress.completed++;
@@ -948,9 +978,7 @@ async function handleBulkReply(
 
         // Delay between replies
         if (i < videoComments.length - 1) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, messageDelay),
-          );
+          await new Promise((resolve) => setTimeout(resolve, messageDelay));
         }
       }
 
@@ -962,13 +990,14 @@ async function handleBulkReply(
 
       // Delay between videos
       if (commentsByVideo.size > 1) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, messageDelay),
-        );
+        await new Promise((resolve) => setTimeout(resolve, messageDelay));
       }
     }
   } catch (error) {
-    progress.failed += Math.max(0, progress.total - progress.completed - progress.failed - progress.skipped);
+    progress.failed += Math.max(
+      0,
+      progress.total - progress.completed - progress.failed - progress.skipped,
+    );
   } finally {
     progress.status = "complete";
     port.postMessage({
@@ -1035,7 +1064,11 @@ async function handleGetVideoComments(
 
     port.postMessage({
       type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
-      payload: { videoId, status: "scraping", message: "Collecting comments..." },
+      payload: {
+        videoId,
+        status: "scraping",
+        message: "Collecting comments...",
+      },
     });
 
     const commentLimit = await getCommentLimit();
@@ -1154,7 +1187,10 @@ async function handleGetBatchComments(
         message,
       },
     });
-    updateBadge(`${currentVideoIndex}/${videosToProcess.length}`, colors.status.info);
+    updateBadge(
+      `${currentVideoIndex}/${videosToProcess.length}`,
+      colors.status.info,
+    );
   };
 
   try {
@@ -1233,7 +1269,9 @@ async function handleGetBatchComments(
       );
 
       if (batchCancelled) {
-        logger.log("[Background] Batch cancelled after video scrape, breaking loop");
+        logger.log(
+          "[Background] Batch cancelled after video scrape, breaking loop",
+        );
         break;
       }
     }
@@ -1400,7 +1438,9 @@ chrome.webRequest.onCompleted.addListener(
 
       // For 429 errors during active scraping, pause and set resume time
       const shouldPause = is429 && activeScrapingTabId !== null;
-      const resumeAt = shouldPause ? new Date(Date.now() + 60000).toISOString() : undefined;
+      const resumeAt = shouldPause
+        ? new Date(Date.now() + 60000).toISOString()
+        : undefined;
 
       const state = await recordRateLimitError(errorMsg, {
         isPausedFor429: shouldPause,
@@ -1420,8 +1460,12 @@ chrome.webRequest.onCompleted.addListener(
 
       // For 429 errors, pause scraping and auto-resume after 60 seconds
       if (shouldPause) {
-        logger.log(`[Background] 429 detected - pausing scraping for 60 seconds`);
-        chrome.tabs.sendMessage(activeScrapingTabId!, { type: MessageType.SCRAPE_PAUSE });
+        logger.log(
+          `[Background] 429 detected - pausing scraping for 60 seconds`,
+        );
+        chrome.tabs.sendMessage(activeScrapingTabId!, {
+          type: MessageType.SCRAPE_PAUSE,
+        });
 
         // Clear any existing resume timeout
         if (rateLimitResumeTimeout) {
@@ -1432,7 +1476,9 @@ chrome.webRequest.onCompleted.addListener(
         rateLimitResumeTimeout = setTimeout(async () => {
           logger.log(`[Background] 60 seconds elapsed - resuming scraping`);
           if (activeScrapingTabId) {
-            chrome.tabs.sendMessage(activeScrapingTabId, { type: MessageType.SCRAPE_RESUME });
+            chrome.tabs.sendMessage(activeScrapingTabId, {
+              type: MessageType.SCRAPE_RESUME,
+            });
           }
           await clearRateLimitState();
           updateRateLimitBadge(false);
@@ -1478,27 +1524,43 @@ getScrapingState().then((state) => {
 // Inject content scripts into already-open tabs
 async function injectContentScripts(): Promise<void> {
   try {
-    const dashboardTabs = await chrome.tabs.query({ url: DASHBOARD_URL_PATTERN });
+    const dashboardTabs = await chrome.tabs.query({
+      url: TOKATIVE_URL_PATTERN,
+    });
     for (const tab of dashboardTabs) {
       if (tab.id) {
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ["content/dashboard-bridge.js"],
-        }).catch((err) => {
-          logger.log("[Background] Could not inject into tab:", tab.id, err.message);
-        });
+        chrome.scripting
+          .executeScript({
+            target: { tabId: tab.id },
+            files: ["content/dashboard-bridge.js"],
+          })
+          .catch((err) => {
+            logger.log(
+              "[Background] Could not inject into tab:",
+              tab.id,
+              err.message,
+            );
+          });
       }
     }
 
-    const tiktokTabs = await chrome.tabs.query({ url: "https://www.tiktok.com/*" });
+    const tiktokTabs = await chrome.tabs.query({
+      url: "https://www.tiktok.com/*",
+    });
     for (const tab of tiktokTabs) {
       if (tab.id) {
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ["content/tiktok.js"],
-        }).catch((err) => {
-          logger.log("[Background] Could not inject into tab:", tab.id, err.message);
-        });
+        chrome.scripting
+          .executeScript({
+            target: { tabId: tab.id },
+            files: ["content/tiktok.js"],
+          })
+          .catch((err) => {
+            logger.log(
+              "[Background] Could not inject into tab:",
+              tab.id,
+              err.message,
+            );
+          });
       }
     }
   } catch (error) {
