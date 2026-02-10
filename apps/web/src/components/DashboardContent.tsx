@@ -28,7 +28,7 @@ import { useVideoData } from "@/hooks/useVideoData";
 import { ScrapedComment } from "@/utils/constants";
 import { useAuth } from "@/providers/ConvexProvider";
 import { useQuery } from "convex/react";
-import { api } from "@tokative/convex";
+import { api, PLAN_LIMITS } from "@tokative/convex";
 import { AlertTriangle, PauseCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -256,12 +256,28 @@ export function DashboardContent() {
     savePostLimit(value);
   }, [postLimitInput, savePostLimit]);
 
+  const maxCommentLimit = accessStatus?.subscription?.monthlyLimit ?? PLAN_LIMITS.free.monthlyComments;
+  const currentPlan = accessStatus?.subscription?.plan ?? "free";
+  const replyLimit = accessStatus?.subscription?.replyLimit ?? PLAN_LIMITS.free.monthlyReplies;
+  const repliesUsed = accessStatus?.subscription?.repliesUsed ?? 0;
+  const replyBudget = Math.max(0, replyLimit - repliesUsed);
+  const replyLimitReached = replyBudget === 0;
+  const [commentLimitError, setCommentLimitError] = useState<string | null>(null);
+
   const handleCommentLimitBlur = useCallback(() => {
     const parsed = parseInt(commentLimitInput);
-    const value = isNaN(parsed) || parsed < 1 ? 100 : parsed;
+    let value = isNaN(parsed) || parsed < 1 ? maxCommentLimit : parsed;
+    if (value > maxCommentLimit) {
+      value = maxCommentLimit;
+      setCommentLimitError(
+        `Capped at ${maxCommentLimit.toLocaleString()} on your ${currentPlan} plan.`
+      );
+    } else {
+      setCommentLimitError(null);
+    }
     setCommentLimitInput(String(value));
     saveCommentLimit(value);
-  }, [commentLimitInput, saveCommentLimit]);
+  }, [commentLimitInput, saveCommentLimit, maxCommentLimit, currentPlan]);
 
   const selectedVideo = useMemo(() => {
     if (!selectedPostId) return null;
@@ -459,14 +475,19 @@ export function DashboardContent() {
 
   const executeBulkReply = useCallback(
     (messages: string[], deleteMissing: boolean) => {
-      startBulkReply(selectedCommentsForDisplay, messages, deleteMissing);
+      const capped = selectedCommentsForDisplay.slice(0, replyBudget);
+      startBulkReply(capped, messages, deleteMissing);
     },
-    [selectedCommentsForDisplay, startBulkReply],
+    [selectedCommentsForDisplay, replyBudget, startBulkReply],
   );
 
   const handleBulkReply = useCallback(
     (messages: string[]) => {
       if (selectedCommentIds.size === 0) return;
+      if (replyLimitReached) {
+        showToast("Monthly reply limit reached. Upgrade for more replies.");
+        return;
+      }
       if (deleteMissingComments === null) {
         setMissingCommentChoiceModal({
           isOpen: true,
@@ -476,7 +497,7 @@ export function DashboardContent() {
       }
       executeBulkReply(messages, deleteMissingComments);
     },
-    [selectedCommentIds.size, deleteMissingComments, executeBulkReply],
+    [selectedCommentIds.size, replyLimitReached, deleteMissingComments, executeBulkReply, showToast],
   );
 
   const handleMissingCommentChoiceSkip = useCallback(() => {
@@ -623,6 +644,56 @@ export function DashboardContent() {
           return null;
         })()}
 
+        {accessStatus?.subscription && (() => {
+          const { repliesUsed, replyLimit, plan } = accessStatus.subscription;
+          const pct = Math.round((repliesUsed / replyLimit) * 100);
+          if (repliesUsed >= replyLimit) {
+            return (
+              <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="text-red-400 font-medium">
+                    Monthly reply limit reached
+                  </span>
+                  <span className="text-red-400/80 ml-2">
+                    ({repliesUsed.toLocaleString()}/{replyLimit.toLocaleString()})
+                  </span>
+                </div>
+                <Link
+                  href={plan === "free" ? "/pricing" : "/account"}
+                  className="text-sm text-red-400 hover:text-red-300 underline flex-shrink-0"
+                >
+                  {plan === "free" ? "Upgrade" : "Manage"}
+                </Link>
+              </div>
+            );
+          }
+          if (pct >= 80) {
+            return (
+              <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="text-yellow-400 font-medium">
+                    {pct}% of monthly reply limit used
+                  </span>
+                  <span className="text-yellow-400/80 ml-2">
+                    ({repliesUsed.toLocaleString()}/{replyLimit.toLocaleString()})
+                  </span>
+                </div>
+                {plan === "free" && (
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-yellow-400 hover:text-yellow-300 underline flex-shrink-0"
+                  >
+                    Upgrade
+                  </Link>
+                )}
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         <div className="sticky top-[60px] z-10 bg-surface py-4 -mx-4 px-4 -mt-1">
           <TabNavigation
             activeTab={activeTab}
@@ -711,6 +782,9 @@ export function DashboardContent() {
                       )}
                       <CollapsibleSettings
                         commentLimitInput={commentLimitInput}
+                        maxCommentLimit={maxCommentLimit}
+                        commentLimitError={commentLimitError}
+                        plan={currentPlan}
                         onCommentLimitChange={setCommentLimitInput}
                         onCommentLimitBlur={handleCommentLimitBlur}
                         ignoreList={ignoreList}
@@ -756,6 +830,9 @@ export function DashboardContent() {
                       </h2>
                       <CollapsibleSettings
                         commentLimitInput={commentLimitInput}
+                        maxCommentLimit={maxCommentLimit}
+                        commentLimitError={commentLimitError}
+                        plan={currentPlan}
                         onCommentLimitChange={setCommentLimitInput}
                         onCommentLimitBlur={handleCommentLimitBlur}
                         ignoreList={ignoreList}
@@ -786,7 +863,9 @@ export function DashboardContent() {
               bulkReplyProgress={bulkReplyProgress}
               replyStatusMessage={replyStatusMessage}
               onStopBulkReply={stopBulkReply}
-              disabled={isReplying}
+              disabled={isReplying || replyLimitReached}
+              replyBudget={replyBudget}
+              replyLimitReached={replyLimitReached}
             />
           </div>
         </div>

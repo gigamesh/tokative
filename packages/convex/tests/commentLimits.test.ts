@@ -19,7 +19,7 @@ describe("addBatch limit enforcement", () => {
     });
 
     expect(result.plan).toBe("free");
-    expect(result.monthlyLimit).toBe(200);
+    expect(result.monthlyLimit).toBe(500);
     expect(result.currentCount).toBeGreaterThanOrEqual(1);
     expect(result.limitReached).toBe(false);
   });
@@ -62,7 +62,7 @@ describe("addBatch limit enforcement", () => {
         .unique();
       if (!user) throw new Error("User not found");
       await ctx.db.patch(user._id, {
-        monthlyCommentCount: 200,
+        monthlyCommentCount: 500,
         monthlyCommentResetAt: Date.now(),
       });
     });
@@ -74,7 +74,7 @@ describe("addBatch limit enforcement", () => {
 
     expect(result.limitReached).toBe(true);
     expect(result.new).toBe(0);
-    expect(result.currentCount).toBe(200);
+    expect(result.currentCount).toBe(500);
     expect(result.plan).toBe("free");
   });
 
@@ -86,7 +86,7 @@ describe("addBatch limit enforcement", () => {
         .unique();
       if (!user) throw new Error("User not found");
       await ctx.db.patch(user._id, {
-        monthlyCommentCount: 198,
+        monthlyCommentCount: 498,
         monthlyCommentResetAt: Date.now(),
       });
     });
@@ -103,7 +103,7 @@ describe("addBatch limit enforcement", () => {
     });
 
     expect(result.new).toBe(2);
-    expect(result.currentCount).toBe(200);
+    expect(result.currentCount).toBe(500);
     expect(result.limitReached).toBe(true);
   });
 
@@ -118,7 +118,7 @@ describe("addBatch limit enforcement", () => {
         .unique();
       if (!user) throw new Error("User not found");
       await ctx.db.patch(user._id, {
-        monthlyCommentCount: 200,
+        monthlyCommentCount: 500,
         monthlyCommentResetAt: lastMonth.getTime(),
       });
     });
@@ -155,10 +155,10 @@ describe("addBatch limit enforcement", () => {
 
     expect(result.limitReached).toBe(false);
     expect(result.plan).toBe("pro");
-    expect(result.monthlyLimit).toBe(2_000);
+    expect(result.monthlyLimit).toBe(2_500);
   });
 
-  it("blocks at 200 for free but not for pro", async () => {
+  it("blocks at 500 for free but not for pro", async () => {
     await t.run(async (ctx) => {
       const user = await ctx.db
         .query("users")
@@ -168,7 +168,7 @@ describe("addBatch limit enforcement", () => {
       await ctx.db.patch(user._id, {
         subscriptionPlan: "pro",
         subscriptionStatus: "active",
-        monthlyCommentCount: 200,
+        monthlyCommentCount: 500,
         monthlyCommentResetAt: Date.now(),
       });
     });

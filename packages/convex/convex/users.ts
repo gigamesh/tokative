@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { isEmailWhitelisted } from "./constants";
 import {
   getMonthlyLimit,
+  getMonthlyReplyLimit,
   hasTranslation,
   getCurrentMonthStart,
   type PlanName,
@@ -55,10 +56,15 @@ export const getAccessStatus = query({
       : (user.subscriptionPlan ?? "free");
 
     const monthlyLimit = getMonthlyLimit(effectivePlan);
+    const replyLimit = getMonthlyReplyLimit(effectivePlan);
     const monthStart = getCurrentMonthStart();
     const monthlyUsed =
       user.monthlyCommentResetAt && user.monthlyCommentResetAt >= monthStart
         ? (user.monthlyCommentCount ?? 0)
+        : 0;
+    const repliesUsed =
+      user.monthlyReplyResetAt && user.monthlyReplyResetAt >= monthStart
+        ? (user.monthlyReplyCount ?? 0)
         : 0;
 
     return {
@@ -73,6 +79,8 @@ export const getAccessStatus = query({
         currentPeriodEnd: user.currentPeriodEnd ?? null,
         monthlyLimit,
         monthlyUsed,
+        replyLimit,
+        repliesUsed,
       },
     };
   },

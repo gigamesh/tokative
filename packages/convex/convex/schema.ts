@@ -30,6 +30,8 @@ export default defineSchema({
     currentPeriodEnd: v.optional(v.number()),
     monthlyCommentCount: v.optional(v.number()),
     monthlyCommentResetAt: v.optional(v.number()),
+    monthlyReplyCount: v.optional(v.number()),
+    monthlyReplyResetAt: v.optional(v.number()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_stripe_customer_id", ["stripeCustomerId"]),

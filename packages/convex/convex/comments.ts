@@ -12,7 +12,7 @@ import {
   CommentInsertData,
 } from "./commentHelpers";
 import { buildSearchResults } from "./searchHelpers";
-import { getMonthlyLimit, getCurrentMonthStart, type PlanName } from "./plans";
+import { getMonthlyLimit, getMonthlyReplyLimit, getCurrentMonthStart, type PlanName } from "./plans";
 
 export const list = query({
   args: { clerkId: v.string() },
@@ -453,13 +453,33 @@ export const update = mutation({
       throw new Error("Comment not found");
     }
 
+    let replyLimitReached = false;
+
     if (args.updates.repliedTo === true && !comment.repliedTo) {
+      const plan: PlanName = user.subscriptionPlan ?? "free";
+      const replyLimit = getMonthlyReplyLimit(plan);
+      const monthStart = getCurrentMonthStart();
+
+      let monthlyReplyCount = user.monthlyReplyCount ?? 0;
+      if (!user.monthlyReplyResetAt || user.monthlyReplyResetAt < monthStart) {
+        monthlyReplyCount = 0;
+      }
+
+      monthlyReplyCount += 1;
+      replyLimitReached = monthlyReplyCount >= replyLimit;
+
       await ctx.db.patch(user._id, {
         replyCount: (user.replyCount ?? 0) + 1,
+        monthlyReplyCount,
+        monthlyReplyResetAt: user.monthlyReplyResetAt && user.monthlyReplyResetAt >= monthStart
+          ? user.monthlyReplyResetAt
+          : monthStart,
       });
     }
 
     await ctx.db.patch(comment._id, args.updates);
+
+    return { replyLimitReached };
   },
 });
 

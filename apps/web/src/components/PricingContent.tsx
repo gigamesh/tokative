@@ -1,22 +1,34 @@
 "use client";
 
-import { useState } from "react";
 import { useAuth } from "@/providers/ConvexProvider";
+import {
+  api,
+  PLAN_LIMITS,
+  STRIPE_PRICE_IDS,
+  type PlanName,
+} from "@tokative/convex";
 import { useQuery } from "convex/react";
-import { api, STRIPE_PRICE_IDS } from "@tokative/convex";
-import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "./Button";
 
 type Interval = "month" | "year";
 
+function formatLimit(plan: PlanName): string {
+  return `${PLAN_LIMITS[plan].monthlyComments.toLocaleString()} comments/month`;
+}
+
+function formatReplyLimit(plan: PlanName): string {
+  return `${PLAN_LIMITS[plan].monthlyReplies.toLocaleString()} replies/month`;
+}
+
 interface PlanConfig {
   name: string;
-  key: "free" | "pro" | "premium";
+  key: PlanName;
   monthlyPrice: number;
   annualPrice: number;
-  commentLimit: string;
-  features: string[];
+  extraFeatures: string[];
   highlighted?: boolean;
 }
 
@@ -26,25 +38,17 @@ const PLANS: PlanConfig[] = [
     key: "free",
     monthlyPrice: 0,
     annualPrice: 0,
-    commentLimit: "200/month",
-    features: [
-      "200 comments/month",
-      "Bulk reply",
-      "Ignore list filtering",
-      "Comment tracking",
-    ],
+    extraFeatures: ["Bulk reply", "Ignore list filtering", "Comment tracking"],
   },
   {
     name: "Pro",
     key: "pro",
     monthlyPrice: 19,
     annualPrice: 182,
-    commentLimit: "2,000/month",
     highlighted: true,
-    features: [
-      "2,000 comments/month",
+    extraFeatures: [
       "Everything in Free",
-      "Comment translation",
+      "Language translation",
       "Priority support",
     ],
   },
@@ -53,9 +57,7 @@ const PLANS: PlanConfig[] = [
     key: "premium",
     monthlyPrice: 49,
     annualPrice: 470,
-    commentLimit: "10,000/month",
-    features: [
-      "10,000 comments/month",
+    extraFeatures: [
       "Everything in Pro",
       "Highest collection limits",
       "Priority support",
@@ -71,7 +73,7 @@ export function PricingContent() {
 
   const accessStatus = useQuery(
     api.users.getAccessStatus,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
 
   const currentPlan = accessStatus?.subscription?.plan ?? "free";
@@ -178,12 +180,13 @@ export function PricingContent() {
                   </h3>
                   <div className="mt-3 flex items-baseline gap-1">
                     <span className="text-4xl font-bold text-foreground">
-                      ${interval === "month" ? plan.monthlyPrice : price.toFixed(0)}
+                      $
+                      {interval === "month"
+                        ? plan.monthlyPrice
+                        : price.toFixed(0)}
                     </span>
                     {plan.monthlyPrice > 0 && (
-                      <span className="text-foreground-muted text-sm">
-                        /mo
-                      </span>
+                      <span className="text-foreground-muted text-sm">/mo</span>
                     )}
                   </div>
                   {interval === "year" && plan.annualPrice > 0 && (
@@ -194,7 +197,11 @@ export function PricingContent() {
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
-                  {plan.features.map((feature) => (
+                  {[
+                    formatLimit(plan.key),
+                    formatReplyLimit(plan.key),
+                    ...plan.extraFeatures,
+                  ].map((feature) => (
                     <li
                       key={feature}
                       className="flex items-start gap-2 text-sm text-foreground-secondary"
@@ -218,7 +225,9 @@ export function PricingContent() {
                         onClick={handleManageSubscription}
                         disabled={loadingPlan === "manage"}
                       >
-                        {loadingPlan === "manage" ? "Loading..." : "Manage Subscription"}
+                        {loadingPlan === "manage"
+                          ? "Loading..."
+                          : "Manage Subscription"}
                       </Button>
                     )}
                   </div>
@@ -236,7 +245,9 @@ export function PricingContent() {
                   <Button
                     variant={plan.highlighted ? "primary" : "secondary"}
                     fullWidth
-                    onClick={() => handleSubscribe(plan.key as "pro" | "premium")}
+                    onClick={() =>
+                      handleSubscribe(plan.key as "pro" | "premium")
+                    }
                     disabled={isLoading}
                   >
                     {isLoading ? "Loading..." : "Subscribe"}

@@ -2,23 +2,28 @@ export type PlanName = "free" | "pro" | "premium";
 
 interface PlanLimits {
   monthlyComments: number;
+  monthlyReplies: number;
   translation: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
-  free: { monthlyComments: 200, translation: false },
-  pro: { monthlyComments: 2_000, translation: true },
-  premium: { monthlyComments: 10_000, translation: true },
+  free: { monthlyComments: 500, monthlyReplies: 50, translation: false },
+  pro: { monthlyComments: 2_500, monthlyReplies: 500, translation: true },
+  premium: {
+    monthlyComments: 25_000,
+    monthlyReplies: 5_000,
+    translation: true,
+  },
 };
 
 export const STRIPE_PRICE_IDS = {
   pro: {
-    month: "price_TODO_pro_monthly",
-    year: "price_TODO_pro_annual",
+    month: "price_1Sz5wXD44KLV9Meisxwfxx6J",
+    year: "price_1Sz5ymD44KLV9MeiXJ0YVACn",
   },
   premium: {
-    month: "price_TODO_premium_monthly",
-    year: "price_TODO_premium_annual",
+    month: "price_1Sz5z5D44KLV9MeiA6ZuEOPP",
+    year: "price_1Sz5zrD44KLV9Mei8z9YV0Yw",
   },
 } as const;
 
@@ -34,6 +39,10 @@ export function getMonthlyLimit(plan: PlanName): number {
   return PLAN_LIMITS[plan].monthlyComments;
 }
 
+export function getMonthlyReplyLimit(plan: PlanName): number {
+  return PLAN_LIMITS[plan].monthlyReplies;
+}
+
 export function hasTranslation(plan: PlanName): boolean {
   return PLAN_LIMITS[plan].translation;
 }
@@ -41,5 +50,7 @@ export function hasTranslation(plan: PlanName): boolean {
 /** Returns the start of the current UTC month as a timestamp. */
 export function getCurrentMonthStart(): number {
   const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).getTime();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+  ).getTime();
 }

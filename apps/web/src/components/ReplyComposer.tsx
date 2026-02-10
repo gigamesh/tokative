@@ -18,6 +18,8 @@ interface ReplyComposerProps {
   replyStatusMessage: string | null;
   onStopBulkReply: () => void;
   disabled?: boolean;
+  replyBudget?: number;
+  replyLimitReached?: boolean;
 }
 
 export function ReplyComposer({
@@ -30,6 +32,8 @@ export function ReplyComposer({
   replyStatusMessage,
   onStopBulkReply,
   disabled,
+  replyBudget,
+  replyLimitReached,
 }: ReplyComposerProps) {
   const [messages, setMessages] = useState<string[]>([""]);
   const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(
@@ -280,6 +284,24 @@ export function ReplyComposer({
       >
         + Add Reply Variation
       </button>
+
+      {replyLimitReached && (
+        <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-red-400">
+            Monthly reply limit reached. Upgrade for more replies.
+          </p>
+        </div>
+      )}
+
+      {!replyLimitReached && replyBudget !== undefined && selectedCount > replyBudget && (
+        <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+          <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-yellow-500">
+            Only {replyBudget} {replyBudget === 1 ? "reply" : "replies"} remaining. {selectedCount - replyBudget} comment{selectedCount - replyBudget === 1 ? "" : "s"} will be skipped.
+          </p>
+        </div>
+      )}
 
       <div className="relative group">
         <Button

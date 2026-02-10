@@ -24,8 +24,10 @@ describe("getAccessStatus", () => {
 
     expect(result).not.toBeNull();
     expect(result!.subscription.plan).toBe("free");
-    expect(result!.subscription.monthlyLimit).toBe(200);
+    expect(result!.subscription.monthlyLimit).toBe(500);
     expect(result!.subscription.monthlyUsed).toBe(0);
+    expect(result!.subscription.replyLimit).toBe(50);
+    expect(result!.subscription.repliesUsed).toBe(0);
     expect(result!.features.translation).toBe(false);
     expect(result!.isAllowed).toBe(true);
   });
@@ -53,7 +55,8 @@ describe("getAccessStatus", () => {
     expect(result!.subscription.plan).toBe("pro");
     expect(result!.subscription.status).toBe("active");
     expect(result!.subscription.interval).toBe("month");
-    expect(result!.subscription.monthlyLimit).toBe(2_000);
+    expect(result!.subscription.monthlyLimit).toBe(2_500);
+    expect(result!.subscription.replyLimit).toBe(500);
     expect(result!.features.translation).toBe(true);
   });
 
@@ -77,7 +80,8 @@ describe("getAccessStatus", () => {
     const result = await t.query(api.users.getAccessStatus, { clerkId });
 
     expect(result!.subscription.plan).toBe("premium");
-    expect(result!.subscription.monthlyLimit).toBe(10_000);
+    expect(result!.subscription.monthlyLimit).toBe(25_000);
+    expect(result!.subscription.replyLimit).toBe(5_000);
     expect(result!.subscription.interval).toBe("year");
     expect(result!.features.translation).toBe(true);
   });
@@ -92,7 +96,7 @@ describe("getAccessStatus", () => {
     const result = await t.query(api.users.getAccessStatus, { clerkId });
 
     expect(result!.subscription.plan).toBe("premium");
-    expect(result!.subscription.monthlyLimit).toBe(10_000);
+    expect(result!.subscription.monthlyLimit).toBe(25_000);
     expect(result!.features.translation).toBe(true);
   });
 
@@ -115,6 +119,51 @@ describe("getAccessStatus", () => {
     const result = await t.query(api.users.getAccessStatus, { clerkId });
 
     expect(result!.subscription.monthlyUsed).toBe(42);
+  });
+
+  it("reports correct monthly reply usage from current month", async () => {
+    const clerkId = `user-${Date.now()}`;
+    await t.mutation(api.users.getOrCreate, { clerkId });
+
+    await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+        .unique();
+      if (!user) throw new Error("User not found");
+      await ctx.db.patch(user._id, {
+        monthlyReplyCount: 15,
+        monthlyReplyResetAt: Date.now(),
+      });
+    });
+
+    const result = await t.query(api.users.getAccessStatus, { clerkId });
+
+    expect(result!.subscription.repliesUsed).toBe(15);
+  });
+
+  it("resets monthly reply usage to 0 when reset timestamp is from last month", async () => {
+    const clerkId = `user-${Date.now()}`;
+    await t.mutation(api.users.getOrCreate, { clerkId });
+
+    const lastMonth = new Date();
+    lastMonth.setUTCMonth(lastMonth.getUTCMonth() - 1);
+
+    await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+        .unique();
+      if (!user) throw new Error("User not found");
+      await ctx.db.patch(user._id, {
+        monthlyReplyCount: 30,
+        monthlyReplyResetAt: lastMonth.getTime(),
+      });
+    });
+
+    const result = await t.query(api.users.getAccessStatus, { clerkId });
+
+    expect(result!.subscription.repliesUsed).toBe(0);
   });
 
   it("resets monthly usage to 0 when reset timestamp is from last month", async () => {

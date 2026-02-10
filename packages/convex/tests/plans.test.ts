@@ -10,16 +10,16 @@ import {
 
 describe("plans", () => {
   describe("getMonthlyLimit", () => {
-    it("returns 200 for free", () => {
-      expect(getMonthlyLimit("free")).toBe(200);
+    it("returns 500 for free", () => {
+      expect(getMonthlyLimit("free")).toBe(500);
     });
 
-    it("returns 2000 for pro", () => {
-      expect(getMonthlyLimit("pro")).toBe(2_000);
+    it("returns 2500 for pro", () => {
+      expect(getMonthlyLimit("pro")).toBe(2_500);
     });
 
-    it("returns 10000 for premium", () => {
-      expect(getMonthlyLimit("premium")).toBe(10_000);
+    it("returns 25000 for premium", () => {
+      expect(getMonthlyLimit("premium")).toBe(25_000);
     });
   });
 

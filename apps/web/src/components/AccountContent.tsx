@@ -46,6 +46,11 @@ export function AccountContent() {
     Math.round((subscription.monthlyUsed / subscription.monthlyLimit) * 100)
   );
 
+  const replyUsagePct = Math.min(
+    100,
+    Math.round(((subscription.repliesUsed ?? 0) / (subscription.replyLimit ?? 1)) * 100)
+  );
+
   const renewalDate = subscription.currentPeriodEnd
     ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
     : null;
@@ -112,6 +117,27 @@ export function AccountContent() {
               </div>
               <p className="text-xs text-foreground-muted">
                 {usagePct}% of monthly limit used
+              </p>
+            </div>
+
+            <div className="space-y-2 mt-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-foreground-muted">Replies sent</span>
+                <span className="text-foreground-secondary">
+                  {(subscription.repliesUsed ?? 0).toLocaleString()} /{" "}
+                  {(subscription.replyLimit ?? 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="w-full h-2 bg-surface-secondary rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    replyUsagePct > 90 ? "bg-red-500" : "bg-accent-cyan-solid"
+                  }`}
+                  style={{ width: `${replyUsagePct}%` }}
+                />
+              </div>
+              <p className="text-xs text-foreground-muted">
+                {replyUsagePct}% of monthly limit used
               </p>
             </div>
           </div>

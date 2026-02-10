@@ -1,6 +1,6 @@
 import { LinkButton } from "@/components/Button";
-import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -42,7 +42,7 @@ export default function Home() {
                 pill
                 className="group hover:scale-105"
               >
-                Get Started
+                Try It Out For Free
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </LinkButton>
             </div>
@@ -88,7 +88,8 @@ function FeatureCard({
   description: string;
   accent: "cyan" | "pink";
 }) {
-  const accentColor = accent === "cyan" ? "text-accent-cyan-text" : "text-accent-pink";
+  const accentColor =
+    accent === "cyan" ? "text-accent-cyan-text" : "text-accent-pink";
 
   return (
     <div className="group">
