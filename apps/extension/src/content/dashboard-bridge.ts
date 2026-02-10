@@ -1,9 +1,9 @@
-import { MessageType, ExtensionMessage, EXTENSION_SOURCE } from "../types";
+import { EXTENSION_SOURCE, ExtensionMessage, MessageType } from "../types";
 import { guardExtensionContext } from "../utils/dom";
 import { logger } from "../utils/logger";
 
-declare const DASHBOARD_URL_PLACEHOLDER: string;
-const DASHBOARD_ORIGIN = DASHBOARD_URL_PLACEHOLDER;
+declare const TOKATIVE_URL_PLACEHOLDER: string;
+const DASHBOARD_ORIGIN = TOKATIVE_URL_PLACEHOLDER;
 
 const BRIDGE_ID = "tokative-bridge";
 
@@ -55,7 +55,7 @@ function initBridge(): void {
           ...message,
           source: EXTENSION_SOURCE,
         },
-        DASHBOARD_ORIGIN
+        DASHBOARD_ORIGIN,
       );
     });
 
@@ -75,7 +75,7 @@ function initBridge(): void {
           type: "EXTENSION_CONTEXT_INVALID",
           source: EXTENSION_SOURCE,
         },
-        DASHBOARD_ORIGIN
+        DASHBOARD_ORIGIN,
       );
       return;
     }
@@ -139,7 +139,10 @@ function initBridge(): void {
     const message = event.data as ExtensionMessage;
 
     // Handle auth token response from the web app (source: "dashboard")
-    if (message.type === MessageType.AUTH_TOKEN_RESPONSE && event.data?.source === "dashboard") {
+    if (
+      message.type === MessageType.AUTH_TOKEN_RESPONSE &&
+      event.data?.source === "dashboard"
+    ) {
       chrome.runtime.sendMessage(message).catch((error) => {
         logger.error("[Bridge] Error forwarding auth token:", error);
       });
@@ -154,7 +157,7 @@ function initBridge(): void {
             type: MessageType.BRIDGE_READY,
             source: EXTENSION_SOURCE,
           },
-          DASHBOARD_ORIGIN
+          DASHBOARD_ORIGIN,
         );
       }
       return;
@@ -166,7 +169,7 @@ function initBridge(): void {
           type: "EXTENSION_CONTEXT_INVALID",
           source: EXTENSION_SOURCE,
         },
-        DASHBOARD_ORIGIN
+        DASHBOARD_ORIGIN,
       );
       return;
     }
@@ -174,7 +177,8 @@ function initBridge(): void {
     if (isPortMessage(message.type)) {
       sendViaPort(message);
     } else {
-      chrome.runtime.sendMessage(message)
+      chrome.runtime
+        .sendMessage(message)
         .then((response) => {
           if (response) {
             window.postMessage(
@@ -183,7 +187,7 @@ function initBridge(): void {
                 payload: response,
                 source: EXTENSION_SOURCE,
               },
-              DASHBOARD_ORIGIN
+              DASHBOARD_ORIGIN,
             );
           }
         })
@@ -192,10 +196,12 @@ function initBridge(): void {
           window.postMessage(
             {
               type: getResponseType(message.type),
-              payload: { error: error.message || "Extension communication error" },
+              payload: {
+                error: error.message || "Extension communication error",
+              },
               source: EXTENSION_SOURCE,
             },
-            DASHBOARD_ORIGIN
+            DASHBOARD_ORIGIN,
           );
         });
     }
@@ -210,7 +216,7 @@ function initBridge(): void {
         ...message,
         source: EXTENSION_SOURCE,
       },
-      DASHBOARD_ORIGIN
+      DASHBOARD_ORIGIN,
     );
   };
   chrome.runtime.onMessage.addListener(runtimeMessageHandler);
@@ -230,7 +236,7 @@ function initBridge(): void {
       type: MessageType.BRIDGE_READY,
       source: EXTENSION_SOURCE,
     },
-    DASHBOARD_ORIGIN
+    DASHBOARD_ORIGIN,
   );
 }
 
