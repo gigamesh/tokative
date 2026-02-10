@@ -14,6 +14,20 @@ const STORAGE_KEYS = {
 
 // ===== CONVEX-FIRST (user data) =====
 
+export class CommentLimitError extends Error {
+  monthlyLimit: number;
+  currentCount: number;
+  plan: string;
+
+  constructor(monthlyLimit: number, currentCount: number, plan: string) {
+    super(`Monthly comment limit reached (${currentCount}/${monthlyLimit})`);
+    this.name = "CommentLimitError";
+    this.monthlyLimit = monthlyLimit;
+    this.currentCount = currentCount;
+    this.plan = plan;
+  }
+}
+
 export interface AddCommentsResult {
   new: number;
   preexisting: number;
@@ -26,7 +40,15 @@ export async function getScrapedComments(): Promise<ScrapedComment[]> {
 
 export async function addScrapedComments(newComments: ScrapedComment[]): Promise<AddCommentsResult> {
   const ignoreList = await convexApi.fetchIgnoreList();
-  return convexApi.syncComments(newComments, ignoreList.map((e) => e.text));
+  const result = await convexApi.syncComments(newComments, ignoreList.map((e) => e.text));
+  if (result.limitReached) {
+    throw new CommentLimitError(
+      result.monthlyLimit ?? 0,
+      result.currentCount ?? 0,
+      result.plan ?? "free",
+    );
+  }
+  return result;
 }
 
 export async function updateScrapedComment(
