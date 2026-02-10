@@ -28,6 +28,7 @@ const mockChromeStorage = createMockChromeStorage(mockStorage);
 vi.stubGlobal("chrome", { storage: mockChromeStorage });
 
 import {
+  CommentLimitError,
   getScrapedComments,
   addScrapedComments,
   updateScrapedComment,
@@ -123,6 +124,68 @@ describe("Comment Storage (Convex-backed)", () => {
       expect(mockedConvexApi.fetchIgnoreList).toHaveBeenCalled();
       expect(mockedConvexApi.syncComments).toHaveBeenCalledWith(newComments, ["spam"]);
       expect(result).toEqual({ new: 2, preexisting: 0, ignored: 1, missingTiktokUserId: 0 });
+    });
+
+    it("throws CommentLimitError when syncComments returns limitReached", async () => {
+      mockedConvexApi.fetchIgnoreList.mockResolvedValue([]);
+      mockedConvexApi.syncComments.mockResolvedValue({
+        new: 3,
+        preexisting: 1,
+        ignored: 0,
+        missingTiktokUserId: 0,
+        limitReached: true,
+        monthlyLimit: 500,
+        currentCount: 500,
+        plan: "free",
+      });
+
+      const newComments = [createComment({ id: "1" })];
+      await expect(addScrapedComments(newComments)).rejects.toThrow(CommentLimitError);
+    });
+
+    it("includes limit metadata on thrown CommentLimitError", async () => {
+      mockedConvexApi.fetchIgnoreList.mockResolvedValue([]);
+      mockedConvexApi.syncComments.mockResolvedValue({
+        new: 2,
+        preexisting: 1,
+        ignored: 0,
+        missingTiktokUserId: 0,
+        limitReached: true,
+        monthlyLimit: 2500,
+        currentCount: 2500,
+        plan: "pro",
+      });
+
+      try {
+        await addScrapedComments([createComment()]);
+        expect.fail("Expected CommentLimitError to be thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(CommentLimitError);
+        const limitErr = err as CommentLimitError;
+        expect(limitErr.monthlyLimit).toBe(2500);
+        expect(limitErr.currentCount).toBe(2500);
+        expect(limitErr.plan).toBe("pro");
+        expect(limitErr.partialResult).toEqual({ new: 2, preexisting: 1, ignored: 0 });
+      }
+    });
+
+    it("returns normally when limitReached is false", async () => {
+      mockedConvexApi.fetchIgnoreList.mockResolvedValue([]);
+      mockedConvexApi.syncComments.mockResolvedValue({
+        new: 5,
+        preexisting: 0,
+        ignored: 0,
+        missingTiktokUserId: 0,
+        limitReached: false,
+        monthlyLimit: 500,
+        currentCount: 100,
+        plan: "free",
+      });
+
+      const result = await addScrapedComments([createComment()]);
+      expect(result.new).toBe(5);
+      expect(result.preexisting).toBe(0);
+      expect(result.ignored).toBe(0);
     });
   });
 
