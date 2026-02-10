@@ -28,7 +28,9 @@ loadEnvFile(envPath);
 function getRequiredEnv(name) {
   const value = process.env[name];
   if (!value) {
-    throw new Error(`Missing required environment variable: ${name}\nCreate apps/extension/.env with this variable.`);
+    throw new Error(
+      `Missing required environment variable: ${name}\nCreate apps/extension/.env with this variable.`,
+    );
   }
   return value;
 }
@@ -39,5 +41,5 @@ function getEnvWithDefault(name, defaultValue) {
 
 module.exports = {
   CONVEX_SITE_URL: getRequiredEnv("CONVEX_SITE_URL"),
-  DASHBOARD_URL: getEnvWithDefault("DASHBOARD_URL", "http://localhost:3000"),
+  TOKATIVE_URL: getEnvWithDefault("TOKATIVE_URL", "http://localhost:3000"),
 };
