@@ -31,7 +31,7 @@ const buildOptions = {
   minify: !isWatch,
   define: {
     CONVEX_SITE_URL_PLACEHOLDER: JSON.stringify(env.CONVEX_SITE_URL),
-    TOKATIVE_URL_PLACEHOLDER: JSON.stringify(env.TOKATIVE_URL),
+    TOKATIVE_ENDPOINT_PLACEHOLDER: JSON.stringify(env.TOKATIVE_ENDPOINT),
   },
 };
 
@@ -50,7 +50,7 @@ async function copyPublicFiles() {
       const manifest = JSON.parse(
         fs.readFileSync(path.join(publicDir, file), "utf8"),
       );
-      const dashboardPattern = env.TOKATIVE_URL + "/*";
+      const dashboardPattern = env.TOKATIVE_ENDPOINT + "/*";
 
       // Update host_permissions
       manifest.host_permissions = manifest.host_permissions.map((perm) =>

@@ -132,7 +132,7 @@ const buildOptions = {
   define: {
     "process.env.NODE_ENV": '"development"',
     CONVEX_SITE_URL_PLACEHOLDER: JSON.stringify(env.CONVEX_SITE_URL),
-    TOKATIVE_URL_PLACEHOLDER: JSON.stringify(env.TOKATIVE_URL),
+    TOKATIVE_ENDPOINT_PLACEHOLDER: JSON.stringify(env.TOKATIVE_ENDPOINT),
   },
 };
 
