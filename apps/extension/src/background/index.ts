@@ -1545,7 +1545,7 @@ async function injectContentScripts(): Promise<void> {
 // Load config on service worker startup
 loadConfig()
   .then((config) => {
-    logger.log("[Background] Config loaded, version:", config.version);
+    logger.log("[Background] Config loaded");
   })
   .catch((error) => {
     logger.warn("[Background] Failed to load config:", error);

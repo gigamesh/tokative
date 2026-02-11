@@ -19,7 +19,7 @@ function getExtensionVersion(): string {
   try {
     return chrome.runtime.getManifest().version;
   } catch {
-    return DEFAULT_CONFIG.version;
+    return "0.0.0";
   }
 }
 
@@ -52,17 +52,12 @@ async function setCachedConfig(config: ExtensionConfig): Promise<void> {
   }
 }
 
-function validateConfig(data: unknown): data is ExtensionConfig {
+function validateConfig(data: unknown): data is Partial<ExtensionConfig> & Pick<ExtensionConfig, "minExtensionVersion"> {
   if (typeof data !== "object" || data === null) return false;
 
   const config = data as Record<string, unknown>;
 
-  if (typeof config.version !== "string") return false;
   if (typeof config.minExtensionVersion !== "string") return false;
-  if (typeof config.selectors !== "object" || config.selectors === null) return false;
-  if (typeof config.timeouts !== "object" || config.timeouts === null) return false;
-  if (typeof config.delays !== "object" || config.delays === null) return false;
-  if (typeof config.limits !== "object" || config.limits === null) return false;
 
   return true;
 }
@@ -111,7 +106,7 @@ async function fetchExtensionConfig(): Promise<ExtensionConfig | null> {
     }
 
     const extensionVersion = getExtensionVersion();
-    if (!isVersionCompatible(data.version, data.minExtensionVersion, extensionVersion)) {
+    if (!isVersionCompatible(data.minExtensionVersion, extensionVersion)) {
       logger.warn(
         `[Config] Version incompatible: config requires extension >= ${data.minExtensionVersion}, ` +
         `current is ${extensionVersion}`
@@ -138,20 +133,20 @@ export async function loadConfig(): Promise<ExtensionConfig> {
 
   const cached = await getCachedConfig();
   if (cached) {
-    logger.log("[Config] Using cached config, version:", cached.config.version);
+    logger.log("[Config] Using cached config");
     memoryCache = cached.config;
     return cached.config;
   }
 
   const remote = await fetchExtensionConfig();
   if (remote) {
-    logger.log("[Config] Fetched remote config, version:", remote.version);
+    logger.log("[Config] Fetched remote config");
     await setCachedConfig(remote);
     memoryCache = remote;
     return remote;
   }
 
-  logger.log("[Config] Using default config, version:", DEFAULT_CONFIG.version);
+  logger.log("[Config] Using default config");
   memoryCache = DEFAULT_CONFIG;
   return DEFAULT_CONFIG;
 }

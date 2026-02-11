@@ -1,7 +1,6 @@
 import type { ExtensionConfig } from "./types";
 
 export const DEFAULT_CONFIG: ExtensionConfig = {
-  version: "1.0.0",
   minExtensionVersion: "1.0.0",
 
   selectors: {

@@ -1,5 +1,4 @@
 export interface ExtensionConfig {
-  version: string;
   minExtensionVersion: string;
 
   selectors: {
@@ -56,7 +55,6 @@ export function compareVersions(a: string, b: string): number {
 }
 
 export function isVersionCompatible(
-  configVersion: string,
   minExtensionVersion: string,
   currentExtensionVersion: string
 ): boolean {

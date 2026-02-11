@@ -26,7 +26,7 @@ async function init(): Promise<void> {
   // Load config early so it's available for all operations
   try {
     const config = await loadConfig();
-    logger.log("[TikTok] Config loaded, version:", config.version);
+    logger.log("[TikTok] Config loaded");
   } catch (error) {
     logger.warn("[TikTok] Failed to load config, using defaults:", error);
   }
