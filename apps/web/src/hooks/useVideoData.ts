@@ -154,9 +154,10 @@ export function useVideoData() {
       }),
 
       bridge.on(MessageType.GET_VIDEO_COMMENTS_ERROR, (payload) => {
-        const { videoId, error } = payload as {
+        const { videoId, error, stats } = payload as {
           videoId?: string;
           error: string;
+          stats?: ScrapeStats;
         };
         setState((prev) => {
           if (videoId) {
@@ -178,7 +179,16 @@ export function useVideoData() {
           };
         });
         console.error("Failed to scrape comments:", error);
-        toast.error("Failed to collect comments. Check console for details.");
+        const tabClosed = error?.includes("tab was closed");
+        if (stats && stats.new > 0) {
+          toast(`Scraping cancelled early. ${stats.new} new comments were saved.`);
+        } else if (stats) {
+          toast("Scraping cancelled. No new comments were collected.");
+        } else if (tabClosed) {
+          toast("Scraping cancelled — TikTok tab was closed.");
+        } else {
+          toast.error("Failed to collect comments. Check console for details.");
+        }
         if (videoId) {
           processNextInQueue();
         }

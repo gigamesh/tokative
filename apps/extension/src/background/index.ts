@@ -5,7 +5,7 @@ import {
   ScrapedComment,
   ScrapedVideo,
 } from "../types";
-import { colors } from "@tokative/shared";
+import { colors, ScrapeStats } from "@tokative/shared";
 import { setAuthToken } from "../utils/convex-api";
 import { loadConfig, refreshConfig, getLoadedConfig } from "../config/loader";
 import { logger } from "../utils/logger";
@@ -47,6 +47,9 @@ let activeScrapingTabId: number | null = null;
 let isBatchScraping = false;
 let batchCancelled = false;
 const closingTabsIntentionally = new Set<number>();
+let lastScrapingVideoId: string | null = null;
+let lastScrapingStats: ScrapeStats | null = null;
+let lastBatchProgress: { completedVideos: number; totalComments: number } | null = null;
 
 // Message types that should be forwarded directly to dashboard
 const FORWARD_TO_DASHBOARD_MESSAGES: Set<MessageType> = new Set([
@@ -66,6 +69,9 @@ const FORWARD_TO_DASHBOARD_MESSAGES: Set<MessageType> = new Set([
 async function cleanupScrapingSession(): Promise<void> {
   activeScrapingTabId = null;
   isBatchScraping = false;
+  lastScrapingVideoId = null;
+  lastScrapingStats = null;
+  lastBatchProgress = null;
   await clearScrapingState();
   broadcastScrapingState();
   clearBadge();
@@ -145,15 +151,30 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   if (activeScrapingTabId && tabId === activeScrapingTabId) {
     logger.log("[Background] Scraping tab was closed by user");
     const wasBatchScraping = isBatchScraping;
+    const savedVideoId = lastScrapingVideoId;
+    const savedStats = lastScrapingStats;
+    const savedBatch = lastBatchProgress;
     await cleanupScrapingSession();
 
-    const errorType = wasBatchScraping
-      ? MessageType.GET_BATCH_COMMENTS_ERROR
-      : MessageType.GET_VIDEO_COMMENTS_ERROR;
-    broadcastToDashboard({
-      type: errorType,
-      payload: { error: "Collecting cancelled - TikTok tab was closed" },
-    });
+    if (wasBatchScraping) {
+      broadcastToDashboard({
+        type: MessageType.GET_BATCH_COMMENTS_ERROR,
+        payload: {
+          error: "Collecting cancelled - TikTok tab was closed",
+          completedVideos: savedBatch?.completedVideos ?? 0,
+          totalComments: savedBatch?.totalComments ?? 0,
+        },
+      });
+    } else {
+      broadcastToDashboard({
+        type: MessageType.GET_VIDEO_COMMENTS_ERROR,
+        payload: {
+          error: "Collecting cancelled - TikTok tab was closed",
+          videoId: savedVideoId,
+          stats: savedStats,
+        },
+      });
+    }
   }
 });
 
@@ -252,6 +273,10 @@ export async function handleMessage(
 ): Promise<unknown> {
   // Handle simple message forwarding to dashboard
   if (FORWARD_TO_DASHBOARD_MESSAGES.has(message.type)) {
+    if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
+      const payload = message.payload as { stats?: ScrapeStats };
+      if (payload.stats) lastScrapingStats = payload.stats;
+    }
     broadcastToDashboard(message);
     return { success: true };
   }
@@ -1018,6 +1043,8 @@ async function handleGetVideoComments(
 
     activeScrapingTabId = tab.id;
     isBatchScraping = false;
+    lastScrapingVideoId = videoId;
+    lastScrapingStats = null;
     await updateAndBroadcastScrapingState({
       isActive: true,
       isPaused: false,
@@ -1049,7 +1076,9 @@ async function handleGetVideoComments(
         const payload = msg.payload as {
           commentsFound?: number;
           message?: string;
+          stats?: ScrapeStats;
         };
+        if (payload.stats) lastScrapingStats = payload.stats;
         const count = payload.commentsFound || 0;
         await updateAndBroadcastScrapingState({
           commentsFound: count,
@@ -1081,7 +1110,7 @@ async function handleGetVideoComments(
         const errorPayload = (msg.payload || {}) as Record<string, unknown>;
         port.postMessage({
           type: MessageType.GET_VIDEO_COMMENTS_ERROR,
-          payload: { videoId, ...errorPayload },
+          payload: { videoId, ...errorPayload, stats: lastScrapingStats },
         });
         chrome.runtime.onMessage.removeListener(responseHandler);
         await cleanupScrapingSession();
@@ -1228,6 +1257,7 @@ async function handleGetBatchComments(
       cumulativeStats.preexisting += result.stats.preexisting;
       cumulativeStats.ignored += result.stats.ignored;
       completedVideos++;
+      lastBatchProgress = { completedVideos, totalComments };
       await updateVideo(video.videoId, { commentsScraped: true });
 
       sendProgress(
