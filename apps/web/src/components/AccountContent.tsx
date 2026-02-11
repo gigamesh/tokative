@@ -84,11 +84,13 @@ export function AccountContent() {
   }
 
   const badge =
-    subscription.cancelAtPeriodEnd && subscription.status === "active"
-      ? { label: "Canceling", className: "bg-yellow-500/20 text-yellow-400" }
-      : subscription.status
-        ? STATUS_BADGES[subscription.status]
-        : undefined;
+    subscription.plan === "free"
+      ? undefined
+      : subscription.cancelAtPeriodEnd && subscription.status === "active"
+        ? { label: "Canceling", className: "bg-yellow-500/20 text-yellow-400" }
+        : subscription.status
+          ? STATUS_BADGES[subscription.status]
+          : undefined;
   const canUpgrade = subscription.plan !== "premium";
   const showManage = subscription.plan !== "free";
 
