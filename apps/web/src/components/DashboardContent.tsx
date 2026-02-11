@@ -11,7 +11,7 @@ import { PostsGrid } from "@/components/PostsGrid";
 import { ReplyComposer } from "@/components/ReplyComposer";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
-import { CollapsibleSettings } from "@/components/CollapsibleSettings";
+import { SettingsModal } from "@/components/SettingsModal";
 import { Spinner } from "@/components/Spinner";
 import { TabContentContainer } from "@/components/TabContentContainer";
 import { TabNavigation } from "@/components/TabNavigation";
@@ -29,7 +29,7 @@ import { ScrapedComment } from "@/utils/constants";
 import { useAuth } from "@/providers/ConvexProvider";
 import { useQuery } from "convex/react";
 import { api } from "@tokative/convex";
-import { PauseCircle, X } from "lucide-react";
+import { PauseCircle, Settings, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface DeleteModalState {
@@ -196,6 +196,8 @@ export function DashboardContent() {
     isOpen: boolean;
     pendingMessages: string[];
   }>({ isOpen: false, pendingMessages: [] });
+
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const [replyReport, setReplyReport] = useState<{
     completed: number;
@@ -624,9 +626,18 @@ export function DashboardContent() {
                   targetLanguage={targetLanguage}
                   headerContent={
                     <>
-                      <h2 className="text-lg font-medium text-foreground">
-                        Comments
-                      </h2>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-medium text-foreground">
+                          Comments
+                        </h2>
+                        <button
+                          onClick={() => setSettingsModalOpen(true)}
+                          className="flex items-center gap-1.5 text-sm text-foreground-muted hover:text-foreground transition-colors"
+                        >
+                          <Settings className="w-4 h-4" />
+                          <span>Settings</span>
+                        </button>
+                      </div>
                       {selectedVideo && (
                         <div className="mt-3">
                           <SelectedPostContext
@@ -647,18 +658,6 @@ export function DashboardContent() {
                           </Button>
                         </div>
                       )}
-                      <CollapsibleSettings
-                        commentLimitInput={commentLimitInput}
-                        onCommentLimitChange={setCommentLimitInput}
-                        onCommentLimitBlur={handleCommentLimitBlur}
-                        ignoreList={ignoreList}
-                        onAddToIgnoreList={addToIgnoreList}
-                        onRemoveFromIgnoreList={removeFromIgnoreList}
-                        hideOwnReplies={hideOwnReplies}
-                        onHideOwnRepliesChange={saveHideOwnReplies}
-                        deleteMissingComments={deleteMissingComments}
-                        onDeleteMissingCommentsChange={saveDeleteMissingComments}
-                      />
                     </>
                   }
                 />
@@ -688,23 +687,18 @@ export function DashboardContent() {
                   onTranslateComment={handleTranslateComment}
                   targetLanguage={targetLanguage}
                   headerContent={
-                    <>
+                    <div className="flex items-center justify-between">
                       <h2 className="text-lg font-medium text-foreground">
                         Commenters
                       </h2>
-                      <CollapsibleSettings
-                        commentLimitInput={commentLimitInput}
-                        onCommentLimitChange={setCommentLimitInput}
-                        onCommentLimitBlur={handleCommentLimitBlur}
-                        ignoreList={ignoreList}
-                        onAddToIgnoreList={addToIgnoreList}
-                        onRemoveFromIgnoreList={removeFromIgnoreList}
-                        hideOwnReplies={hideOwnReplies}
-                        onHideOwnRepliesChange={saveHideOwnReplies}
-                        deleteMissingComments={deleteMissingComments}
-                        onDeleteMissingCommentsChange={saveDeleteMissingComments}
-                      />
-                    </>
+                      <button
+                        onClick={() => setSettingsModalOpen(true)}
+                        className="flex items-center gap-1.5 text-sm text-foreground-muted hover:text-foreground transition-colors"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Settings</span>
+                      </button>
+                    </div>
                   }
                 />
               </TabContentContainer>
@@ -729,6 +723,21 @@ export function DashboardContent() {
           </div>
         </div>
       </main>
+
+      <SettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        commentLimitInput={commentLimitInput}
+        onCommentLimitChange={setCommentLimitInput}
+        onCommentLimitBlur={handleCommentLimitBlur}
+        ignoreList={ignoreList}
+        onAddToIgnoreList={addToIgnoreList}
+        onRemoveFromIgnoreList={removeFromIgnoreList}
+        hideOwnReplies={hideOwnReplies}
+        onHideOwnRepliesChange={saveHideOwnReplies}
+        deleteMissingComments={deleteMissingComments}
+        onDeleteMissingCommentsChange={saveDeleteMissingComments}
+      />
 
       <DeleteConfirmationModal
         isOpen={deleteModal.isOpen}
