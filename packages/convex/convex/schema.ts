@@ -28,6 +28,7 @@ export default defineSchema({
       v.union(v.literal("month"), v.literal("year"))
     ),
     currentPeriodEnd: v.optional(v.number()),
+    cancelAtPeriodEnd: v.optional(v.boolean()),
     monthlyCommentCount: v.optional(v.number()),
     monthlyCommentResetAt: v.optional(v.number()),
     monthlyReplyCount: v.optional(v.number()),

@@ -75,6 +75,7 @@ export const getAccessStatus = query({
         status: user.subscriptionStatus ?? (whitelisted ? "active" : null),
         interval: user.subscriptionInterval ?? null,
         currentPeriodEnd: user.currentPeriodEnd ?? null,
+        cancelAtPeriodEnd: user.cancelAtPeriodEnd ?? false,
         monthlyLimit,
         monthlyUsed,
         replyLimit,

@@ -53,6 +53,7 @@ export const updateSubscription = internalMutation({
     subscriptionPriceId: v.string(),
     subscriptionInterval: v.union(v.literal("month"), v.literal("year")),
     currentPeriodEnd: v.number(),
+    cancelAtPeriodEnd: v.boolean(),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
@@ -68,6 +69,7 @@ export const updateSubscription = internalMutation({
       subscriptionPriceId: args.subscriptionPriceId,
       subscriptionInterval: args.subscriptionInterval,
       currentPeriodEnd: args.currentPeriodEnd,
+      cancelAtPeriodEnd: args.cancelAtPeriodEnd,
       ...(isUpgrade && {
         monthlyCommentCount: 0,
         monthlyCommentResetAt: Date.now(),

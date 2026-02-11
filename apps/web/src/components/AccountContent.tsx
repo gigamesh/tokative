@@ -9,11 +9,22 @@ import { Button } from "./Button";
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
   active: { label: "Active", className: "bg-green-500/20 text-green-400" },
-  past_due: { label: "Payment Issue", className: "bg-yellow-500/20 text-yellow-400" },
+  past_due: {
+    label: "Payment Issue",
+    className: "bg-yellow-500/20 text-yellow-400",
+  },
   canceled: { label: "Canceled", className: "bg-red-500/20 text-red-400" },
 };
 
-function UsageBar({ label, used, limit }: { label: string; used: number; limit: number }) {
+function UsageBar({
+  label,
+  used,
+  limit,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+}) {
   const pct = Math.min(100, Math.round((used / limit) * 100));
   return (
     <div className="space-y-2">
@@ -72,7 +83,12 @@ export function AccountContent() {
     );
   }
 
-  const badge = subscription.status ? STATUS_BADGES[subscription.status] : undefined;
+  const badge =
+    subscription.cancelAtPeriodEnd && subscription.status === "active"
+      ? { label: "Canceling", className: "bg-yellow-500/20 text-yellow-400" }
+      : subscription.status
+        ? STATUS_BADGES[subscription.status]
+        : undefined;
   const canUpgrade = subscription.plan !== "premium";
   const showManage = subscription.plan !== "free";
 
@@ -96,7 +112,9 @@ export function AccountContent() {
                   {subscription.plan} Plan
                 </span>
                 {badge && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${badge.className}`}>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${badge.className}`}
+                  >
                     {badge.label}
                   </span>
                 )}
@@ -129,12 +147,20 @@ export function AccountContent() {
             </div>
           </div>
 
-          {renewalDate && subscription.plan !== "free" && (
-            <p className="text-sm text-foreground-muted">
-              {subscription.status === "canceled" ? "Expires" : "Renews"} on{" "}
-              {renewalDate}
-            </p>
-          )}
+          {subscription.plan !== "free" &&
+            (subscription.cancelAtPeriodEnd ? (
+              <p className="text-sm text-foreground-muted">
+                {renewalDate
+                  ? `Ends on ${renewalDate}`
+                  : "Subscription canceled"}
+              </p>
+            ) : (
+              renewalDate && (
+                <p className="text-sm text-foreground-muted">
+                  Renews on {renewalDate}
+                </p>
+              )
+            ))}
 
           <div className="flex gap-3 pt-2">
             {canUpgrade && (

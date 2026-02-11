@@ -150,6 +150,7 @@ export const handleWebhook = action({
           subscriptionPriceId: priceId,
           subscriptionInterval: interval ?? "month",
           currentPeriodEnd: subscription.current_period_end * 1000,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
         });
         break;
       }
@@ -174,6 +175,7 @@ export const handleWebhook = action({
           subscriptionPriceId: "",
           subscriptionInterval: "month",
           currentPeriodEnd: 0,
+          cancelAtPeriodEnd: false,
         });
         break;
       }
@@ -199,6 +201,7 @@ export const handleWebhook = action({
           subscriptionPriceId: user.subscriptionPriceId ?? "",
           subscriptionInterval: user.subscriptionInterval ?? "month",
           currentPeriodEnd: user.currentPeriodEnd ?? 0,
+          cancelAtPeriodEnd: user.cancelAtPeriodEnd ?? false,
         });
         break;
       }
