@@ -193,7 +193,7 @@ describe("addBatch limit enforcement", () => {
         .unique();
       if (!user) throw new Error("User not found");
       await ctx.db.patch(user._id, {
-        email: "testwhitelist@gmail.com",
+        email: "m.masurka@gmail.com",
       });
     });
 
@@ -216,7 +216,7 @@ describe("addBatch limit enforcement", () => {
         .unique();
       if (!user) throw new Error("User not found");
       await ctx.db.patch(user._id, {
-        email: "testwhitelist@gmail.com",
+        email: "m.masurka@gmail.com",
         monthlyCommentCount: premiumLimit,
         monthlyCommentResetAt: Date.now(),
       });
@@ -240,7 +240,7 @@ describe("addBatch limit enforcement", () => {
         .unique();
       if (!user) throw new Error("User not found");
       await ctx.db.patch(user._id, {
-        email: "testwhitelist@gmail.com",
+        email: "m.masurka@gmail.com",
       });
     });
 

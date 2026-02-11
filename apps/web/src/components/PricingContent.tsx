@@ -236,7 +236,11 @@ export function PricingContent() {
                     }
                     disabled={isLoading}
                   >
-                    {isLoading ? "Loading..." : "Subscribe"}
+                    {isLoading
+                      ? "Loading..."
+                      : currentPlan !== "free"
+                        ? "Switch Plan"
+                        : "Subscribe"}
                   </Button>
                 )}
               </div>

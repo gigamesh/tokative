@@ -61,6 +61,20 @@ export const createCheckoutSession = action({
     }
 
     const tokativeEndpoint = process.env.TOKATIVE_ENDPOINT!;
+
+    if (user.stripeSubscriptionId && user.subscriptionStatus === "active") {
+      const existing = await stripe.subscriptions.retrieve(
+        user.stripeSubscriptionId,
+      );
+      if (existing.status === "active") {
+        await stripe.subscriptions.update(existing.id, {
+          items: [{ id: existing.items.data[0].id, price: priceId }],
+          proration_behavior: "create_prorations",
+        });
+        return { url: `${tokativeEndpoint}/dashboard?checkout=success` };
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
