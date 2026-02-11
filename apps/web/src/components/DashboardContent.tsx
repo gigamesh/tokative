@@ -630,13 +630,14 @@ export function DashboardContent() {
                         <h2 className="text-lg font-medium text-foreground">
                           Comments
                         </h2>
-                        <button
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={<Settings />}
                           onClick={() => setSettingsModalOpen(true)}
-                          className="flex items-center gap-1.5 text-sm text-foreground-muted hover:text-foreground transition-colors"
                         >
-                          <Settings className="w-4 h-4" />
-                          <span>Settings</span>
-                        </button>
+                          Settings
+                        </Button>
                       </div>
                       {selectedVideo && (
                         <div className="mt-3">
@@ -691,13 +692,14 @@ export function DashboardContent() {
                       <h2 className="text-lg font-medium text-foreground">
                         Commenters
                       </h2>
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={<Settings />}
                         onClick={() => setSettingsModalOpen(true)}
-                        className="flex items-center gap-1.5 text-sm text-foreground-muted hover:text-foreground transition-colors"
                       >
-                        <Settings className="w-4 h-4" />
-                        <span>Settings</span>
-                      </button>
+                        Settings
+                      </Button>
                     </div>
                   }
                 />

@@ -343,7 +343,7 @@ export function CommentTable({
             onClick={() => setShowBulkDeleteConfirm(true)}
             disabled={selectedIds.size === 0}
           >
-            Remove
+            Remove{selectedIds.size > 0 && ` (${selectedIds.size})`}
           </DangerButton>
         </div>
       </div>
