@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { translateText, iso639_3to1 } from "./lib/translate";
 import { franc } from "franc-min";
-import { isEmailWhitelisted } from "./constants";
+import { isPremiumWhitelisted } from "./constants";
 import { detectLanguages } from "./lib/detectLanguage";
 
 export const patchLanguage = internalMutation({
@@ -50,7 +50,7 @@ export const translateComment = action({
     const user = await ctx.runQuery(internal.translation.getUserByClerkId, {
       clerkId: args.clerkId,
     });
-    if (!user || !isEmailWhitelisted(user.email ?? "")) {
+    if (!user || !isPremiumWhitelisted(user.email ?? "")) {
       throw new Error("Not authorized");
     }
 

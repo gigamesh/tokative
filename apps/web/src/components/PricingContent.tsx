@@ -38,7 +38,7 @@ const PLANS: PlanConfig[] = [
     key: "free",
     monthlyPrice: 0,
     annualPrice: 0,
-    extraFeatures: ["Bulk reply", "Ignore list filtering", "Comment tracking"],
+    extraFeatures: ["Bulk reply", "Ignore list filtering"],
   },
   {
     name: "Pro",
@@ -46,22 +46,14 @@ const PLANS: PlanConfig[] = [
     monthlyPrice: 19,
     annualPrice: 182,
     highlighted: true,
-    extraFeatures: [
-      "Everything in Free",
-      "Language translation",
-      "Priority support",
-    ],
+    extraFeatures: ["Everything in Free", "Language translation"],
   },
   {
     name: "Premium",
     key: "premium",
     monthlyPrice: 49,
     annualPrice: 470,
-    extraFeatures: [
-      "Everything in Pro",
-      "Highest collection limits",
-      "Priority support",
-    ],
+    extraFeatures: ["Everything in Pro", "Priority support"],
   },
 ];
 

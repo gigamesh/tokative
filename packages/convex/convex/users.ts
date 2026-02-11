@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { isEmailWhitelisted } from "./constants";
+import { isPremiumWhitelisted } from "./constants";
 import {
   getMonthlyLimit,
   getMonthlyReplyLimit,
@@ -50,7 +50,7 @@ export const getAccessStatus = query({
     }
 
     const email = user.email ?? "";
-    const whitelisted = isEmailWhitelisted(email);
+    const whitelisted = isPremiumWhitelisted(email);
     const effectivePlan = getEffectivePlan(user);
 
     const monthlyLimit = getMonthlyLimit(effectivePlan);

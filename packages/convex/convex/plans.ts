@@ -1,4 +1,4 @@
-import { isEmailWhitelisted } from "./constants";
+import { isPremiumWhitelisted } from "./constants";
 
 export type PlanName = "free" | "pro" | "premium";
 
@@ -42,7 +42,7 @@ export function getEffectivePlan(user: {
   email?: string;
   subscriptionPlan?: PlanName;
 }): PlanName {
-  return isEmailWhitelisted(user.email ?? "")
+  return isPremiumWhitelisted(user.email ?? "")
     ? "premium"
     : (user.subscriptionPlan ?? "free");
 }
