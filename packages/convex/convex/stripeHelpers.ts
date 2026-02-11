@@ -1,5 +1,8 @@
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import type { PlanName } from "./plans";
+
+const PLAN_RANK: Record<PlanName, number> = { free: 0, pro: 1, premium: 2 };
 
 export const getUserByClerkId = internalQuery({
   args: { clerkId: v.string() },
@@ -52,6 +55,12 @@ export const updateSubscription = internalMutation({
     currentPeriodEnd: v.number(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    const oldPlan = user?.subscriptionPlan ?? "free";
+    const isUpgrade =
+      args.subscriptionPlan !== oldPlan &&
+      PLAN_RANK[args.subscriptionPlan] > PLAN_RANK[oldPlan];
+
     await ctx.db.patch(args.userId, {
       subscriptionPlan: args.subscriptionPlan,
       subscriptionStatus: args.subscriptionStatus,
@@ -59,6 +68,12 @@ export const updateSubscription = internalMutation({
       subscriptionPriceId: args.subscriptionPriceId,
       subscriptionInterval: args.subscriptionInterval,
       currentPeriodEnd: args.currentPeriodEnd,
+      ...(isUpgrade && {
+        monthlyCommentCount: 0,
+        monthlyCommentResetAt: Date.now(),
+        monthlyReplyCount: 0,
+        monthlyReplyResetAt: Date.now(),
+      }),
     });
   },
 });

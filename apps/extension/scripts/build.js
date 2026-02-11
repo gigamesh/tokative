@@ -63,6 +63,10 @@ async function copyPublicFiles() {
         manifest.host_permissions.push(convexPattern);
       }
 
+      if (process.env.BUILD_ENV === "staging") {
+        manifest.name = "Tokative STAGING";
+      }
+
       // Update content_scripts matches
       manifest.content_scripts = manifest.content_scripts.map((script) => ({
         ...script,

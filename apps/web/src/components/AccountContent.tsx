@@ -1,11 +1,42 @@
 "use client";
 
 import { useAuth } from "@/providers/ConvexProvider";
-import { useQuery } from "convex/react";
 import { api } from "@tokative/convex";
-import { Button } from "./Button";
+import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { Button } from "./Button";
+
+const STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  active: { label: "Active", className: "bg-green-500/20 text-green-400" },
+  past_due: { label: "Payment Issue", className: "bg-yellow-500/20 text-yellow-400" },
+  canceled: { label: "Canceled", className: "bg-red-500/20 text-red-400" },
+};
+
+function UsageBar({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const pct = Math.min(100, Math.round((used / limit) * 100));
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="text-foreground-muted">{label}</span>
+        <span className="text-foreground-secondary">
+          {used.toLocaleString()} / {limit.toLocaleString()}
+        </span>
+      </div>
+      <div className="w-full h-2 bg-surface-secondary rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${
+            pct > 90 ? "bg-red-500" : "bg-accent-cyan-solid"
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="text-xs text-foreground-muted">
+        {pct}% of monthly limit used
+      </p>
+    </div>
+  );
+}
 
 export function AccountContent() {
   const { userId } = useAuth();
@@ -13,7 +44,7 @@ export function AccountContent() {
 
   const accessStatus = useQuery(
     api.users.getAccessStatus,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
 
   const subscription = accessStatus?.subscription;
@@ -41,15 +72,9 @@ export function AccountContent() {
     );
   }
 
-  const usagePct = Math.min(
-    100,
-    Math.round((subscription.monthlyUsed / subscription.monthlyLimit) * 100)
-  );
-
-  const replyUsagePct = Math.min(
-    100,
-    Math.round(((subscription.repliesUsed ?? 0) / (subscription.replyLimit ?? 1)) * 100)
-  );
+  const badge = STATUS_BADGES[subscription.status];
+  const canUpgrade = subscription.plan !== "premium";
+  const showManage = subscription.plan !== "free";
 
   const renewalDate = subscription.currentPeriodEnd
     ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
@@ -70,26 +95,17 @@ export function AccountContent() {
                 <span className="text-foreground font-medium capitalize">
                   {subscription.plan} Plan
                 </span>
-                {subscription.status === "active" && (
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
-                    Active
-                  </span>
-                )}
-                {subscription.status === "past_due" && (
-                  <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">
-                    Payment Issue
-                  </span>
-                )}
-                {subscription.status === "canceled" && (
-                  <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">
-                    Canceled
+                {badge && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${badge.className}`}>
+                    {badge.label}
                   </span>
                 )}
               </div>
 
               {subscription.interval && subscription.plan !== "free" && (
                 <p className="text-sm text-foreground-muted capitalize">
-                  Billed {subscription.interval === "year" ? "annually" : "monthly"}
+                  Billed{" "}
+                  {subscription.interval === "year" ? "annually" : "monthly"}
                 </p>
               )}
             </div>
@@ -99,46 +115,17 @@ export function AccountContent() {
             <h2 className="text-lg font-medium text-foreground mb-4">
               Monthly Usage
             </h2>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-foreground-muted">Comments collected</span>
-                <span className="text-foreground-secondary">
-                  {subscription.monthlyUsed.toLocaleString()} /{" "}
-                  {subscription.monthlyLimit.toLocaleString()}
-                </span>
-              </div>
-              <div className="w-full h-2 bg-surface-secondary rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    usagePct > 90 ? "bg-red-500" : "bg-accent-cyan-solid"
-                  }`}
-                  style={{ width: `${usagePct}%` }}
-                />
-              </div>
-              <p className="text-xs text-foreground-muted">
-                {usagePct}% of monthly limit used
-              </p>
-            </div>
-
-            <div className="space-y-2 mt-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-foreground-muted">Replies sent</span>
-                <span className="text-foreground-secondary">
-                  {(subscription.repliesUsed ?? 0).toLocaleString()} /{" "}
-                  {(subscription.replyLimit ?? 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="w-full h-2 bg-surface-secondary rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    replyUsagePct > 90 ? "bg-red-500" : "bg-accent-cyan-solid"
-                  }`}
-                  style={{ width: `${replyUsagePct}%` }}
-                />
-              </div>
-              <p className="text-xs text-foreground-muted">
-                {replyUsagePct}% of monthly limit used
-              </p>
+            <UsageBar
+              label="Comments collected"
+              used={subscription.monthlyUsed}
+              limit={subscription.monthlyLimit}
+            />
+            <div className="mt-4">
+              <UsageBar
+                label="Replies sent"
+                used={subscription.repliesUsed ?? 0}
+                limit={subscription.replyLimit ?? 0}
+              />
             </div>
           </div>
 
@@ -150,29 +137,20 @@ export function AccountContent() {
           )}
 
           <div className="flex gap-3 pt-2">
-            {(() => {
-              const commentLimitReached = subscription.monthlyUsed >= subscription.monthlyLimit;
-              const replyLimitReached = (subscription.repliesUsed ?? 0) >= (subscription.replyLimit ?? Infinity);
-              const atLimit = commentLimitReached || replyLimitReached;
-
-              if (subscription.plan === "free" || atLimit) {
-                return (
-                  <Link href="/pricing">
-                    <Button variant="primary">Upgrade</Button>
-                  </Link>
-                );
-              }
-
-              return (
-                <Button
-                  variant="outline"
-                  onClick={handleManageSubscription}
-                  disabled={loading}
-                >
-                  {loading ? "Loading..." : "Manage Subscription"}
-                </Button>
-              );
-            })()}
+            {canUpgrade && (
+              <Link href="/pricing">
+                <Button variant="primary">Upgrade Plan</Button>
+              </Link>
+            )}
+            {showManage && (
+              <Button
+                variant="outline"
+                onClick={handleManageSubscription}
+                disabled={loading}
+              >
+                {loading ? "Loading..." : "Manage Subscription"}
+              </Button>
+            )}
           </div>
         </div>
       </main>
