@@ -22,7 +22,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-brand text-white dark:text-black hover:shadow-lg hover:shadow-accent-pink/25 disabled:bg-none disabled:!bg-surface-secondary disabled:text-foreground-muted disabled:shadow-none",
+    "bg-gradient-brand text-white dark:text-black hover:shadow-lg hover:shadow-accent-pink/25 disabled:bg-none disabled:!bg-surface-secondary disabled:!text-foreground-muted disabled:shadow-none",
   secondary:
     "bg-accent-cyan-solid text-white hover:bg-accent-cyan-solid-hover disabled:bg-surface-secondary disabled:text-foreground-muted",
   outline:

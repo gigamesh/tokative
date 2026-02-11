@@ -1,12 +1,7 @@
 "use client";
 
 import { useAuth } from "@/providers/ConvexProvider";
-import {
-  api,
-  PLAN_LIMITS,
-  STRIPE_PRICE_IDS,
-  type PlanName,
-} from "@tokative/convex";
+import { api, PLAN_LIMITS, type PlanName } from "@tokative/convex";
 import { useQuery } from "convex/react";
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -78,11 +73,10 @@ export function PricingContent() {
 
     setLoadingPlan(planKey);
     try {
-      const priceId = STRIPE_PRICE_IDS[planKey][interval];
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ plan: planKey, interval }),
       });
       const data = await res.json();
       if (data.url) {

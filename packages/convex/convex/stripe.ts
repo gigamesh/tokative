@@ -4,14 +4,14 @@ import { v } from "convex/values";
 import Stripe from "stripe";
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
-import { PRICE_ID_TO_PLAN, type PlanName } from "./plans";
+import { getStripePriceIds, priceIdToPlanName, type PlanName } from "./plans";
 
-function getStripe(): Stripe {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!);
+function getStripeKey(): string {
+  return process.env.STRIPE_SECRET_KEY!;
 }
 
-function priceIdToPlan(priceId: string): PlanName {
-  return PRICE_ID_TO_PLAN[priceId] ?? "free";
+function getStripe(): Stripe {
+  return new Stripe(getStripeKey());
 }
 
 /** Maps Stripe subscription status to our local status. */
@@ -33,7 +33,11 @@ function mapStripeStatus(
 }
 
 export const createCheckoutSession = action({
-  args: { clerkId: v.string(), priceId: v.string() },
+  args: {
+    clerkId: v.string(),
+    plan: v.union(v.literal("pro"), v.literal("premium")),
+    interval: v.union(v.literal("month"), v.literal("year")),
+  },
   handler: async (ctx, args): Promise<{ url: string | null }> => {
     const user = await ctx.runQuery(internal.stripeHelpers.getUserByClerkId, {
       clerkId: args.clerkId,
@@ -41,6 +45,7 @@ export const createCheckoutSession = action({
     if (!user) throw new Error("User not found");
 
     const stripe = getStripe();
+    const priceId = getStripePriceIds(getStripeKey())[args.plan][args.interval];
     let customerId = user.stripeCustomerId;
 
     if (!customerId) {
@@ -59,7 +64,7 @@ export const createCheckoutSession = action({
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
-      line_items: [{ price: args.priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${tokativeEndpoint}/dashboard?checkout=success`,
       cancel_url: `${tokativeEndpoint}/pricing`,
       allow_promotion_codes: true,
@@ -119,7 +124,7 @@ export const handleWebhook = action({
         }
 
         const priceId = subscription.items.data[0]?.price?.id ?? "";
-        const plan = priceIdToPlan(priceId);
+        const plan = priceIdToPlanName(priceId);
         const interval = subscription.items.data[0]?.price?.recurring
           ?.interval as "month" | "year" | undefined;
 

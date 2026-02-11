@@ -4,8 +4,8 @@ import {
   hasTranslation,
   getCurrentMonthStart,
   PLAN_LIMITS,
-  PRICE_ID_TO_PLAN,
-  STRIPE_PRICE_IDS,
+  priceIdToPlanName,
+  getStripePriceIds,
 } from "../convex/plans";
 
 describe("plans", () => {
@@ -57,19 +57,41 @@ describe("plans", () => {
     });
   });
 
-  describe("PRICE_ID_TO_PLAN", () => {
-    it("maps all pro price IDs to pro", () => {
-      expect(PRICE_ID_TO_PLAN[STRIPE_PRICE_IDS.pro.month]).toBe("pro");
-      expect(PRICE_ID_TO_PLAN[STRIPE_PRICE_IDS.pro.year]).toBe("pro");
+  describe("priceIdToPlanName", () => {
+    it("maps live pro price IDs to pro", () => {
+      const live = getStripePriceIds("sk_live_test");
+      expect(priceIdToPlanName(live.pro.month)).toBe("pro");
+      expect(priceIdToPlanName(live.pro.year)).toBe("pro");
     });
 
-    it("maps all premium price IDs to premium", () => {
-      expect(PRICE_ID_TO_PLAN[STRIPE_PRICE_IDS.premium.month]).toBe("premium");
-      expect(PRICE_ID_TO_PLAN[STRIPE_PRICE_IDS.premium.year]).toBe("premium");
+    it("maps test pro price IDs to pro", () => {
+      const test = getStripePriceIds("sk_test_test");
+      expect(priceIdToPlanName(test.pro.month)).toBe("pro");
+      expect(priceIdToPlanName(test.pro.year)).toBe("pro");
     });
 
-    it("returns undefined for unknown price ID", () => {
-      expect(PRICE_ID_TO_PLAN["price_unknown"]).toBeUndefined();
+    it("maps live premium price IDs to premium", () => {
+      const live = getStripePriceIds("sk_live_test");
+      expect(priceIdToPlanName(live.premium.month)).toBe("premium");
+      expect(priceIdToPlanName(live.premium.year)).toBe("premium");
+    });
+
+    it("maps test premium price IDs to premium", () => {
+      const test = getStripePriceIds("sk_test_test");
+      expect(priceIdToPlanName(test.premium.month)).toBe("premium");
+      expect(priceIdToPlanName(test.premium.year)).toBe("premium");
+    });
+
+    it("returns free for unknown price ID", () => {
+      expect(priceIdToPlanName("price_unknown")).toBe("free");
+    });
+  });
+
+  describe("getStripePriceIds", () => {
+    it("returns test IDs for sk_test_ keys", () => {
+      const test = getStripePriceIds("sk_test_abc123");
+      const live = getStripePriceIds("sk_live_abc123");
+      expect(test.pro.month).not.toBe(live.pro.month);
     });
   });
 

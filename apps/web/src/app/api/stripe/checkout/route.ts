@@ -11,14 +11,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { priceId } = await request.json();
-  if (!priceId || typeof priceId !== "string") {
-    return NextResponse.json({ error: "Missing priceId" }, { status: 400 });
+  const { plan, interval } = await request.json();
+  if (!plan || !interval) {
+    return NextResponse.json({ error: "Missing plan or interval" }, { status: 400 });
   }
 
   const result = await convex.action(api.stripe.createCheckoutSession, {
     clerkId: userId,
-    priceId,
+    plan,
+    interval,
   });
 
   return NextResponse.json(result);

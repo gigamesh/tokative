@@ -18,24 +18,48 @@ export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
   },
 };
 
-export const STRIPE_PRICE_IDS = {
+type PriceIds = Record<"pro" | "premium", Record<"month" | "year", string>>;
+
+const LIVE_PRICE_IDS: PriceIds = {
   pro: {
-    month: "price_1Sz5wXD44KLV9Meisxwfxx6J",
-    year: "price_1Sz5ymD44KLV9MeiXJ0YVACn",
+    month: "price_1SzkTdD44KLV9Mei8w3ursNW",
+    year: "price_1SzkTdD44KLV9MeiSc1DQoZg",
   },
   premium: {
-    month: "price_1Sz5z5D44KLV9MeiA6ZuEOPP",
-    year: "price_1Sz5zrD44KLV9Mei8z9YV0Yw",
+    month: "price_1SzkVKD44KLV9MeiIwJGFnXh",
+    year: "price_1SzkVLD44KLV9Mei6SEfSAta",
   },
-} as const;
-
-/** Reverse lookup: Stripe price ID → plan name. */
-export const PRICE_ID_TO_PLAN: Record<string, PlanName> = {
-  [STRIPE_PRICE_IDS.pro.month]: "pro",
-  [STRIPE_PRICE_IDS.pro.year]: "pro",
-  [STRIPE_PRICE_IDS.premium.month]: "premium",
-  [STRIPE_PRICE_IDS.premium.year]: "premium",
 };
+
+const TEST_PRICE_IDS: PriceIds = {
+  pro: {
+    month: "price_1SzkCrRXoR21ZKCjjk3t4V90",
+    year: "price_1SzkCrRXoR21ZKCjOqZDnP4N",
+  },
+  premium: {
+    month: "price_1SzkCsRXoR21ZKCjP8jkimMf",
+    year: "price_1SzkCsRXoR21ZKCjcEW1arrL",
+  },
+};
+
+/** Resolves the correct Stripe price ID set based on the secret key. */
+export function getStripePriceIds(stripeSecretKey: string): PriceIds {
+  return stripeSecretKey.startsWith("sk_test_")
+    ? TEST_PRICE_IDS
+    : LIVE_PRICE_IDS;
+}
+
+/** Reverse lookup: Stripe price ID → plan name (covers both live and test). */
+export function priceIdToPlanName(priceId: string): PlanName {
+  for (const ids of [LIVE_PRICE_IDS, TEST_PRICE_IDS]) {
+    for (const [plan, intervals] of Object.entries(ids)) {
+      if (intervals.month === priceId || intervals.year === priceId) {
+        return plan as PlanName;
+      }
+    }
+  }
+  return "free";
+}
 
 /** Resolves a user's effective plan, accounting for email whitelisting. */
 export function getEffectivePlan(user: {
