@@ -33,6 +33,7 @@ interface VideoDataState {
   batchProgress: BatchCommentsProgress | null;
   scrapingState: ScrapingState | null;
   scrapeReport: ScrapeReport | null;
+  isCancelling: boolean;
 }
 
 export function useVideoData() {
@@ -45,9 +46,11 @@ export function useVideoData() {
     batchProgress: null,
     scrapingState: null,
     scrapeReport: null,
+    isCancelling: false,
   });
   const isProcessingRef = useRef(false);
   const currentFetchingVideoId = useRef<string | null>(null);
+  const lastBatchProgressRef = useRef<{ completedVideos: number; totalComments: number } | null>(null);
 
   const videosQuery = useQuery(
     api.videos.list,
@@ -104,6 +107,7 @@ export function useVideoData() {
         return;
       }
 
+      lastBatchProgressRef.current = null;
       setState((prev) => ({
         ...prev,
         batchProgress: {
@@ -133,6 +137,7 @@ export function useVideoData() {
       bridge.on(MessageType.GET_VIDEO_COMMENTS_PROGRESS, (payload) => {
         const progress = payload as GetVideoCommentsProgress;
         setState((prev) => {
+          if (prev.isCancelling) return prev;
           const newProgress = new Map(prev.getCommentsProgress);
           newProgress.set(progress.videoId, progress);
           return { ...prev, getCommentsProgress: newProgress };
@@ -141,7 +146,19 @@ export function useVideoData() {
 
       bridge.on(MessageType.GET_VIDEO_COMMENTS_COMPLETE, (payload) => {
         const { videoId } = payload as { videoId: string };
+        let wasCancelling = false;
         setState((prev) => {
+          if (prev.isCancelling) {
+            wasCancelling = true;
+            return {
+              ...prev,
+              batchProgress: null,
+              getCommentsProgress: new Map(),
+              pendingVideoIds: [],
+              scrapingState: null,
+              isCancelling: false,
+            };
+          }
           const newProgress = new Map(prev.getCommentsProgress);
           newProgress.delete(videoId);
           return {
@@ -150,6 +167,11 @@ export function useVideoData() {
             scrapingState: null,
           };
         });
+        if (wasCancelling) {
+          isProcessingRef.current = false;
+          toast("Collecting cancelled.");
+          return;
+        }
         processNextInQueue();
       }),
 
@@ -195,14 +217,22 @@ export function useVideoData() {
       }),
 
       bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE, (payload) => {
-        const { comments, stats } = payload as {
+        const { comments, stats, cancelled } = payload as {
           comments: Array<{ videoId?: string }>;
           stats?: ScrapeStats;
+          cancelled?: boolean;
         };
+
+        if (cancelled) {
+          setState((prev) => ({ ...prev, isCancelling: true }));
+          return;
+        }
+
         const videoId =
           comments?.[0]?.videoId || currentFetchingVideoId.current;
 
         setState((prev) => {
+          if (prev.isCancelling) return prev;
           const newProgress = new Map(prev.getCommentsProgress);
           if (videoId) {
             newProgress.delete(videoId);
@@ -218,7 +248,12 @@ export function useVideoData() {
 
       bridge.on(MessageType.GET_BATCH_COMMENTS_PROGRESS, (payload) => {
         const progress = payload as BatchCommentsProgress;
+        lastBatchProgressRef.current = {
+          completedVideos: progress.completedVideos,
+          totalComments: progress.totalComments,
+        };
         setState((prev) => {
+          if (prev.isCancelling) return prev;
           const newProgress = new Map(prev.getCommentsProgress);
 
           Array.from(newProgress.entries()).forEach(
@@ -275,25 +310,44 @@ export function useVideoData() {
       }),
 
       bridge.on(MessageType.GET_BATCH_COMMENTS_ERROR, (payload) => {
-        const { error, completedVideos, totalComments } = payload as {
+        const { error, completedVideos, totalComments, stats } = payload as {
           error: string;
           completedVideos?: number;
           totalComments?: number;
+          stats?: ScrapeStats;
         };
-        setState((prev) => ({
-          ...prev,
-          batchProgress: null,
-          getCommentsProgress: new Map(),
-          error,
-          scrapingState: null,
-        }));
-        console.error("Batch scrape failed:", error);
-        if (completedVideos && completedVideos > 0) {
-          toast.error(
-            `Batch failed after ${completedVideos} videos (${totalComments} comments). Check console for details.`
-          );
+        let wasCancelling = false;
+        setState((prev) => {
+          wasCancelling = prev.isCancelling;
+          return {
+            ...prev,
+            batchProgress: null,
+            getCommentsProgress: new Map(),
+            error: wasCancelling ? prev.error : error,
+            scrapingState: null,
+            isCancelling: false,
+          };
+        });
+        isProcessingRef.current = false;
+        if (wasCancelling) {
+          const savedProgress = lastBatchProgressRef.current;
+          lastBatchProgressRef.current = null;
+          if (stats && stats.new > 0) {
+            toast(`Collecting cancelled — ${stats.new} new comments saved across ${completedVideos ?? savedProgress?.completedVideos ?? 0} videos.`);
+          } else if ((completedVideos ?? savedProgress?.completedVideos ?? 0) > 0) {
+            toast(`Collecting cancelled — ${totalComments ?? savedProgress?.totalComments ?? 0} comments processed across ${completedVideos ?? savedProgress?.completedVideos ?? 0} videos.`);
+          } else {
+            toast("Collecting cancelled. No new comments were collected.");
+          }
         } else {
-          toast.error("Failed to collect comments. Check console for details.");
+          console.error("Batch scrape failed:", error);
+          if (completedVideos && completedVideos > 0) {
+            toast.error(
+              `Batch failed after ${completedVideos} videos (${totalComments} comments). Check console for details.`
+            );
+          } else {
+            toast.error("Failed to collect comments. Check console for details.");
+          }
         }
       }),
     ];
@@ -323,13 +377,8 @@ export function useVideoData() {
     bridge.send(MessageType.SCRAPE_VIDEO_COMMENTS_STOP, {});
     setState((prev) => ({
       ...prev,
-      batchProgress: null,
-      getCommentsProgress: new Map(),
-      pendingVideoIds: [],
-      scrapingState: null,
+      isCancelling: true,
     }));
-    isProcessingRef.current = false;
-    toast.info("Collecting cancelled");
   }, []);
 
   const closeScrapeReport = useCallback(() => {
@@ -337,7 +386,7 @@ export function useVideoData() {
   }, []);
 
   const isScraping =
-    state.batchProgress !== null || state.getCommentsProgress.size > 0;
+    state.batchProgress !== null || state.getCommentsProgress.size > 0 || state.isCancelling;
 
   return {
     videos,
@@ -349,6 +398,7 @@ export function useVideoData() {
     scrapingState: state.scrapingState,
     scrapeReport: state.scrapeReport,
     isScraping,
+    isCancelling: state.isCancelling,
     getCommentsForVideos,
     removeVideos,
     cancelScraping,

@@ -39,6 +39,7 @@ interface PostsGridProps {
   onViewPostComments?: (videoId: string) => void;
   onPostSelectionChange?: (videoIds: string[], selected: boolean) => void;
   isScraping?: boolean;
+  isCancelling?: boolean;
   onCancelScraping?: () => void;
   postLimitInput: string;
   onPostLimitChange: (value: string) => void;
@@ -57,6 +58,7 @@ export function PostsGrid({
   onViewPostComments,
   onPostSelectionChange,
   isScraping = false,
+  isCancelling = false,
   onCancelScraping,
   postLimitInput,
   onPostLimitChange,
@@ -170,14 +172,24 @@ export function PostsGrid({
             Remove
           </DangerButton>
           {isScraping ? (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={onCancelScraping}
-              icon={<X />}
-            >
-              Cancel
-            </Button>
+            isCancelling ? (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+              >
+                Cancelling...
+              </Button>
+            ) : (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={onCancelScraping}
+                icon={<X />}
+              >
+                Cancel
+              </Button>
+            )
           ) : (
             <FetchCommentsButton
               onClick={handleGetCommentsSelected}

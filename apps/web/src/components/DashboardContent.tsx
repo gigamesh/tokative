@@ -134,6 +134,7 @@ export function DashboardContent() {
     scrapingState,
     batchProgress,
     isScraping,
+    isCancelling,
     cancelScraping,
     scrapeReport,
     closeScrapeReport,
@@ -521,7 +522,7 @@ export function DashboardContent() {
   return (
     <div className="min-h-content bg-surface">
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {scrapingState?.isPaused && (
+        {scrapingState?.isPaused && !isCancelling && (
           <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
             <PauseCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
             <div>
@@ -535,7 +536,14 @@ export function DashboardContent() {
           </div>
         )}
 
-        {batchProgress && !scrapingState?.isPaused && (
+        {isCancelling && (
+          <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+            <Spinner size="md" />
+            <span className="text-yellow-400 font-medium">Cancelling...</span>
+          </div>
+        )}
+
+        {batchProgress && !scrapingState?.isPaused && !isCancelling && (
           <div className="mb-6 p-4 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
             <Spinner size="md" />
             <div>
@@ -589,6 +597,7 @@ export function DashboardContent() {
                 onRemoveVideos={handleRemoveVideosWithComments}
                 onViewPostComments={handleViewPostComments}
                 isScraping={isScraping}
+                isCancelling={isCancelling}
                 onCancelScraping={handleCancelScraping}
                 postLimitInput={postLimitInput}
                 onPostLimitChange={setPostLimitInput}

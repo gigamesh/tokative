@@ -6,6 +6,7 @@ const OVERLAY_HOST_ID = "tokative-overlay-host";
 let shadowRoot: ShadowRoot | null = null;
 let hostEl: HTMLElement | null = null;
 let autoHideTimer: ReturnType<typeof setTimeout> | null = null;
+let cancelHandler: (() => void) | null = null;
 
 type OverlayMode = "comments" | "profile";
 let currentMode: OverlayMode = "comments";
@@ -136,6 +137,35 @@ function getStyles(): string {
       display: block;
     }
 
+    .cancel-btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 10px;
+      background: transparent;
+      color: ${colors.text.muted};
+      border: 1px solid ${colors.background.hover};
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .cancel-btn:hover {
+      background: ${colors.background.hover};
+      color: ${colors.text.primary};
+      border-color: ${colors.text.muted};
+    }
+
+    .footer-note {
+      margin-top: 12px;
+      font-size: 11px;
+      color: ${colors.text.muted};
+      text-align: center;
+      line-height: 1.4;
+      opacity: 0.7;
+    }
+
     /* State color variants */
     .status-text.paused { color: ${colors.status.warning}; }
     .status-text.error { color: ${colors.status.error}; }
@@ -165,6 +195,8 @@ function getTemplate(): string {
           <div class="rate-limit" id="rate-limit">
             Rate limit detected — waiting before retrying...
           </div>
+          <button class="cancel-btn" id="cancel-btn">Cancel</button>
+          <p class="footer-note" id="footer-note">This tab must remain open while collecting.</p>
         </div>
       </div>
     </div>
@@ -197,9 +229,10 @@ function setStatusIndicator(type: "spinner" | "icon", content?: string, color?: 
 }
 
 /** Creates and attaches the overlay to the page. */
-export function showOverlay(mode: OverlayMode): void {
+export function showOverlay(mode: OverlayMode, onCancel?: () => void): void {
   hideOverlay();
   currentMode = mode;
+  cancelHandler = onCancel ?? null;
 
   hostEl = document.createElement("div");
   hostEl.id = OVERLAY_HOST_ID;
@@ -209,6 +242,11 @@ export function showOverlay(mode: OverlayMode): void {
   const statusText = el("status-text");
   if (statusText) {
     statusText.textContent = mode === "comments" ? "Collecting comments..." : "Collecting videos...";
+  }
+
+  const cancelBtn = el("cancel-btn");
+  if (cancelBtn && cancelHandler) {
+    cancelBtn.addEventListener("click", cancelHandler);
   }
 
   document.documentElement.appendChild(hostEl);
@@ -251,13 +289,13 @@ export function updateOverlayProgress(progress: VideoScrapeProgress | VideoMetad
 }
 
 /** Shows paused state with amber styling. */
-export function updateOverlayPaused(commentsFound: number): void {
+export function updateOverlayPaused(): void {
   if (!shadowRoot) return;
 
   const statusText = el("status-text");
   if (statusText) {
     statusText.className = "status-text paused";
-    statusText.textContent = `Paused — ${commentsFound} comments found`;
+    statusText.textContent = "Paused — switch back to this tab to continue";
   }
 
   setStatusIndicator("icon", "⏸", colors.status.warning);
@@ -297,6 +335,7 @@ export function updateOverlayComplete(stats?: ScrapeStats): void {
   const rateLimit = el("rate-limit");
   if (rateLimit) rateLimit.classList.remove("visible");
 
+  hideActiveControls();
   autoHideTimer = setTimeout(hideOverlay, 3000);
 }
 
@@ -313,12 +352,21 @@ export function updateOverlayError(message: string): void {
 
   setStatusIndicator("icon", "✕", colors.status.error);
 
+  hideActiveControls();
   autoHideTimer = setTimeout(hideOverlay, 5000);
+}
+
+function hideActiveControls(): void {
+  const cancelBtn = el("cancel-btn");
+  if (cancelBtn) cancelBtn.style.display = "none";
+  const footerNote = el("footer-note");
+  if (footerNote) footerNote.style.display = "none";
 }
 
 /** Removes the overlay from the DOM. */
 export function hideOverlay(): void {
   clearAutoHide();
+  cancelHandler = null;
   if (hostEl) {
     hostEl.remove();
     hostEl = null;

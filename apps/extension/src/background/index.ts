@@ -1284,6 +1284,7 @@ async function handleGetBatchComments(
           error: "Batch collecting cancelled",
           completedVideos,
           totalComments,
+          stats: cumulativeStats,
         },
       });
     } else {
@@ -1313,6 +1314,7 @@ async function handleGetBatchComments(
         error: getErrorMessage(error),
         completedVideos,
         totalComments,
+        stats: cumulativeStats,
       },
     });
 

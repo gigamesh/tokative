@@ -88,7 +88,11 @@ function handleMessage(
 
     case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
       const { maxComments } = (message.payload as { maxComments?: number }) || {};
-      showOverlay("comments");
+      showOverlay("comments", () => {
+        cancelVideoScrape();
+        hideOverlay();
+        chrome.runtime.sendMessage({ type: MessageType.SCRAPE_VIDEO_COMMENTS_STOP });
+      });
 
       scrapeVideoComments(maxComments, (progress) => {
         updateOverlayProgress(progress);
@@ -130,7 +134,11 @@ function handleMessage(
     case MessageType.SCRAPE_VIDEOS_START: {
       const { postLimit } = (message.payload as { postLimit?: number }) || {};
       sendResponse({ success: true, started: true });
-      showOverlay("profile");
+      showOverlay("profile", () => {
+        cancelVideoScrape();
+        hideOverlay();
+        chrome.runtime.sendMessage({ type: MessageType.SCRAPE_VIDEOS_STOP });
+      });
 
       scrapeProfileVideoMetadata(postLimit ?? Infinity, (progress) => {
         updateOverlayProgress(progress);
@@ -167,9 +175,8 @@ function handleMessage(
     }
 
     case MessageType.SCRAPE_PAUSE: {
-      const payload = message.payload as { commentsFound?: number } | undefined;
       pauseVideoScrape();
-      updateOverlayPaused(payload?.commentsFound ?? 0);
+      updateOverlayPaused();
       sendResponse({ success: true });
       return true;
     }
@@ -191,7 +198,11 @@ function handlePortMessage(message: ExtensionMessage): void {
     case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
       if (port) {
         const { maxComments } = (message.payload as { maxComments?: number }) || {};
-        showOverlay("comments");
+        showOverlay("comments", () => {
+          cancelVideoScrape();
+          hideOverlay();
+          chrome.runtime.sendMessage({ type: MessageType.SCRAPE_VIDEO_COMMENTS_STOP });
+        });
         scrapeVideoComments(maxComments, (progress) => {
           updateOverlayProgress(progress);
           port?.postMessage({
@@ -229,7 +240,11 @@ function handlePortMessage(message: ExtensionMessage): void {
     case MessageType.SCRAPE_VIDEOS_START: {
       if (port) {
         const { postLimit } = (message.payload as { postLimit?: number }) || {};
-        showOverlay("profile");
+        showOverlay("profile", () => {
+          cancelVideoScrape();
+          hideOverlay();
+          chrome.runtime.sendMessage({ type: MessageType.SCRAPE_VIDEOS_STOP });
+        });
         scrapeProfileVideoMetadata(postLimit ?? Infinity, (progress) => {
           updateOverlayProgress(progress);
           port?.postMessage({
