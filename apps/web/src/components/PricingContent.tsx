@@ -16,11 +16,11 @@ import { Button } from "./Button";
 type Interval = "month" | "year";
 
 function formatLimit(plan: PlanName): string {
-  return `${PLAN_LIMITS[plan].monthlyComments.toLocaleString()} comments/month`;
+  return `Comment collection: ${PLAN_LIMITS[plan].monthlyComments.toLocaleString()}/month`;
 }
 
 function formatReplyLimit(plan: PlanName): string {
-  return `${PLAN_LIMITS[plan].monthlyReplies.toLocaleString()} replies/month`;
+  return `Comment replies: ${PLAN_LIMITS[plan].monthlyReplies.toLocaleString()}/month`;
 }
 
 interface PlanConfig {
