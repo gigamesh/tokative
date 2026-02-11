@@ -72,7 +72,7 @@ export function AccountContent() {
     );
   }
 
-  const badge = STATUS_BADGES[subscription.status];
+  const badge = subscription.status ? STATUS_BADGES[subscription.status] : undefined;
   const canUpgrade = subscription.plan !== "premium";
   const showManage = subscription.plan !== "free";
 
