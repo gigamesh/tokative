@@ -1,8 +1,9 @@
 import { MessageType, ExtensionMessage, ScrapedComment } from "../../types";
 import { guardExtensionContext } from "../../utils/dom";
 import { replyToComment } from "./comment-replier";
-import { showOverlay, updateOverlayProgress, updateOverlayPaused, updateOverlayResumed, updateOverlayComplete, updateOverlayError, hideOverlay } from "./overlay";
+import { showOverlay, updateOverlayProgress, updateOverlayPaused, updateOverlayResumed, updateOverlayComplete, updateOverlayError, updateOverlayLimitReached, hideOverlay } from "./overlay";
 import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape } from "./video-scraper";
+import { CommentLimitError } from "../../utils/storage";
 import { loadConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
 
@@ -105,13 +106,17 @@ function handleMessage(
           updateOverlayComplete(result.stats);
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
-            payload: { comments: result.comments, stats: result.stats },
+            payload: { comments: result.comments, stats: result.stats, limitReached: result.limitReached },
           });
-          sendResponse({ success: true, comments: result.comments, stats: result.stats });
+          sendResponse({ success: true, comments: result.comments, stats: result.stats, limitReached: result.limitReached });
         })
         .catch((error) => {
           logger.error("[TikTok] Scraping error:", error);
-          updateOverlayError(error instanceof Error ? error.message : "Unknown error");
+          if (error instanceof CommentLimitError) {
+            updateOverlayLimitReached(error.monthlyLimit, error.currentCount, error.plan);
+          } else {
+            updateOverlayError(error instanceof Error ? error.message : "Unknown error");
+          }
           chrome.runtime.sendMessage({
             type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
             payload: {
@@ -214,12 +219,16 @@ function handlePortMessage(message: ExtensionMessage): void {
             updateOverlayComplete(result.stats);
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
-              payload: { comments: result.comments, stats: result.stats },
+              payload: { comments: result.comments, stats: result.stats, limitReached: result.limitReached },
             });
           })
           .catch((error) => {
             logger.error("[TikTok] Port: Scraping error:", error);
-            updateOverlayError(error instanceof Error ? error.message : "Unknown error");
+            if (error instanceof CommentLimitError) {
+              updateOverlayLimitReached(error.monthlyLimit, error.currentCount, error.plan);
+            } else {
+              updateOverlayError(error instanceof Error ? error.message : "Unknown error");
+            }
             port?.postMessage({
               type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
               payload: {

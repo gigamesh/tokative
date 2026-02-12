@@ -9,7 +9,10 @@ const entryPoints = [
   { in: "src/background/index.ts", out: "background" },
   { in: "src/content/dashboard-bridge.ts", out: "content/dashboard-bridge" },
   { in: "src/content/tiktok/index.ts", out: "content/tiktok" },
-  { in: "src/content/tiktok/extract-react-props.ts", out: "content/extract-react-props" },
+  {
+    in: "src/content/tiktok/extract-react-props.ts",
+    out: "content/extract-react-props",
+  },
   { in: "src/popup/index.ts", out: "popup" },
   { in: "src/page-script.ts", out: "page-script" },
 ];
@@ -27,8 +30,8 @@ const buildOptions = {
   sourcemap: isWatch ? "inline" : false,
   minify: !isWatch,
   define: {
-    "CONVEX_SITE_URL_PLACEHOLDER": JSON.stringify(env.CONVEX_SITE_URL),
-    "DASHBOARD_URL_PLACEHOLDER": JSON.stringify(env.DASHBOARD_URL),
+    CONVEX_SITE_URL_PLACEHOLDER: JSON.stringify(env.CONVEX_SITE_URL),
+    TOKATIVE_ENDPOINT_PLACEHOLDER: JSON.stringify(env.TOKATIVE_ENDPOINT),
   },
 };
 
@@ -44,12 +47,14 @@ async function copyPublicFiles() {
   for (const file of files) {
     if (file === "manifest.json") {
       // Process manifest.json to inject dashboard URL
-      const manifest = JSON.parse(fs.readFileSync(path.join(publicDir, file), "utf8"));
-      const dashboardPattern = env.DASHBOARD_URL + "/*";
+      const manifest = JSON.parse(
+        fs.readFileSync(path.join(publicDir, file), "utf8"),
+      );
+      const dashboardPattern = env.TOKATIVE_ENDPOINT + "/*";
 
       // Update host_permissions
       manifest.host_permissions = manifest.host_permissions.map((perm) =>
-        perm === "http://localhost:3000/*" ? dashboardPattern : perm
+        perm === "http://localhost:3000/*" ? dashboardPattern : perm,
       );
 
       // Inject Convex host permission
@@ -58,15 +63,22 @@ async function copyPublicFiles() {
         manifest.host_permissions.push(convexPattern);
       }
 
+      if (process.env.BUILD_ENV === "staging") {
+        manifest.name = "Tokative STAGING";
+      }
+
       // Update content_scripts matches
       manifest.content_scripts = manifest.content_scripts.map((script) => ({
         ...script,
         matches: script.matches.map((match) =>
-          match === "http://localhost:3000/*" ? dashboardPattern : match
+          match === "http://localhost:3000/*" ? dashboardPattern : match,
         ),
       }));
 
-      fs.writeFileSync(path.join(distDir, file), JSON.stringify(manifest, null, 2));
+      fs.writeFileSync(
+        path.join(distDir, file),
+        JSON.stringify(manifest, null, 2),
+      );
     } else {
       fs.copyFileSync(path.join(publicDir, file), path.join(distDir, file));
     }

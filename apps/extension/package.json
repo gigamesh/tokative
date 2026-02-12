@@ -1,10 +1,11 @@
 {
   "name": "@tokative/extension",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "scripts": {
     "build": "node scripts/build.js",
     "build:prod": "BUILD_ENV=production node scripts/build.js",
+    "build:staging": "BUILD_ENV=staging node scripts/build.js",
     "dev": "node scripts/dev.js",
     "clean": "rm -rf dist",
     "test": "vitest run",

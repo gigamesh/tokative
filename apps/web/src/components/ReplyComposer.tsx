@@ -18,6 +18,8 @@ interface ReplyComposerProps {
   replyStatusMessage: string | null;
   onStopBulkReply: () => void;
   disabled?: boolean;
+  replyBudget?: number;
+  replyLimitReached?: boolean;
 }
 
 export function ReplyComposer({
@@ -30,6 +32,8 @@ export function ReplyComposer({
   replyStatusMessage,
   onStopBulkReply,
   disabled,
+  replyBudget,
+  replyLimitReached,
 }: ReplyComposerProps) {
   const [messages, setMessages] = useState<string[]>([""]);
   const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(
@@ -108,15 +112,14 @@ export function ReplyComposer({
     messages.length > 1 && selectedCount < messages.length;
 
   const canSend =
-    allMessagesValid &&
-    selectedCount > 0 &&
-    !hasVariationMismatch;
+    allMessagesValid && selectedCount > 0 && !hasVariationMismatch;
 
   const needsMoreVariations =
     (selectedCount > 30 && messages.length < 3) ||
     (selectedCount > 10 && messages.length < 2);
 
-  const showBulkProgress = bulkReplyProgress && bulkReplyProgress.status === "running";
+  const showBulkProgress =
+    bulkReplyProgress && bulkReplyProgress.status === "running";
 
   return (
     <div className="bg-surface-elevated rounded-lg p-4 space-y-3">
@@ -132,8 +135,15 @@ export function ReplyComposer({
       {selectedComments.length > 0 && (
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-foreground-muted">Selected comments</span>
-            <Button variant="ghost" size="sm" onClick={onClearSelection} className="text-xs">
+            <span className="text-xs text-foreground-muted">
+              Selected comments
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClearSelection}
+              className="text-xs"
+            >
               Clear all
             </Button>
           </div>
@@ -157,7 +167,9 @@ export function ReplyComposer({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Spinner size="sm" />
-              <span className="text-xs font-medium text-foreground">Reply Progress</span>
+              <span className="text-xs font-medium text-foreground">
+                Reply Progress
+              </span>
             </div>
             {bulkReplyProgress.total > 1 && (
               <Button
@@ -172,14 +184,21 @@ export function ReplyComposer({
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-foreground-muted">
-              {bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.skipped} / {bulkReplyProgress.total}
+              {bulkReplyProgress.completed +
+                bulkReplyProgress.failed +
+                bulkReplyProgress.skipped}{" "}
+              / {bulkReplyProgress.total}
             </span>
             {bulkReplyProgress.current && (
-              <span className="text-foreground-muted">@{bulkReplyProgress.current}</span>
+              <span className="text-foreground-muted">
+                @{bulkReplyProgress.current}
+              </span>
             )}
           </div>
           {replyStatusMessage && (
-            <p className="text-xs text-foreground-muted">{replyStatusMessage}</p>
+            <p className="text-xs text-foreground-muted">
+              {replyStatusMessage}
+            </p>
           )}
           <div className="w-full bg-surface-secondary rounded-full h-1.5">
             <div
@@ -190,12 +209,18 @@ export function ReplyComposer({
             />
           </div>
           <div className="flex gap-3 text-xs">
-            <span className="text-green-400">{bulkReplyProgress.completed} sent</span>
+            <span className="text-green-400">
+              {bulkReplyProgress.completed} sent
+            </span>
             {bulkReplyProgress.failed > 0 && (
-              <span className="text-red-400">{bulkReplyProgress.failed} failed</span>
+              <span className="text-red-400">
+                {bulkReplyProgress.failed} failed
+              </span>
             )}
             {bulkReplyProgress.skipped > 0 && (
-              <span className="text-yellow-400">{bulkReplyProgress.skipped} skipped</span>
+              <span className="text-yellow-400">
+                {bulkReplyProgress.skipped} skipped
+              </span>
             )}
           </div>
         </div>
@@ -280,6 +305,35 @@ export function ReplyComposer({
       >
         + Add Reply Variation
       </button>
+
+      {replyLimitReached && (
+        <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-red-400">
+            Monthly reply limit reached.{" "}
+            <a href="/pricing" className="underline hover:text-red-300">
+              Upgrade for more replies
+            </a>
+          </p>
+        </div>
+      )}
+
+      {!replyLimitReached &&
+        replyBudget !== undefined &&
+        selectedCount > replyBudget && (
+          <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-yellow-500">
+              Only {replyBudget} {replyBudget === 1 ? "reply" : "replies"}{" "}
+              remaining in your monthly limit. {selectedCount - replyBudget}{" "}
+              comment{selectedCount - replyBudget === 1 ? "" : "s"} will be
+              skipped.{" "}
+              <a href="/pricing" className="underline hover:text-yellow-400">
+                Upgrade
+              </a>
+            </p>
+          </div>
+        )}
 
       <div className="relative group">
         <Button

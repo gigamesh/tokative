@@ -9,6 +9,7 @@ import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
 import { PostsGrid } from "@/components/PostsGrid";
 import { ReplyComposer } from "@/components/ReplyComposer";
+import { LimitReachedModal } from "@/components/LimitReachedModal";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -19,17 +20,19 @@ import { Toast } from "@/components/Toast";
 import { useCommentCounts } from "@/hooks/useCommentCounts";
 import { useCommentData } from "@/hooks/useCommentData";
 import { useCommenterData } from "@/hooks/useCommenterData";
-import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { useIgnoreList } from "@/hooks/useIgnoreList";
 import { useMessaging } from "@/hooks/useMessaging";
 import { useScrollRestore } from "@/hooks/useScrollRestore";
+import { useTokativeEndpoint } from "@/hooks/useTokativeEndpoint";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useVideoData } from "@/hooks/useVideoData";
-import { ScrapedComment } from "@/utils/constants";
 import { useAuth } from "@/providers/ConvexProvider";
+import { ScrapedComment } from "@/utils/constants";
+import { api, BILLING_ENABLED, PLAN_LIMITS } from "@tokative/convex";
 import { useQuery } from "convex/react";
-import { api } from "@tokative/convex";
-import { PauseCircle, Settings, X } from "lucide-react";
+import { AlertTriangle, PauseCircle, Settings, X } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface DeleteModalState {
@@ -58,7 +61,7 @@ export function DashboardContent() {
     setTab,
     setSelectedPost,
     clearPostFilter,
-  } = useDashboardUrl();
+  } = useTokativeEndpoint();
 
   const [commentSort, setCommentSort] = useState<SortOption>("newest");
 
@@ -148,7 +151,6 @@ export function DashboardContent() {
     translateComment: handleTranslateComment,
   } = useTranslation(translationEnabled);
 
-
   const { commentCountsByVideo, totalCount: totalCommentCount } =
     useCommentCounts();
 
@@ -179,7 +181,6 @@ export function DashboardContent() {
 
   const [dismissedError, setDismissedError] = useState<string | null>(null);
 
-
   const [deleteModal, setDeleteModal] = useState<DeleteModalState>({
     isOpen: false,
     commentId: "",
@@ -192,6 +193,9 @@ export function DashboardContent() {
     commentText: "",
   });
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [toast, setToast] = useState({ isVisible: false, message: "" });
   const [missingCommentChoiceModal, setMissingCommentChoiceModal] = useState<{
     isOpen: boolean;
@@ -201,6 +205,11 @@ export function DashboardContent() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const [replyReport, setReplyReport] = useState<{
+    completed: number;
+    failed: number;
+    skipped: number;
+  } | null>(null);
+  const [replyLimitModal, setReplyLimitModal] = useState<{
     completed: number;
     failed: number;
     skipped: number;
@@ -231,14 +240,39 @@ export function DashboardContent() {
   }, [error, dismissedError]);
 
   useEffect(() => {
+    if (BILLING_ENABLED && searchParams.get("checkout") === "success") {
+      showToast("Subscription activated! Your plan is now active.");
+      router.replace("/dashboard", { scroll: false });
+    }
+  }, [searchParams, showToast, router]);
+
+  const maxCommentLimit = !BILLING_ENABLED
+    ? 10_000
+    : (accessStatus?.subscription?.monthlyLimit ??
+      PLAN_LIMITS.free.monthlyComments);
+  const currentPlan = accessStatus?.subscription?.plan ?? "free";
+  const replyLimit =
+    accessStatus?.subscription?.replyLimit ?? PLAN_LIMITS.free.monthlyReplies;
+  const repliesUsed = accessStatus?.subscription?.repliesUsed ?? 0;
+  const replyBudget = Math.max(0, replyLimit - repliesUsed);
+  const replyLimitReached = replyBudget === 0;
+  const commentLimitReached =
+    (accessStatus?.subscription?.monthlyUsed ?? 0) >= (accessStatus?.subscription?.monthlyLimit ?? Infinity);
+
+  useEffect(() => {
     if (bulkReplyProgress?.status === "complete") {
-      setReplyReport({
+      const stats = {
         completed: bulkReplyProgress.completed,
         failed: bulkReplyProgress.failed,
         skipped: bulkReplyProgress.skipped,
-      });
+      };
+      if (replyLimitReached) {
+        setReplyLimitModal(stats);
+      } else {
+        setReplyReport(stats);
+      }
     }
-  }, [bulkReplyProgress]);
+  }, [bulkReplyProgress, replyLimitReached]);
 
   const handlePostLimitBlur = useCallback(() => {
     const parsed = parseInt(postLimitInput);
@@ -246,13 +280,24 @@ export function DashboardContent() {
     setPostLimitInput(String(value));
     savePostLimit(value);
   }, [postLimitInput, savePostLimit]);
+  const [commentLimitError, setCommentLimitError] = useState<string | null>(
+    null,
+  );
 
   const handleCommentLimitBlur = useCallback(() => {
     const parsed = parseInt(commentLimitInput);
-    const value = isNaN(parsed) || parsed < 1 ? 100 : parsed;
+    let value = isNaN(parsed) || parsed < 1 ? maxCommentLimit : parsed;
+    if (value > maxCommentLimit) {
+      value = maxCommentLimit;
+      setCommentLimitError(
+        `Capped at ${maxCommentLimit.toLocaleString()} on your ${currentPlan} plan.`,
+      );
+    } else {
+      setCommentLimitError(null);
+    }
     setCommentLimitInput(String(value));
     saveCommentLimit(value);
-  }, [commentLimitInput, saveCommentLimit]);
+  }, [commentLimitInput, saveCommentLimit, maxCommentLimit, currentPlan]);
 
   const selectedVideo = useMemo(() => {
     if (!selectedPostId) return null;
@@ -450,14 +495,19 @@ export function DashboardContent() {
 
   const executeBulkReply = useCallback(
     (messages: string[], deleteMissing: boolean) => {
-      startBulkReply(selectedCommentsForDisplay, messages, deleteMissing);
+      const capped = selectedCommentsForDisplay.slice(0, replyBudget);
+      startBulkReply(capped, messages, deleteMissing);
     },
-    [selectedCommentsForDisplay, startBulkReply],
+    [selectedCommentsForDisplay, replyBudget, startBulkReply],
   );
 
   const handleBulkReply = useCallback(
     (messages: string[]) => {
       if (selectedCommentIds.size === 0) return;
+      if (replyLimitReached) {
+        showToast("Monthly reply limit reached. Upgrade for more replies.");
+        return;
+      }
       if (deleteMissingComments === null) {
         setMissingCommentChoiceModal({
           isOpen: true,
@@ -467,7 +517,13 @@ export function DashboardContent() {
       }
       executeBulkReply(messages, deleteMissingComments);
     },
-    [selectedCommentIds.size, deleteMissingComments, executeBulkReply],
+    [
+      selectedCommentIds.size,
+      replyLimitReached,
+      deleteMissingComments,
+      executeBulkReply,
+      showToast,
+    ],
   );
 
   const handleMissingCommentChoiceSkip = useCallback(() => {
@@ -571,6 +627,109 @@ export function DashboardContent() {
           </div>
         )}
 
+        {BILLING_ENABLED && accessStatus?.subscription &&
+          (() => {
+            const { monthlyUsed, monthlyLimit, plan } =
+              accessStatus.subscription;
+            const pct = Math.round((monthlyUsed / monthlyLimit) * 100);
+            if (monthlyUsed >= monthlyLimit) {
+              return (
+                <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <span className="text-red-400 font-medium">
+                      Monthly comment limit reached
+                    </span>
+                    <span className="text-red-400/80 ml-2">
+                      ({monthlyUsed.toLocaleString()}/
+                      {monthlyLimit.toLocaleString()})
+                    </span>
+                  </div>
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-red-400 hover:text-red-300 underline flex-shrink-0"
+                  >
+                    Upgrade
+                  </Link>
+                </div>
+              );
+            }
+            if (pct >= 80) {
+              return (
+                <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <span className="text-yellow-400 font-medium">
+                      {pct}% of monthly comment limit used
+                    </span>
+                    <span className="text-yellow-400/80 ml-2">
+                      ({monthlyUsed.toLocaleString()}/
+                      {monthlyLimit.toLocaleString()})
+                    </span>
+                  </div>
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-yellow-400 hover:text-yellow-300 underline flex-shrink-0"
+                  >
+                    Upgrade
+                  </Link>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+        {BILLING_ENABLED && accessStatus?.subscription &&
+          (() => {
+            const { repliesUsed, replyLimit } = accessStatus.subscription;
+            const pct = Math.round((repliesUsed / replyLimit) * 100);
+            if (repliesUsed >= replyLimit) {
+              return (
+                <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <span className="text-red-400 font-medium">
+                      Monthly reply limit reached
+                    </span>
+                    <span className="text-red-400/80 ml-2">
+                      ({repliesUsed.toLocaleString()}/
+                      {replyLimit.toLocaleString()})
+                    </span>
+                  </div>
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-red-400 hover:text-red-300 underline flex-shrink-0"
+                  >
+                    Upgrade
+                  </Link>
+                </div>
+              );
+            }
+            if (pct >= 80) {
+              return (
+                <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <span className="text-yellow-400 font-medium">
+                      {pct}% of monthly reply limit used
+                    </span>
+                    <span className="text-yellow-400/80 ml-2">
+                      ({repliesUsed.toLocaleString()}/
+                      {replyLimit.toLocaleString()})
+                    </span>
+                  </div>
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-yellow-400 hover:text-yellow-300 underline flex-shrink-0"
+                  >
+                    Upgrade
+                  </Link>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
         <div className="sticky top-[60px] z-10 bg-surface py-4 -mx-4 px-4 -mt-1">
           <TabNavigation
             activeTab={activeTab}
@@ -602,6 +761,7 @@ export function DashboardContent() {
                 postLimitInput={postLimitInput}
                 onPostLimitChange={setPostLimitInput}
                 onPostLimitBlur={handlePostLimitBlur}
+                commentLimitReached={commentLimitReached}
               />
             </div>
 
@@ -714,7 +874,6 @@ export function DashboardContent() {
                 />
               </TabContentContainer>
             </div>
-
           </div>
 
           <div
@@ -729,7 +888,9 @@ export function DashboardContent() {
               bulkReplyProgress={bulkReplyProgress}
               replyStatusMessage={replyStatusMessage}
               onStopBulkReply={stopBulkReply}
-              disabled={isReplying}
+              disabled={isReplying || replyLimitReached}
+              replyBudget={replyBudget}
+              replyLimitReached={replyLimitReached}
             />
           </div>
         </div>
@@ -739,6 +900,9 @@ export function DashboardContent() {
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
         commentLimitInput={commentLimitInput}
+        maxCommentLimit={maxCommentLimit}
+        commentLimitError={commentLimitError}
+        plan={currentPlan}
         onCommentLimitChange={setCommentLimitInput}
         onCommentLimitBlur={handleCommentLimitBlur}
         ignoreList={ignoreList}
@@ -775,10 +939,34 @@ export function DashboardContent() {
       />
 
       {scrapeReport && (
-        <ScrapeReportModal
+        BILLING_ENABLED && scrapeReport.limitReached ? (
+          <LimitReachedModal
+            isOpen={true}
+            onClose={closeScrapeReport}
+            type="comments"
+            used={accessStatus?.subscription?.monthlyUsed ?? 0}
+            limit={accessStatus?.subscription?.monthlyLimit ?? 0}
+            plan={currentPlan}
+            scrapeStats={scrapeReport.stats}
+          />
+        ) : (
+          <ScrapeReportModal
+            isOpen={true}
+            onClose={closeScrapeReport}
+            stats={scrapeReport.stats}
+          />
+        )
+      )}
+
+      {BILLING_ENABLED && replyLimitModal && (
+        <LimitReachedModal
           isOpen={true}
-          onClose={closeScrapeReport}
-          stats={scrapeReport.stats}
+          onClose={() => setReplyLimitModal(null)}
+          type="replies"
+          used={repliesUsed}
+          limit={replyLimit}
+          plan={currentPlan}
+          replyStats={replyLimitModal}
         />
       )}
 
@@ -798,7 +986,11 @@ export function DashboardContent() {
         isVisible={replyReport !== null}
         onClose={() => setReplyReport(null)}
         duration={10000}
-        variant={replyReport && replyReport.failed > 0 && replyReport.completed === 0 ? "error" : "success"}
+        variant={
+          replyReport && replyReport.failed > 0 && replyReport.completed === 0
+            ? "error"
+            : "success"
+        }
       >
         {replyReport && (
           <div className="text-sm">
@@ -806,10 +998,14 @@ export function DashboardContent() {
             <span className="text-foreground-muted"> — </span>
             <span className="text-green-400">{replyReport.completed} sent</span>
             {replyReport.failed > 0 && (
-              <span className="text-red-400">, {replyReport.failed} failed</span>
+              <span className="text-red-400">
+                , {replyReport.failed} failed
+              </span>
             )}
             {replyReport.skipped > 0 && (
-              <span className="text-yellow-400">, {replyReport.skipped} skipped</span>
+              <span className="text-yellow-400">
+                , {replyReport.skipped} skipped
+              </span>
             )}
           </div>
         )}

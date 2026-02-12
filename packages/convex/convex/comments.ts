@@ -12,6 +12,7 @@ import {
   CommentInsertData,
 } from "./commentHelpers";
 import { buildSearchResults } from "./searchHelpers";
+import { getMonthlyLimit, getMonthlyReplyLimit, getCurrentMonthStart, getEffectivePlan } from "./plans";
 
 export const list = query({
   args: { clerkId: v.string() },
@@ -261,6 +262,34 @@ export const addBatch = mutation({
       throw new Error("User not found");
     }
 
+    const plan = getEffectivePlan(user);
+    const monthlyLimit = getMonthlyLimit(plan);
+    const monthStart = getCurrentMonthStart();
+
+    let monthlyCount = user.monthlyCommentCount ?? 0;
+    if (!user.monthlyCommentResetAt || user.monthlyCommentResetAt < monthStart) {
+      monthlyCount = 0;
+      await ctx.db.patch(user._id, {
+        monthlyCommentCount: 0,
+        monthlyCommentResetAt: monthStart,
+      });
+    }
+
+    if (monthlyCount >= monthlyLimit) {
+      return {
+        new: 0,
+        preexisting: 0,
+        ignored: 0,
+        missingTiktokUserId: 0,
+        limitReached: true,
+        monthlyLimit,
+        currentCount: monthlyCount,
+        plan,
+      };
+    }
+
+    const remainingMonthlyBudget = monthlyLimit - monthlyCount;
+
     const ignoreTexts = (args.ignoreList ?? []).map((t) => t.toLowerCase());
     let preexisting = 0;
     let ignored = 0;
@@ -316,6 +345,10 @@ export const addBatch = mutation({
         }
       }
 
+      if (commentsToInsert.length >= remainingMonthlyBudget) {
+        break;
+      }
+
       commentsToInsert.push({
         tiktokProfileId: profileResult.profileId,
         data: {
@@ -360,10 +393,30 @@ export const addBatch = mutation({
       });
     }
 
+    if (newCount > 0) {
+      const updatedMonthlyCount = monthlyCount + newCount;
+      await ctx.db.patch(user._id, {
+        monthlyCommentCount: updatedMonthlyCount,
+        monthlyCommentResetAt: user.monthlyCommentResetAt ?? monthStart,
+      });
+    }
+
+    const updatedCount = monthlyCount + newCount;
+    const limitReached = updatedCount >= monthlyLimit;
+
     // TEMP DIAGNOSTIC
     console.log(`[DIAG] addBatch result: new=${newCount}, preexisting=${preexisting}, ignored=${ignored}, missingTiktokUserId=${missingTiktokUserId}`);
 
-    return { new: newCount, preexisting, ignored, missingTiktokUserId };
+    return {
+      new: newCount,
+      preexisting,
+      ignored,
+      missingTiktokUserId,
+      limitReached,
+      monthlyLimit,
+      currentCount: updatedCount,
+      plan,
+    };
   },
 });
 
@@ -400,13 +453,33 @@ export const update = mutation({
       throw new Error("Comment not found");
     }
 
+    let replyLimitReached = false;
+
     if (args.updates.repliedTo === true && !comment.repliedTo) {
+      const plan = getEffectivePlan(user);
+      const replyLimit = getMonthlyReplyLimit(plan);
+      const monthStart = getCurrentMonthStart();
+
+      let monthlyReplyCount = user.monthlyReplyCount ?? 0;
+      if (!user.monthlyReplyResetAt || user.monthlyReplyResetAt < monthStart) {
+        monthlyReplyCount = 0;
+      }
+
+      monthlyReplyCount += 1;
+      replyLimitReached = monthlyReplyCount >= replyLimit;
+
       await ctx.db.patch(user._id, {
         replyCount: (user.replyCount ?? 0) + 1,
+        monthlyReplyCount,
+        monthlyReplyResetAt: user.monthlyReplyResetAt && user.monthlyReplyResetAt >= monthStart
+          ? user.monthlyReplyResetAt
+          : monthStart,
       });
     }
 
     await ctx.db.patch(comment._id, args.updates);
+
+    return { replyLimitReached };
   },
 });
 

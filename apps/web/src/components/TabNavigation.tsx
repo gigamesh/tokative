@@ -1,4 +1,4 @@
-import { DashboardTab } from "@/hooks/useDashboardUrl";
+import { DashboardTab } from "@/hooks/useTokativeEndpoint";
 
 interface TabNavigationProps {
   activeTab: DashboardTab;
@@ -30,7 +30,9 @@ export function TabNavigation({
           }}
         >
           Posts
-          <span className="ml-2 text-xs text-foreground-muted">({postCount.toLocaleString()})</span>
+          <span className="ml-2 text-xs text-foreground-muted">
+            ({postCount.toLocaleString()})
+          </span>
         </button>
         <button
           onClick={() => onTabChange("comments")}
@@ -44,7 +46,9 @@ export function TabNavigation({
           }}
         >
           Comments
-          <span className="ml-2 text-xs text-foreground-muted">({commentCount.toLocaleString()})</span>
+          <span className="ml-2 text-xs text-foreground-muted">
+            ({commentCount.toLocaleString()})
+          </span>
         </button>
         <button
           onClick={() => onTabChange("commenters")}
@@ -58,7 +62,9 @@ export function TabNavigation({
           }}
         >
           Commenters
-          <span className="ml-2 text-xs text-foreground-muted">({commenterCount.toLocaleString()})</span>
+          <span className="ml-2 text-xs text-foreground-muted">
+            ({commenterCount.toLocaleString()})
+          </span>
         </button>
       </div>
       <div className="h-px bg-border" />

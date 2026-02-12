@@ -11,15 +11,20 @@ function loadEnvFile(filePath) {
     if (trimmed && !trimmed.startsWith("#")) {
       const [key, ...valueParts] = trimmed.split("=");
       if (key && valueParts.length > 0) {
-        process.env[key.trim()] = valueParts.join("=").trim();
+        const k = key.trim();
+        if (!(k in process.env)) {
+          process.env[k] = valueParts.join("=").trim();
+        }
       }
     }
   }
 }
 
-// Use .env.production for prod builds, .env for dev builds
-const isProd = process.env.BUILD_ENV === "production";
-const envFile = isProd ? ".env.production" : ".env";
+const envFileMap = {
+  production: ".env.production",
+  staging: ".env.staging",
+};
+const envFile = envFileMap[process.env.BUILD_ENV] || ".env";
 const envPath = path.join(__dirname, "..", envFile);
 
 console.log(`Loading environment from ${envFile}`);
@@ -28,7 +33,9 @@ loadEnvFile(envPath);
 function getRequiredEnv(name) {
   const value = process.env[name];
   if (!value) {
-    throw new Error(`Missing required environment variable: ${name}\nCreate apps/extension/.env with this variable.`);
+    throw new Error(
+      `Missing required environment variable: ${name}\nCreate apps/extension/.env with this variable.`,
+    );
   }
   return value;
 }
@@ -39,5 +46,8 @@ function getEnvWithDefault(name, defaultValue) {
 
 module.exports = {
   CONVEX_SITE_URL: getRequiredEnv("CONVEX_SITE_URL"),
-  DASHBOARD_URL: getEnvWithDefault("DASHBOARD_URL", "http://localhost:3000"),
+  TOKATIVE_ENDPOINT: getEnvWithDefault(
+    "TOKATIVE_ENDPOINT",
+    "http://localhost:3000",
+  ),
 };

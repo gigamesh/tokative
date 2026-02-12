@@ -6,7 +6,7 @@ node_modules/
 dist/
 .next/
 out/
-*.tsbuildinfo
+tsconfig.tsbuildinfo 
 
 # Turbo
 .turbo/
