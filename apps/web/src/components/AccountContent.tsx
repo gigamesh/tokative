@@ -95,7 +95,7 @@ export function AccountContent() {
   const showManage = subscription.plan !== "free";
 
   const renewalDate = subscription.currentPeriodEnd
-    ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
+    ? new Date(subscription.currentPeriodEnd).toLocaleDateString(undefined, { timeZone: "UTC" })
     : null;
 
   return (
