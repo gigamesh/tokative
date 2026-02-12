@@ -98,8 +98,6 @@ export function AccountContent() {
     ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
     : null;
 
-  console.log(JSON.stringify(subscription, null, 2));
-
   return (
     <div className="min-h-content bg-surface">
       <main className="max-w-2xl mx-auto px-6 py-20">
@@ -124,10 +122,28 @@ export function AccountContent() {
                 )}
               </div>
 
-              {subscription.interval && subscription.plan !== "free" && (
-                <p className="text-sm text-foreground-muted capitalize">
-                  Billed{" "}
-                  {subscription.interval === "year" ? "annually" : "monthly"}
+              {subscription.plan !== "free" && (
+                <p className="text-sm text-foreground-secondary">
+                  {subscription.interval && (
+                    <span className="capitalize">
+                      Billed{" "}
+                      {subscription.interval === "year"
+                        ? "annually"
+                        : "monthly"}
+                    </span>
+                  )}
+                  {subscription.interval &&
+                    (subscription.cancelAtPeriodEnd || renewalDate) &&
+                    " · "}
+                  {subscription.cancelAtPeriodEnd ? (
+                    <span className="text-yellow-400">
+                      {renewalDate
+                        ? `Ends on ${renewalDate}`
+                        : "Subscription canceled"}
+                    </span>
+                  ) : (
+                    renewalDate && <span>Renews on {renewalDate}</span>
+                  )}
                 </p>
               )}
             </div>
@@ -150,21 +166,6 @@ export function AccountContent() {
               />
             </div>
           </div>
-
-          {subscription.plan !== "free" &&
-            (subscription.cancelAtPeriodEnd ? (
-              <p className="text-sm text-foreground-muted">
-                {renewalDate
-                  ? `Ends on ${renewalDate}`
-                  : "Subscription canceled"}
-              </p>
-            ) : (
-              renewalDate && (
-                <p className="text-sm text-foreground-muted">
-                  Renews on {renewalDate}
-                </p>
-              )
-            ))}
 
           <div className="flex gap-3 pt-2">
             {canUpgrade && (
