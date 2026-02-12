@@ -7,6 +7,7 @@ import { useHelpModal } from "@/hooks/useHelpModal";
 import { useAuth } from "@/providers/ConvexProvider";
 import { SignOutButton, useUser } from "@clerk/nextjs";
 import { isAdminEmail } from "@/utils/admin";
+import { BILLING_ENABLED } from "@tokative/convex";
 import { HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -47,11 +48,11 @@ export function Header() {
           Tokative
         </Link>
         <div className="flex items-center gap-6">
-          <NavLink href="/pricing">Pricing</NavLink>
+          {BILLING_ENABLED && <NavLink href="/pricing">Pricing</NavLink>}
           {isLoaded && isSignedIn && (
             <NavLink href="/dashboard">Dashboard</NavLink>
           )}
-          {isLoaded && isSignedIn && (
+          {BILLING_ENABLED && isLoaded && isSignedIn && (
             <NavLink href="/account">Account</NavLink>
           )}
           {isLoaded && isSignedIn && isAdmin && (

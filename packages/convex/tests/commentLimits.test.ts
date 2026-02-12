@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from "vitest";
 import { api } from "../convex/_generated/api";
-import { PLAN_LIMITS } from "../convex/plans";
+import { BILLING_ENABLED, PLAN_LIMITS } from "../convex/plans";
 import { createTestContext, createTestUser, makeComment, expect } from "./helpers";
 
 describe("addBatch limit enforcement", () => {
@@ -20,7 +20,7 @@ describe("addBatch limit enforcement", () => {
     });
 
     expect(result.plan).toBe("free");
-    expect(result.monthlyLimit).toBe(500);
+    expect(result.monthlyLimit).toBe(BILLING_ENABLED ? 500 : Number.MAX_SAFE_INTEGER);
     expect(result.currentCount).toBeGreaterThanOrEqual(1);
     expect(result.limitReached).toBe(false);
   });
@@ -55,7 +55,7 @@ describe("addBatch limit enforcement", () => {
     expect(r2.currentCount).toBe(2);
   });
 
-  it("returns limitReached when user is at their monthly limit", async () => {
+  it.skipIf(!BILLING_ENABLED)("returns limitReached when user is at their monthly limit", async () => {
     await t.run(async (ctx) => {
       const user = await ctx.db
         .query("users")
@@ -79,7 +79,7 @@ describe("addBatch limit enforcement", () => {
     expect(result.plan).toBe("free");
   });
 
-  it("caps a batch to the remaining monthly budget", async () => {
+  it.skipIf(!BILLING_ENABLED)("caps a batch to the remaining monthly budget", async () => {
     await t.run(async (ctx) => {
       const user = await ctx.db
         .query("users")
@@ -156,7 +156,7 @@ describe("addBatch limit enforcement", () => {
 
     expect(result.limitReached).toBe(false);
     expect(result.plan).toBe("pro");
-    expect(result.monthlyLimit).toBe(2_500);
+    expect(result.monthlyLimit).toBe(BILLING_ENABLED ? 2_500 : Number.MAX_SAFE_INTEGER);
   });
 
   it("blocks at 500 for free but not for pro", async () => {
@@ -203,10 +203,10 @@ describe("addBatch limit enforcement", () => {
     });
 
     expect(result.plan).toBe("premium");
-    expect(result.monthlyLimit).toBe(premiumLimit);
+    expect(result.monthlyLimit).toBe(BILLING_ENABLED ? premiumLimit : Number.MAX_SAFE_INTEGER);
   });
 
-  it("caps whitelisted user at premium limit, not free limit", async () => {
+  it.skipIf(!BILLING_ENABLED)("caps whitelisted user at premium limit, not free limit", async () => {
     const premiumLimit = PLAN_LIMITS.premium.monthlyComments;
 
     await t.run(async (ctx) => {
@@ -251,6 +251,6 @@ describe("addBatch limit enforcement", () => {
 
     expect(result.plan).not.toBe("free");
     expect(result.plan).toBe("premium");
-    expect(result.monthlyLimit).toBe(PLAN_LIMITS.premium.monthlyComments);
+    expect(result.monthlyLimit).toBe(BILLING_ENABLED ? PLAN_LIMITS.premium.monthlyComments : Number.MAX_SAFE_INTEGER);
   });
 });

@@ -1,4 +1,5 @@
 import { IgnoreListEntry } from "@/utils/constants";
+import { BILLING_ENABLED } from "@tokative/convex";
 import { X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -85,7 +86,7 @@ export function SettingsModal({
           {commentLimitError ? (
             <p className="text-xs text-red-400 mt-1">
               {commentLimitError}
-              {plan !== "premium" && (
+              {BILLING_ENABLED && plan !== "premium" && (
                 <>
                   {" "}
                   <Link

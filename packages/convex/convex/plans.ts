@@ -1,5 +1,7 @@
 import { isPremiumWhitelisted } from "./constants";
 
+export const BILLING_ENABLED = false;
+
 export type PlanName = "free" | "pro" | "premium";
 
 interface PlanLimits {
@@ -9,8 +11,8 @@ interface PlanLimits {
 }
 
 export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
-  free: { monthlyComments: 500, monthlyReplies: 50, translation: false },
-  pro: { monthlyComments: 2_500, monthlyReplies: 500, translation: true },
+  free: { monthlyComments: 500, monthlyReplies: 100, translation: false },
+  pro: { monthlyComments: 3_000, monthlyReplies: 1_000, translation: true },
   premium: {
     monthlyComments: 25_000,
     monthlyReplies: 5_000,
@@ -72,14 +74,17 @@ export function getEffectivePlan(user: {
 }
 
 export function getMonthlyLimit(plan: PlanName): number {
+  if (!BILLING_ENABLED) return Number.MAX_SAFE_INTEGER;
   return PLAN_LIMITS[plan].monthlyComments;
 }
 
 export function getMonthlyReplyLimit(plan: PlanName): number {
+  if (!BILLING_ENABLED) return Number.MAX_SAFE_INTEGER;
   return PLAN_LIMITS[plan].monthlyReplies;
 }
 
 export function hasTranslation(plan: PlanName): boolean {
+  if (!BILLING_ENABLED) return true;
   return PLAN_LIMITS[plan].translation;
 }
 

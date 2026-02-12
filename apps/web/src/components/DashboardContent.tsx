@@ -28,7 +28,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useVideoData } from "@/hooks/useVideoData";
 import { useAuth } from "@/providers/ConvexProvider";
 import { ScrapedComment } from "@/utils/constants";
-import { api, PLAN_LIMITS } from "@tokative/convex";
+import { api, BILLING_ENABLED, PLAN_LIMITS } from "@tokative/convex";
 import { useQuery } from "convex/react";
 import { AlertTriangle, PauseCircle, Settings, X } from "lucide-react";
 import Link from "next/link";
@@ -240,15 +240,16 @@ export function DashboardContent() {
   }, [error, dismissedError]);
 
   useEffect(() => {
-    if (searchParams.get("checkout") === "success") {
+    if (BILLING_ENABLED && searchParams.get("checkout") === "success") {
       showToast("Subscription activated! Your plan is now active.");
       router.replace("/dashboard", { scroll: false });
     }
   }, [searchParams, showToast, router]);
 
-  const maxCommentLimit =
-    accessStatus?.subscription?.monthlyLimit ??
-    PLAN_LIMITS.free.monthlyComments;
+  const maxCommentLimit = !BILLING_ENABLED
+    ? 10_000
+    : (accessStatus?.subscription?.monthlyLimit ??
+      PLAN_LIMITS.free.monthlyComments);
   const currentPlan = accessStatus?.subscription?.plan ?? "free";
   const replyLimit =
     accessStatus?.subscription?.replyLimit ?? PLAN_LIMITS.free.monthlyReplies;
@@ -626,7 +627,7 @@ export function DashboardContent() {
           </div>
         )}
 
-        {accessStatus?.subscription &&
+        {BILLING_ENABLED && accessStatus?.subscription &&
           (() => {
             const { monthlyUsed, monthlyLimit, plan } =
               accessStatus.subscription;
@@ -678,7 +679,7 @@ export function DashboardContent() {
             return null;
           })()}
 
-        {accessStatus?.subscription &&
+        {BILLING_ENABLED && accessStatus?.subscription &&
           (() => {
             const { repliesUsed, replyLimit } = accessStatus.subscription;
             const pct = Math.round((repliesUsed / replyLimit) * 100);
@@ -938,7 +939,7 @@ export function DashboardContent() {
       />
 
       {scrapeReport && (
-        scrapeReport.limitReached ? (
+        BILLING_ENABLED && scrapeReport.limitReached ? (
           <LimitReachedModal
             isOpen={true}
             onClose={closeScrapeReport}
@@ -957,7 +958,7 @@ export function DashboardContent() {
         )
       )}
 
-      {replyLimitModal && (
+      {BILLING_ENABLED && replyLimitModal && (
         <LimitReachedModal
           isOpen={true}
           onClose={() => setReplyLimitModal(null)}

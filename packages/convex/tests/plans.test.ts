@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  BILLING_ENABLED,
   getMonthlyLimit,
   hasTranslation,
   getCurrentMonthStart,
@@ -9,7 +10,7 @@ import {
 } from "../convex/plans";
 
 describe("plans", () => {
-  describe("getMonthlyLimit", () => {
+  describe.skipIf(!BILLING_ENABLED)("getMonthlyLimit", () => {
     it("returns 500 for free", () => {
       expect(getMonthlyLimit("free")).toBe(500);
     });
@@ -24,7 +25,7 @@ describe("plans", () => {
   });
 
   describe("hasTranslation", () => {
-    it("returns false for free", () => {
+    it.skipIf(!BILLING_ENABLED)("returns false for free", () => {
       expect(hasTranslation("free")).toBe(false);
     });
 

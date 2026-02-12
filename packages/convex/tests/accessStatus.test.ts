@@ -1,5 +1,6 @@
 import { describe, it, beforeEach } from "vitest";
 import { api } from "../convex/_generated/api";
+import { BILLING_ENABLED } from "../convex/plans";
 import { createTestContext, expect } from "./helpers";
 
 describe("getAccessStatus", () => {
@@ -24,11 +25,11 @@ describe("getAccessStatus", () => {
 
     expect(result).not.toBeNull();
     expect(result!.subscription.plan).toBe("free");
-    expect(result!.subscription.monthlyLimit).toBe(500);
+    expect(result!.subscription.monthlyLimit).toBe(BILLING_ENABLED ? 500 : Number.MAX_SAFE_INTEGER);
     expect(result!.subscription.monthlyUsed).toBe(0);
-    expect(result!.subscription.replyLimit).toBe(50);
+    expect(result!.subscription.replyLimit).toBe(BILLING_ENABLED ? 50 : Number.MAX_SAFE_INTEGER);
     expect(result!.subscription.repliesUsed).toBe(0);
-    expect(result!.features.translation).toBe(false);
+    expect(result!.features.translation).toBe(BILLING_ENABLED ? false : true);
     expect(result!.isAllowed).toBe(true);
   });
 
@@ -55,8 +56,8 @@ describe("getAccessStatus", () => {
     expect(result!.subscription.plan).toBe("pro");
     expect(result!.subscription.status).toBe("active");
     expect(result!.subscription.interval).toBe("month");
-    expect(result!.subscription.monthlyLimit).toBe(2_500);
-    expect(result!.subscription.replyLimit).toBe(500);
+    expect(result!.subscription.monthlyLimit).toBe(BILLING_ENABLED ? 2_500 : Number.MAX_SAFE_INTEGER);
+    expect(result!.subscription.replyLimit).toBe(BILLING_ENABLED ? 500 : Number.MAX_SAFE_INTEGER);
     expect(result!.features.translation).toBe(true);
   });
 
@@ -80,8 +81,8 @@ describe("getAccessStatus", () => {
     const result = await t.query(api.users.getAccessStatus, { clerkId });
 
     expect(result!.subscription.plan).toBe("premium");
-    expect(result!.subscription.monthlyLimit).toBe(25_000);
-    expect(result!.subscription.replyLimit).toBe(5_000);
+    expect(result!.subscription.monthlyLimit).toBe(BILLING_ENABLED ? 25_000 : Number.MAX_SAFE_INTEGER);
+    expect(result!.subscription.replyLimit).toBe(BILLING_ENABLED ? 5_000 : Number.MAX_SAFE_INTEGER);
     expect(result!.subscription.interval).toBe("year");
     expect(result!.features.translation).toBe(true);
   });
@@ -96,7 +97,7 @@ describe("getAccessStatus", () => {
     const result = await t.query(api.users.getAccessStatus, { clerkId });
 
     expect(result!.subscription.plan).toBe("premium");
-    expect(result!.subscription.monthlyLimit).toBe(25_000);
+    expect(result!.subscription.monthlyLimit).toBe(BILLING_ENABLED ? 25_000 : Number.MAX_SAFE_INTEGER);
     expect(result!.features.translation).toBe(true);
   });
 

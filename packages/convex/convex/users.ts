@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { isPremiumWhitelisted } from "./constants";
 import {
+  BILLING_ENABLED,
   getMonthlyLimit,
   getMonthlyReplyLimit,
   hasTranslation,
@@ -69,6 +70,7 @@ export const getAccessStatus = query({
       isAllowed: true,
       hasCompletedOnboarding: user.hasCompletedOnboarding ?? false,
       email,
+      billingEnabled: BILLING_ENABLED,
       features: { translation: hasTranslation(effectivePlan) },
       subscription: {
         plan: effectivePlan,

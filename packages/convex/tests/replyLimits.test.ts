@@ -1,5 +1,6 @@
 import { describe, it, beforeEach } from "vitest";
 import { api } from "../convex/_generated/api";
+import { BILLING_ENABLED } from "../convex/plans";
 import { createTestContext, createTestUser, makeComment, expect } from "./helpers";
 
 describe("comments.update reply limit tracking", () => {
@@ -61,7 +62,7 @@ describe("comments.update reply limit tracking", () => {
     expect(status!.subscription.repliesUsed).toBe(1);
   });
 
-  it("returns replyLimitReached when at limit", async () => {
+  it.skipIf(!BILLING_ENABLED)("returns replyLimitReached when at limit", async () => {
     await t.run(async (ctx) => {
       const user = await ctx.db
         .query("users")
@@ -133,7 +134,7 @@ describe("comments.update reply limit tracking", () => {
     expect(result.replyLimitReached).toBe(false);
 
     const status = await t.query(api.users.getAccessStatus, { clerkId });
-    expect(status!.subscription.replyLimit).toBe(500);
+    expect(status!.subscription.replyLimit).toBe(BILLING_ENABLED ? 500 : Number.MAX_SAFE_INTEGER);
     expect(status!.subscription.repliesUsed).toBe(50);
   });
 });

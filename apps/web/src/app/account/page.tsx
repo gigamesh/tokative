@@ -1,5 +1,7 @@
 import { AccountContent } from "@/components/AccountContent";
+import { BILLING_ENABLED } from "@tokative/convex";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Account – Tokative",
@@ -7,5 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default function AccountPage() {
+  if (!BILLING_ENABLED) redirect("/dashboard");
   return <AccountContent />;
 }
