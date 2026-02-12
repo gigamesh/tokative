@@ -176,7 +176,7 @@ export function PricingContent() {
                     )}
                   </div>
                   {interval === "year" && plan.annualPrice > 0 && (
-                    <p className="text-xs text-foreground-muted mt-1">
+                    <p className="text-base font-medium text-foreground mt-1">
                       ${plan.annualPrice}/year billed annually
                     </p>
                   )}
