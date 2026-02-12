@@ -48,6 +48,15 @@ export const createCheckoutSession = action({
     const priceId = getStripePriceIds(getStripeKey())[args.plan][args.interval];
     let customerId = user.stripeCustomerId;
 
+    if (customerId) {
+      const existing = await stripe.customers
+        .retrieve(customerId)
+        .catch(() => null);
+      if (!existing || existing.deleted) {
+        customerId = undefined;
+      }
+    }
+
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email ?? undefined,
@@ -137,10 +146,19 @@ export const handleWebhook = action({
           return;
         }
 
-        const priceId = subscription.items.data[0]?.price?.id ?? "";
+        const item = subscription.items.data[0];
+        const priceId = item?.price?.id ?? "";
         const plan = priceIdToPlanName(priceId);
-        const interval = subscription.items.data[0]?.price?.recurring
-          ?.interval as "month" | "year" | undefined;
+        const interval = item?.price?.recurring?.interval as
+          | "month"
+          | "year"
+          | undefined;
+
+        // current_period_end moved from subscription to item level in Stripe API 2025-03-31
+        const periodEnd =
+          ((item as unknown as Record<string, unknown>)?.current_period_end as
+            | number
+            | undefined) ?? subscription.current_period_end;
 
         await ctx.runMutation(internal.stripeHelpers.updateSubscription, {
           userId: user._id,
@@ -149,7 +167,7 @@ export const handleWebhook = action({
           stripeSubscriptionId: subscription.id,
           subscriptionPriceId: priceId,
           subscriptionInterval: interval ?? "month",
-          currentPeriodEnd: subscription.current_period_end * 1000,
+          currentPeriodEnd: periodEnd * 1000,
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
         });
         break;

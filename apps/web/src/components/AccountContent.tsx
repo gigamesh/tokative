@@ -98,6 +98,8 @@ export function AccountContent() {
     ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
     : null;
 
+  console.log(JSON.stringify(subscription, null, 2));
+
   return (
     <div className="min-h-content bg-surface">
       <main className="max-w-2xl mx-auto px-6 py-20">
