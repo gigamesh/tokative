@@ -38,7 +38,7 @@ export function makeComment(overrides: Partial<{
     profileUrl: overrides.profileUrl ?? "https://tiktok.com/@testuser",
     videoId: overrides.videoId,
     parentCommentId: overrides.parentCommentId,
-    isReply: overrides.isReply,
+    isReply: overrides.isReply ?? false,
   };
 }
 

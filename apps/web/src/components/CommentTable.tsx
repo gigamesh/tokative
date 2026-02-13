@@ -177,23 +177,7 @@ export function CommentTable({
         c.parentCommentId && includedParentCommentIds.has(c.parentCommentId),
     );
 
-    const orphanReplies = replies
-      .filter(
-        (c) =>
-          !c.parentCommentId || !includedParentCommentIds.has(c.parentCommentId),
-      )
-      .filter((c) => matchesFilterStatus(c))
-      .sort((a, b) => {
-        const aTime = a.commentTimestamp
-          ? new Date(a.commentTimestamp).getTime()
-          : 0;
-        const bTime = b.commentTimestamp
-          ? new Date(b.commentTimestamp).getTime()
-          : 0;
-        return sort === "newest" ? bTime - aTime : aTime - bTime;
-      });
-
-    return [...sortedTopLevel, ...orphanReplies, ...childReplies];
+    return [...sortedTopLevel, ...childReplies];
   }, [comments, filter, sort, videoIdFilter]);
 
   const displayComments = useMemo((): DisplayComment[] => {
@@ -203,7 +187,6 @@ export function CommentTable({
     );
 
     const repliesMap = new Map<string, ScrapedComment[]>();
-    const orphanReplies: ScrapedComment[] = [];
 
     filteredComments
       .filter((c) => c.isReply)
@@ -211,8 +194,6 @@ export function CommentTable({
         if (reply.parentCommentId && parentIdsInList.has(reply.parentCommentId)) {
           if (!repliesMap.has(reply.parentCommentId)) repliesMap.set(reply.parentCommentId, []);
           repliesMap.get(reply.parentCommentId)!.push(reply);
-        } else {
-          orphanReplies.push(reply);
         }
       });
 
@@ -224,11 +205,9 @@ export function CommentTable({
       );
     });
 
-    const allTopLevel = [...topLevel, ...orphanReplies];
-
     const result: DisplayComment[] = [];
 
-    for (const parent of allTopLevel) {
+    for (const parent of topLevel) {
       const replies = repliesMap.get(parent.commentId!) || [];
 
       result.push({ ...parent, depth: 0, replyCount: replies.length });

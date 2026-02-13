@@ -19,7 +19,7 @@ export interface CommentInsertData {
   commentTimestamp?: string;
   videoId?: string;
   parentCommentId?: string;
-  isReply?: boolean;
+  isReply: boolean;
   replyCount?: number;
   source?: "app" | "scraped";
 }

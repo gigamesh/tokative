@@ -67,7 +67,7 @@ export default defineSchema({
     commentTimestamp: v.optional(v.string()),
     videoId: v.optional(v.string()),
     parentCommentId: v.optional(v.string()),
-    isReply: v.optional(v.boolean()),
+    isReply: v.boolean(),
     replyCount: v.optional(v.number()),
     source: v.optional(v.union(v.literal("app"), v.literal("scraped"))),
     detectedLanguage: v.optional(v.string()),
@@ -83,7 +83,19 @@ export default defineSchema({
       "userId",
       "videoId",
       "commentTimestamp",
-    ]),
+    ])
+    .index("by_user_toplevel_and_timestamp", [
+      "userId",
+      "isReply",
+      "commentTimestamp",
+    ])
+    .index("by_user_video_toplevel_and_timestamp", [
+      "userId",
+      "videoId",
+      "isReply",
+      "commentTimestamp",
+    ])
+    .index("by_user_and_parent", ["userId", "parentCommentId"]),
 
   videos: defineTable({
     userId: v.id("users"),
@@ -110,6 +122,7 @@ export default defineSchema({
     userId: v.id("users"),
     messageDelay: v.number(),
     scrollDelay: v.number(),
+    commentLimit: v.optional(v.number()),
     postLimit: v.optional(v.number()),
     accountHandle: v.optional(v.string()),
     hasCompletedSetup: v.optional(v.boolean()),

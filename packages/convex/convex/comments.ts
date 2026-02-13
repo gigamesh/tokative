@@ -1,18 +1,23 @@
-import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import { detectLanguages } from "./lib/detectLanguage";
-import { getOrCreate as getOrCreateProfile } from "./tiktokProfiles";
+import { mutation, query } from "./_generated/server";
 import {
-  insertCommentsBatch,
+  CommentInsertData,
   deleteComment,
   deleteCommentsBatch,
-  CommentInsertData,
+  insertCommentsBatch,
 } from "./commentHelpers";
+import { detectLanguages } from "./lib/detectLanguage";
+import {
+  getCurrentMonthStart,
+  getEffectivePlan,
+  getMonthlyLimit,
+  getMonthlyReplyLimit,
+} from "./plans";
 import { buildSearchResults } from "./searchHelpers";
-import { getMonthlyLimit, getMonthlyReplyLimit, getCurrentMonthStart, getEffectivePlan } from "./plans";
+import { getOrCreate as getOrCreateProfile } from "./tiktokProfiles";
 
 export const list = query({
   args: { clerkId: v.string() },
@@ -31,12 +36,12 @@ export const list = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    const profileIds = Array.from(new Set(comments.map((c) => c.tiktokProfileId)));
-    const profiles = await Promise.all(
-      profileIds.map((id) => ctx.db.get(id))
+    const profileIds = Array.from(
+      new Set(comments.map((c) => c.tiktokProfileId)),
     );
+    const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
     const profileMap = new Map(
-      profiles.filter(Boolean).map((p) => [p!._id, p!])
+      profiles.filter(Boolean).map((p) => [p!._id, p!]),
     );
 
     return comments.map((c) => {
@@ -50,7 +55,9 @@ export const list = query({
         avatarUrl: profile?.avatarUrl,
         videoUrl: c.videoUrl,
         repliedTo: c.repliedTo,
-        repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
+        repliedAt: c.repliedAt
+          ? new Date(c.repliedAt).toISOString()
+          : undefined,
         replyError: c.replyError,
         replyContent: c.replyContent,
         commentTimestamp: c.commentTimestamp,
@@ -82,7 +89,7 @@ function formatComment(
     commentTimestamp?: string;
     videoId?: string;
     parentCommentId?: string;
-    isReply?: boolean;
+    isReply: boolean;
     replyCount?: number;
     source?: "app" | "scraped";
     detectedLanguage?: string;
@@ -91,7 +98,9 @@ function formatComment(
     _id: Id<"comments">;
     tiktokProfileId: Id<"tiktokProfiles">;
   },
-  profile: { handle: string; profileUrl: string; avatarUrl?: string } | undefined,
+  profile:
+    | { handle: string; profileUrl: string; avatarUrl?: string }
+    | undefined,
 ) {
   return {
     id: c.commentId,
@@ -149,22 +158,24 @@ export const listPaginated = query({
         ? ctx.db
             .query("comments")
             .withIndex("by_user_video_and_timestamp", (q) =>
-              q.eq("userId", user._id).eq("videoId", args.videoId)
+              q.eq("userId", user._id).eq("videoId", args.videoId),
             )
             .order(order)
             .collect()
         : ctx.db
             .query("comments")
-            .withIndex("by_user_and_timestamp", (q) =>
-              q.eq("userId", user._id)
-            )
+            .withIndex("by_user_and_timestamp", (q) => q.eq("userId", user._id))
             .order(order)
             .collect());
 
-      const profileIds = Array.from(new Set(allComments.map((c) => c.tiktokProfileId)));
-      const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
+      const profileIds = Array.from(
+        new Set(allComments.map((c) => c.tiktokProfileId)),
+      );
+      const profiles = await Promise.all(
+        profileIds.map((id) => ctx.db.get(id)),
+      );
       const profileMap = new Map(
-        profiles.filter(Boolean).map((p) => [p!._id, p!])
+        profiles.filter(Boolean).map((p) => [p!._id, p!]),
       );
 
       const { results: matching } = buildSearchResults(
@@ -174,8 +185,12 @@ export const listPaginated = query({
       );
 
       matching.sort((a, b) => {
-        const aTime = a.commentTimestamp ? new Date(a.commentTimestamp).getTime() : a.scrapedAt;
-        const bTime = b.commentTimestamp ? new Date(b.commentTimestamp).getTime() : b.scrapedAt;
+        const aTime = a.commentTimestamp
+          ? new Date(a.commentTimestamp).getTime()
+          : a.scrapedAt;
+        const bTime = b.commentTimestamp
+          ? new Date(b.commentTimestamp).getTime()
+          : b.scrapedAt;
         return order === "desc" ? bTime - aTime : aTime - bTime;
       });
 
@@ -188,38 +203,64 @@ export const listPaginated = query({
       const isDone = nextCursor >= matching.length;
 
       return {
-        page: pageComments.map((c) => formatComment(c, profileMap.get(c.tiktokProfileId) ?? undefined)),
+        page: pageComments.map((c) =>
+          formatComment(c, profileMap.get(c.tiktokProfileId) ?? undefined),
+        ),
         isDone,
         continueCursor: isDone ? "" : String(nextCursor),
       };
     }
 
-    const result = args.videoId
+    const topLevelResult = args.videoId
       ? await ctx.db
           .query("comments")
-          .withIndex("by_user_video_and_timestamp", (q) =>
-            q.eq("userId", user._id).eq("videoId", args.videoId)
+          .withIndex("by_user_video_toplevel_and_timestamp", (q) =>
+            q
+              .eq("userId", user._id)
+              .eq("videoId", args.videoId)
+              .eq("isReply", false),
           )
           .order(order)
           .paginate(args.paginationOpts)
       : await ctx.db
           .query("comments")
-          .withIndex("by_user_and_timestamp", (q) =>
-            q.eq("userId", user._id)
+          .withIndex("by_user_toplevel_and_timestamp", (q) =>
+            q.eq("userId", user._id).eq("isReply", false),
           )
           .order(order)
           .paginate(args.paginationOpts);
 
-    const profileIds = Array.from(new Set(result.page.map((c) => c.tiktokProfileId)));
+    const parentCommentIds = topLevelResult.page
+      .map((c) => c.commentId)
+      .filter(Boolean);
+
+    const replies: typeof topLevelResult.page = [];
+    for (const parentId of parentCommentIds) {
+      const parentReplies = await ctx.db
+        .query("comments")
+        .withIndex("by_user_and_parent", (q) =>
+          q.eq("userId", user._id).eq("parentCommentId", parentId),
+        )
+        .collect();
+      replies.push(...parentReplies);
+    }
+
+    const allComments = [...topLevelResult.page, ...replies];
+
+    const profileIds = Array.from(
+      new Set(allComments.map((c) => c.tiktokProfileId)),
+    );
     const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
     const profileMap = new Map(
-      profiles.filter(Boolean).map((p) => [p!._id, p!])
+      profiles.filter(Boolean).map((p) => [p!._id, p!]),
     );
 
     return {
-      page: result.page.map((c) => formatComment(c, profileMap.get(c.tiktokProfileId) ?? undefined)),
-      isDone: result.isDone,
-      continueCursor: result.continueCursor,
+      page: allComments.map((c) =>
+        formatComment(c, profileMap.get(c.tiktokProfileId) ?? undefined),
+      ),
+      isDone: topLevelResult.isDone,
+      continueCursor: topLevelResult.continueCursor,
     };
   },
 });
@@ -236,7 +277,7 @@ const commentInput = {
   commentTimestamp: v.optional(v.string()),
   videoId: v.optional(v.string()),
   parentCommentId: v.optional(v.string()),
-  isReply: v.optional(v.boolean()),
+  isReply: v.boolean(),
   replyCount: v.optional(v.number()),
   source: v.optional(v.union(v.literal("app"), v.literal("scraped"))),
 };
@@ -248,11 +289,6 @@ export const addBatch = mutation({
     ignoreList: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    // TEMP DIAGNOSTIC
-    const videoIds = Array.from(new Set(args.comments.map(c => c.videoId).filter(Boolean)));
-    console.log(`[DIAG] addBatch called with ${args.comments.length} comments`);
-    console.log(`[DIAG] addBatch: Unique videoIds in batch:`, videoIds);
-
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -267,7 +303,10 @@ export const addBatch = mutation({
     const monthStart = getCurrentMonthStart();
 
     let monthlyCount = user.monthlyCommentCount ?? 0;
-    if (!user.monthlyCommentResetAt || user.monthlyCommentResetAt < monthStart) {
+    if (
+      !user.monthlyCommentResetAt ||
+      user.monthlyCommentResetAt < monthStart
+    ) {
       monthlyCount = 0;
       await ctx.db.patch(user._id, {
         monthlyCommentCount: 0,
@@ -295,9 +334,19 @@ export const addBatch = mutation({
     let ignored = 0;
     let missingTiktokUserId = 0;
 
-    const profileCache = new Map<string, Awaited<ReturnType<typeof getOrCreateProfile>>>();
-    const avatarsToStore: Array<{ profileId: Id<"tiktokProfiles">; tiktokUserId: string; tiktokAvatarUrl: string }> = [];
-    const commentsToInsert: Array<{ tiktokProfileId: Id<"tiktokProfiles">; data: CommentInsertData }> = [];
+    const profileCache = new Map<
+      string,
+      Awaited<ReturnType<typeof getOrCreateProfile>>
+    >();
+    const avatarsToStore: Array<{
+      profileId: Id<"tiktokProfiles">;
+      tiktokUserId: string;
+      tiktokAvatarUrl: string;
+    }> = [];
+    const commentsToInsert: Array<{
+      tiktokProfileId: Id<"tiktokProfiles">;
+      data: CommentInsertData;
+    }> = [];
 
     for (const comment of args.comments) {
       if (!comment.tiktokUserId) {
@@ -307,7 +356,7 @@ export const addBatch = mutation({
 
       if (
         ignoreTexts.some((ignoreText) =>
-          comment.comment.toLowerCase().includes(ignoreText)
+          comment.comment.toLowerCase().includes(ignoreText),
         )
       ) {
         ignored++;
@@ -317,7 +366,7 @@ export const addBatch = mutation({
       const existing = await ctx.db
         .query("comments")
         .withIndex("by_user_and_comment_id", (q) =>
-          q.eq("userId", user._id).eq("commentId", comment.commentId)
+          q.eq("userId", user._id).eq("commentId", comment.commentId),
         )
         .unique();
 
@@ -404,9 +453,6 @@ export const addBatch = mutation({
     const updatedCount = monthlyCount + newCount;
     const limitReached = updatedCount >= monthlyLimit;
 
-    // TEMP DIAGNOSTIC
-    console.log(`[DIAG] addBatch result: new=${newCount}, preexisting=${preexisting}, ignored=${ignored}, missingTiktokUserId=${missingTiktokUserId}`);
-
     return {
       new: newCount,
       preexisting,
@@ -445,7 +491,7 @@ export const update = mutation({
     const comment = await ctx.db
       .query("comments")
       .withIndex("by_user_and_comment_id", (q) =>
-        q.eq("userId", user._id).eq("commentId", args.commentId)
+        q.eq("userId", user._id).eq("commentId", args.commentId),
       )
       .unique();
 
@@ -471,9 +517,10 @@ export const update = mutation({
       await ctx.db.patch(user._id, {
         replyCount: (user.replyCount ?? 0) + 1,
         monthlyReplyCount,
-        monthlyReplyResetAt: user.monthlyReplyResetAt && user.monthlyReplyResetAt >= monthStart
-          ? user.monthlyReplyResetAt
-          : monthStart,
+        monthlyReplyResetAt:
+          user.monthlyReplyResetAt && user.monthlyReplyResetAt >= monthStart
+            ? user.monthlyReplyResetAt
+            : monthStart,
       });
     }
 
@@ -501,7 +548,7 @@ export const remove = mutation({
     const comment = await ctx.db
       .query("comments")
       .withIndex("by_user_and_comment_id", (q) =>
-        q.eq("userId", user._id).eq("commentId", args.commentId)
+        q.eq("userId", user._id).eq("commentId", args.commentId),
       )
       .unique();
 
@@ -532,7 +579,7 @@ export const removeBatch = mutation({
       const comment = await ctx.db
         .query("comments")
         .withIndex("by_user_and_comment_id", (q) =>
-          q.eq("userId", user._id).eq("commentId", commentId)
+          q.eq("userId", user._id).eq("commentId", commentId),
         )
         .unique();
 
@@ -598,7 +645,7 @@ export const findMatchingByText = query({
       .filter(
         (c) =>
           c.commentId !== args.excludeCommentId &&
-          c.comment.trim() === normalizedText
+          c.comment.trim() === normalizedText,
       )
       .map((c) => c.commentId);
   },
@@ -613,12 +660,10 @@ export const migrateReplySentToRepliedTo = mutation({
   handler: async (ctx, args) => {
     const BATCH_SIZE = args.batchSize ?? 100;
 
-    const result = await ctx.db
-      .query("comments")
-      .paginate({
-        numItems: BATCH_SIZE,
-        cursor: args.cursor ?? null,
-      });
+    const result = await ctx.db.query("comments").paginate({
+      numItems: BATCH_SIZE,
+      cursor: args.cursor ?? null,
+    });
 
     let migrated = 0;
     for (const doc of result.page) {
