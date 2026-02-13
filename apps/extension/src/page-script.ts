@@ -15,11 +15,7 @@
  * - reply_comment_total: actual total reply count
  */
 
-import {
-  getAllCommentElements,
-  REPLY_COMMENT_SELECTOR,
-  TOP_LEVEL_COMMENT_SELECTOR,
-} from "./content/tiktok/video-selectors";
+import { getAllCommentElements } from "./content/tiktok/video-selectors";
 
 // TikTok's avatar structure from React fiber
 interface TikTokAvatar {
@@ -102,10 +98,7 @@ interface ElementWithFiber extends Element {
 
 (function () {
   function findCommentElements(): Element[] {
-    const topLevel = document.querySelectorAll(TOP_LEVEL_COMMENT_SELECTOR);
-    const replies = document.querySelectorAll(REPLY_COMMENT_SELECTOR);
-    const all = getAllCommentElements();
-    return all;
+    return getAllCommentElements();
   }
 
   function findCommentInProps(props: ReactFiber["memoizedProps"]): TikTokComment | null {

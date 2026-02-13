@@ -239,7 +239,7 @@ function extractCommentFromDOM(
 ): Partial<RawCommentData> | null {
   // The comment content container has the comment ID as its id attribute
   const contentContainer = commentContainer.querySelector(
-    '[class*="DivCommentContentContainer"]',
+    '[class*="DivContentContainer"], [class*="DivCommentContentContainer"]',
   );
   const commentId = contentContainer?.id || commentContainer.id || "";
 
@@ -566,7 +566,7 @@ async function expandAndSaveReplies(
     // Find all parent comment containers - filter to visible ones only
     // TikTok's virtualized list keeps many recycled DOM elements
     const allParentComments = querySelectorAll(
-      ['[class*="DivCommentObjectWrapper"]'],
+      ['[class*="DivCommentObjectWrapper"]', '[class*="DivCommentItemContainer"]'],
     );
     const parentComments = allParentComments.filter((el) => isVisible(el));
     logger.log(
@@ -587,9 +587,11 @@ async function expandAndSaveReplies(
         await waitWhilePaused();
 
         // Find the expand button within THIS parent comment
-        const button = parentComment.querySelector(
+        const button = (parentComment.querySelector(
           '[class*="DivViewRepliesContainer"]',
-        ) as HTMLElement | null;
+        ) || parentComment.querySelector(
+          '[class*="DivViewMoreRepliesWrapper"]',
+        )) as HTMLElement | null;
         if (!button) break;
 
         // Skip if button isn't visible (recycled element)
@@ -682,11 +684,12 @@ async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
   let waited = 0;
 
   // Get initial reply count in the parent thread
-  const replyContainer = clickedButton
-    .closest('[class*="DivCommentObjectWrapper"]')
+  const replyContainer = (clickedButton
+    .closest('[class*="DivCommentObjectWrapper"]') || clickedButton
+    .closest('[class*="DivCommentItemContainer"]'))
     ?.querySelector('[class*="DivReplyContainer"]');
   const initialReplyCount =
-    replyContainer?.querySelectorAll('[class*="DivCommentItemWrapper"]')
+    replyContainer?.querySelectorAll('[class*="DivCommentItemWrapper"], [class*="DivCommentContentContainer"]')
       .length || 0;
 
   while (waited < maxWaitTime) {
@@ -709,7 +712,7 @@ async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
 
     // Check if new replies appeared
     const currentReplyCount =
-      replyContainer?.querySelectorAll('[class*="DivCommentItemWrapper"]')
+      replyContainer?.querySelectorAll('[class*="DivCommentItemWrapper"], [class*="DivCommentContentContainer"]')
         .length || 0;
     if (currentReplyCount > initialReplyCount) {
       logger.log(
@@ -742,7 +745,7 @@ interface ScrollResult {
  * TikTok uses TUXSkeletonRectangle class for placeholder loading UI.
  */
 function hasSkeletonLoaders(scroller: Element): boolean {
-  return scroller.querySelector(".TUXSkeletonRectangle") !== null;
+  return scroller.querySelector('[class*="DivVirtualItemSkeleton"], .TUXSkeletonRectangle') !== null;
 }
 
 /**

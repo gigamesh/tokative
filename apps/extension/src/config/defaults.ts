@@ -56,16 +56,20 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
     video: {
       topLevelComment: [
         '[class*="DivCommentObjectWrapper"]',
+        '[class*="DivCommentItemContainer"] > [class*="DivCommentContentContainer"]',
       ],
       replyComment: [
         '[class*="DivReplyContainer"] [class*="DivCommentItemWrapper"]',
+        '[class*="DivReplyContainer"] > [class*="DivCommentContentContainer"]',
       ],
       commentCount: [
-        '[class*="DivCommentCountContainer"] span',
         '[data-e2e="comment-count"]',
+        '[data-e2e="browse-comment-count"]',
+        '[class*="DivCommentCountContainer"] span',
       ],
       commentButton: [
         '[data-e2e="comment-icon"]',
+        '[data-e2e="browse-comment-icon"]',
         'button[aria-label*="comment"]',
       ],
       videoGrid: [
@@ -94,11 +98,10 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
       commentItem: [
         '[class*="DivCommentObjectWrapper"]',
         '[class*="DivCommentItemContainer"]',
-        '[class*="DivCommentItemWrapper"]',
       ],
       commentContent: [
+        '[class*="DivContentContainer"]',
         '[class*="DivCommentContentContainer"]',
-        '[class*="DivCommentContent"]',
       ],
       commentUsername: [
         '[data-e2e="comment-username-1"]',
@@ -116,12 +119,14 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
       ],
       viewRepliesButton: [
         '[class*="DivViewRepliesContainer"]',
+        '[class*="DivViewMoreRepliesWrapper"]',
       ],
       replyContainer: [
         '[class*="DivReplyContainer"]',
       ],
       replyItem: [
         '[class*="DivReplyContainer"] [class*="DivCommentItemWrapper"]',
+        '[class*="DivReplyContainer"] [class*="DivCommentContentContainer"]',
       ],
       commentsScroller: [
         '[class*="DivCommentMain"]',
