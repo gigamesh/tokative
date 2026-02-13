@@ -38,6 +38,26 @@ function copyPublicFiles() {
     if (file === "manifest.json") {
       const manifest = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
+      // Apply the same host_permissions and content_scripts transforms as build.js
+      const dashboardPattern = env.TOKATIVE_ENDPOINT + "/*";
+
+      manifest.host_permissions = manifest.host_permissions.map((perm) =>
+        perm === "http://localhost:3000/*" ? dashboardPattern : perm,
+      );
+
+      const convexPattern = env.CONVEX_SITE_URL + "/*";
+      if (!manifest.host_permissions.includes(convexPattern)) {
+        manifest.host_permissions.push(convexPattern);
+      }
+
+      manifest.content_scripts = manifest.content_scripts.map((script) => ({
+        ...script,
+        matches: script.matches.map((match) =>
+          match === "http://localhost:3000/*" ? dashboardPattern : match,
+        ),
+      }));
+
+      // Inject hot-reload script into content scripts
       const tiktokScript = manifest.content_scripts.find(
         (cs) => cs.matches && cs.matches.includes("https://www.tiktok.com/*"),
       );
@@ -47,7 +67,7 @@ function copyPublicFiles() {
       }
 
       const dashboardScript = manifest.content_scripts.find(
-        (cs) => cs.matches && cs.matches.includes("http://localhost:3000/*"),
+        (cs) => cs.matches && cs.matches.includes(dashboardPattern),
       );
 
       if (dashboardScript) {

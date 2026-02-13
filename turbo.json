@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["BUILD_ENV", "TOKATIVE_ENDPOINT"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
