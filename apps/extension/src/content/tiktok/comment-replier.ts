@@ -1,7 +1,8 @@
 import { ScrapedComment, MessageType, ReplyProgress } from "../../types";
 import { humanDelay, humanClick } from "../../utils/dom";
 import { addScrapedComments } from "../../utils/storage";
-import { SELECTORS, querySelector, querySelectorAll, waitForSelector } from "./selectors";
+import { SELECTORS, closestMatch, querySelector, querySelectorAll, waitForSelector } from "./selectors";
+import { VIDEO_SELECTORS } from "./video-selectors";
 import { findRecentlyPostedReplyWithRetry } from "./video-scraper";
 import { getLoadedConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
@@ -37,8 +38,7 @@ export async function replyToComment(
   sendProgress(user.id, "replying", "Comment verified, clicking reply...");
 
   // Get the comment wrapper to find the reply button
-  const commentWrapper = firstComment.closest('[class*="DivCommentObjectWrapper"]')
-    || firstComment.closest('[class*="CommentItem"]')
+  const commentWrapper = closestMatch(VIDEO_SELECTORS.commentItem, firstComment)
     || firstComment.parentElement?.parentElement?.parentElement;
 
   const replyButton = querySelector<HTMLElement>(SELECTORS.commentReplyButton, commentWrapper || firstComment);
@@ -169,8 +169,7 @@ export function verifyComment(commentElement: Element, user: ScrapedComment): Ve
 
   // The commentElement is the inner span[data-e2e="comment-level-1"]
   // We need to go up to the parent wrapper to find the username
-  const commentWrapper = commentElement.closest('[class*="DivCommentObjectWrapper"]')
-    || commentElement.closest('[class*="CommentItem"]')
+  const commentWrapper = closestMatch(VIDEO_SELECTORS.commentItem, commentElement)
     || commentElement.parentElement?.parentElement?.parentElement;
 
   // Find the username link in the wrapper
@@ -183,7 +182,7 @@ export function verifyComment(commentElement: Element, user: ScrapedComment): Ve
 
   // Extract comment text from the wrapper to get full text in visual order
   // TikTok renders @mentions as separate links which can mess up textContent order
-  const commentTextEl = commentWrapper?.querySelector('[class*="CommentText"], [class*="DivComment"] > span, [data-e2e="comment-level-1"]');
+  const commentTextEl = commentWrapper ? querySelector(VIDEO_SELECTORS.commentTextInWrapper, commentWrapper) : null;
   const foundComment = normalizeText((commentTextEl || commentElement).textContent || "");
 
   // Check if handle matches

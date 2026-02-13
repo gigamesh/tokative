@@ -132,6 +132,15 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
         '[class*="DivCommentMain"]',
         '[class*="DivCommentListContainer"]',
       ],
+      skeletonLoader: [
+        '[class*="DivVirtualItemSkeleton"]',
+        '.TUXSkeletonRectangle',
+      ],
+      commentTextInWrapper: [
+        '[class*="CommentText"]',
+        '[class*="DivComment"] > span',
+        '[data-e2e="comment-level-1"]',
+      ],
       videoMetaThumbnail: [
         'meta[property="og:image"]',
         'meta[property="og:image:secure_url"]',

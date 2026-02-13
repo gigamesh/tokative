@@ -1,4 +1,4 @@
-import { SELECTORS, querySelector, querySelectorAll } from "../selectors";
+import { SELECTORS, closestMatch, querySelector, querySelectorAll } from "../selectors";
 
 const ACTIVITY_BUTTON_HTML = `
 <button class="TUXButton TUXButton--default TUXButton--medium TUXButton--secondary" data-e2e="nav-activity" aria-label="Activity" role="listitem">
@@ -132,4 +132,50 @@ describe("TikTok Selectors", () => {
     });
   });
 
+});
+
+describe("closestMatch", () => {
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    container.innerHTML = `
+      <div class="DivCommentObjectWrapper-abc123">
+        <div class="DivContentContainer-xyz">
+          <span id="inner">Hello</span>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it("returns the first matching ancestor", () => {
+    const inner = container.querySelector("#inner")!;
+    const match = closestMatch(
+      ['[class*="DivContentContainer"]', '[class*="DivCommentObjectWrapper"]'],
+      inner,
+    );
+    expect(match).not.toBeNull();
+    expect(match!.className).toContain("DivContentContainer");
+  });
+
+  it("falls back to second selector when first doesn't match", () => {
+    const inner = container.querySelector("#inner")!;
+    const match = closestMatch(
+      ['[class*="NoMatch"]', '[class*="DivCommentObjectWrapper"]'],
+      inner,
+    );
+    expect(match).not.toBeNull();
+    expect(match!.className).toContain("DivCommentObjectWrapper");
+  });
+
+  it("returns null when no selector matches", () => {
+    const inner = container.querySelector("#inner")!;
+    const match = closestMatch(['[class*="Nothing"]', '[class*="Nope"]'], inner);
+    expect(match).toBeNull();
+  });
 });

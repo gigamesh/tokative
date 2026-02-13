@@ -7,7 +7,7 @@ import type {
 } from "../../types";
 import { humanDelay, humanDelayWithJitter, isVisible } from "../../utils/dom";
 import { addScrapedComments, addVideos, CommentLimitError } from "../../utils/storage";
-import { querySelector, querySelectorAll, waitForSelector } from "./selectors";
+import { closestMatch, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { getAllCommentElements, VIDEO_SELECTORS } from "./video-selectors";
 import { getLoadedConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
@@ -238,8 +238,9 @@ function extractCommentFromDOM(
   commentContainer: Element,
 ): Partial<RawCommentData> | null {
   // The comment content container has the comment ID as its id attribute
-  const contentContainer = commentContainer.querySelector(
-    '[class*="DivContentContainer"], [class*="DivCommentContentContainer"]',
+  const contentContainer = querySelector(
+    VIDEO_SELECTORS.commentContent,
+    commentContainer,
   );
   const commentId = contentContainer?.id || commentContainer.id || "";
 
@@ -566,7 +567,7 @@ async function expandAndSaveReplies(
     // Find all parent comment containers - filter to visible ones only
     // TikTok's virtualized list keeps many recycled DOM elements
     const allParentComments = querySelectorAll(
-      ['[class*="DivCommentObjectWrapper"]', '[class*="DivCommentItemContainer"]'],
+      VIDEO_SELECTORS.commentItem,
     );
     const parentComments = allParentComments.filter((el) => isVisible(el));
     logger.log(
@@ -587,11 +588,10 @@ async function expandAndSaveReplies(
         await waitWhilePaused();
 
         // Find the expand button within THIS parent comment
-        const button = (parentComment.querySelector(
-          '[class*="DivViewRepliesContainer"]',
-        ) || parentComment.querySelector(
-          '[class*="DivViewMoreRepliesWrapper"]',
-        )) as HTMLElement | null;
+        const button = querySelector<HTMLElement>(
+          VIDEO_SELECTORS.viewRepliesButton,
+          parentComment,
+        );
         if (!button) break;
 
         // Skip if button isn't visible (recycled element)
@@ -684,13 +684,13 @@ async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
   let waited = 0;
 
   // Get initial reply count in the parent thread
-  const replyContainer = (clickedButton
-    .closest('[class*="DivCommentObjectWrapper"]') || clickedButton
-    .closest('[class*="DivCommentItemContainer"]'))
-    ?.querySelector('[class*="DivReplyContainer"]');
-  const initialReplyCount =
-    replyContainer?.querySelectorAll('[class*="DivCommentItemWrapper"], [class*="DivCommentContentContainer"]')
-      .length || 0;
+  const parentComment = closestMatch(VIDEO_SELECTORS.commentItem, clickedButton);
+  const replyContainer = parentComment
+    ? querySelector(VIDEO_SELECTORS.replyContainer, parentComment)
+    : null;
+  const initialReplyCount = replyContainer
+    ? querySelectorAll(VIDEO_SELECTORS.replyItem, replyContainer).length
+    : 0;
 
   while (waited < maxWaitTime) {
     if (isCancelled) return;
@@ -711,9 +711,9 @@ async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
     }
 
     // Check if new replies appeared
-    const currentReplyCount =
-      replyContainer?.querySelectorAll('[class*="DivCommentItemWrapper"], [class*="DivCommentContentContainer"]')
-        .length || 0;
+    const currentReplyCount = replyContainer
+      ? querySelectorAll(VIDEO_SELECTORS.replyItem, replyContainer).length
+      : 0;
     if (currentReplyCount > initialReplyCount) {
       logger.log(
         `[Tokative] Reply count increased: ${initialReplyCount} -> ${currentReplyCount}`,
@@ -745,7 +745,7 @@ interface ScrollResult {
  * TikTok uses TUXSkeletonRectangle class for placeholder loading UI.
  */
 function hasSkeletonLoaders(scroller: Element): boolean {
-  return scroller.querySelector('[class*="DivVirtualItemSkeleton"], .TUXSkeletonRectangle') !== null;
+  return querySelector(VIDEO_SELECTORS.skeletonLoader, scroller) !== null;
 }
 
 /**

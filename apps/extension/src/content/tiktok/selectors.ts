@@ -26,6 +26,22 @@ export const SELECTORS = {
   get commentPostButton() { return getInboxSelectors().commentPostButton; },
 };
 
+/** Traverses UP the DOM via `.closest()`, trying each selector in order. */
+export function closestMatch<T extends Element>(
+  selectors: string[],
+  element: Element
+): T | null {
+  for (const selector of selectors) {
+    try {
+      const match = element.closest<T>(selector);
+      if (match) return match;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 export function querySelector<T extends Element>(
   selectors: string[],
   parent: Element | Document = document

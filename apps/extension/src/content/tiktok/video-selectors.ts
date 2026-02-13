@@ -47,6 +47,8 @@ export const VIDEO_SELECTORS = {
   get replyContainer() { return getVideoSelectors().replyContainer; },
   get replyItem() { return getVideoSelectors().replyItem; },
   get commentsScroller() { return getVideoSelectors().commentsScroller; },
+  get skeletonLoader() { return getVideoSelectors().skeletonLoader; },
+  get commentTextInWrapper() { return getVideoSelectors().commentTextInWrapper; },
   get videoMetaThumbnail() { return getVideoSelectors().videoMetaThumbnail; },
   get videoMetaUrl() { return getVideoSelectors().videoMetaUrl; },
 };
