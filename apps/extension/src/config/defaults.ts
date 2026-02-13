@@ -192,4 +192,10 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
     enableReplyDetection: true,
     enableRateLimitAutoResume: true,
   },
+
+  messages: {
+    overlayFooter: "Keep this tab active \u2014 TikTok won't load comments in a background tab.",
+    overlayPaused: "Paused \u2014 TikTok pauses in background tabs. Switch back to resume.",
+    backgroundPaused: "Paused \u2014 TikTok pauses in background tabs",
+  },
 };

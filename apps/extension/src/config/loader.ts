@@ -78,6 +78,7 @@ function mergeWithDefaults(remote: Partial<ExtensionConfig>): ExtensionConfig {
     },
     limits: { ...DEFAULT_CONFIG.limits, ...remote.limits },
     features: { ...DEFAULT_CONFIG.features, ...remote.features },
+    messages: { ...DEFAULT_CONFIG.messages, ...remote.messages },
   };
 }
 

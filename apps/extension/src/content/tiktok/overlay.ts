@@ -1,4 +1,5 @@
 import { colors } from "@tokative/shared";
+import { getLoadedConfig } from "../../config/loader";
 import type {
   ScrapeStats,
   VideoMetadataScrapeProgress,
@@ -163,10 +164,11 @@ function getStyles(): string {
 
     .footer-note {
       margin-top: 12px;
-      font-size: 11px;
+      font-size: 13px;
       color: ${colors.text.muted};
       text-align: center;
       line-height: 1.4;
+      text-wrap: balance;
       opacity: 0.7;
     }
 
@@ -200,7 +202,7 @@ function getTemplate(): string {
             Rate limit detected — waiting before retrying...
           </div>
           <button class="cancel-btn" id="cancel-btn">Cancel</button>
-          <p class="footer-note" id="footer-note">This tab must remain open while collecting.</p>
+          <p class="footer-note" id="footer-note">${getLoadedConfig().messages.overlayFooter}</p>
         </div>
       </div>
     </div>
@@ -311,7 +313,7 @@ export function updateOverlayPaused(): void {
   const statusText = el("status-text");
   if (statusText) {
     statusText.className = "status-text paused";
-    statusText.textContent = "Paused — switch back to this tab to continue";
+    statusText.textContent = getLoadedConfig().messages.overlayPaused;
   }
 
   setStatusIndicator("icon", "⏸", colors.status.warning);
