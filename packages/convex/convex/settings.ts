@@ -4,7 +4,6 @@ import { mutation, query } from "./_generated/server";
 const DEFAULT_SETTINGS = {
   messageDelay: 2000,
   scrollDelay: 1000,
-  commentLimit: 100,
   postLimit: 50,
   accountHandle: null as string | null,
   hasCompletedSetup: false,
@@ -36,7 +35,6 @@ export const get = query({
     return {
       messageDelay: settings.messageDelay,
       scrollDelay: settings.scrollDelay,
-      commentLimit: settings.commentLimit ?? DEFAULT_SETTINGS.commentLimit,
       postLimit: settings.postLimit ?? DEFAULT_SETTINGS.postLimit,
       accountHandle: settings.accountHandle ?? DEFAULT_SETTINGS.accountHandle,
       hasCompletedSetup: settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
@@ -52,7 +50,6 @@ export const update = mutation({
     settings: v.object({
       messageDelay: v.optional(v.number()),
       scrollDelay: v.optional(v.number()),
-      commentLimit: v.optional(v.number()),
       postLimit: v.optional(v.number()),
       accountHandle: v.optional(v.string()),
       hasCompletedSetup: v.optional(v.boolean()),
@@ -82,7 +79,6 @@ export const update = mutation({
         userId: user._id,
         messageDelay: args.settings.messageDelay ?? DEFAULT_SETTINGS.messageDelay,
         scrollDelay: args.settings.scrollDelay ?? DEFAULT_SETTINGS.scrollDelay,
-        commentLimit: args.settings.commentLimit ?? DEFAULT_SETTINGS.commentLimit,
         postLimit: args.settings.postLimit ?? DEFAULT_SETTINGS.postLimit,
       });
     }
@@ -118,7 +114,6 @@ export const getForCurrentUser = query({
     return {
       messageDelay: settings.messageDelay,
       scrollDelay: settings.scrollDelay,
-      commentLimit: settings.commentLimit ?? DEFAULT_SETTINGS.commentLimit,
       postLimit: settings.postLimit ?? DEFAULT_SETTINGS.postLimit,
       accountHandle: settings.accountHandle ?? DEFAULT_SETTINGS.accountHandle,
       hasCompletedSetup: settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
@@ -165,7 +160,6 @@ export const markSetupComplete = mutation({
         userId: user._id,
         messageDelay: DEFAULT_SETTINGS.messageDelay,
         scrollDelay: DEFAULT_SETTINGS.scrollDelay,
-        commentLimit: DEFAULT_SETTINGS.commentLimit,
         postLimit: DEFAULT_SETTINGS.postLimit,
         hasCompletedSetup: true,
       });

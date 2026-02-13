@@ -1,5 +1,5 @@
 import { MessageType, CommentScrapingState, RateLimitState } from "../types";
-import { getPostLimit, getCommentLimit, getScrapingState, getVideos, getRateLimitState } from "../utils/storage";
+import { getPostLimit, getScrapingState, getVideos, getRateLimitState } from "../utils/storage";
 import { getAuthToken, clearAuthToken, requestAuthTokenFromWebApp } from "../utils/convex-api";
 
 type AuthState =
@@ -370,36 +370,24 @@ async function init(): Promise<void> {
     }
   } else if (onVideoPage && videoSection) {
     videoSection.style.display = "block";
-    const commentLimitHintEl = document.getElementById("comment-limit-hint");
     const videoNotScrapedHintEl = document.getElementById("video-not-scraped-hint");
 
-    // Check if this video has been scraped
     const videoId = extractVideoId(activeTab?.url);
     const videos = await getVideos();
     const videoScraped = videoId && videos.some((v) => v.videoId === videoId);
 
     if (videoScraped) {
-      const commentLimit = await getCommentLimit();
-      if (commentLimitHintEl) {
-        commentLimitHintEl.style.display = "block";
-        commentLimitHintEl.textContent = `Comment limit: ${commentLimit}`;
-      }
       if (videoNotScrapedHintEl) {
         videoNotScrapedHintEl.style.display = "none";
       }
 
-      // Check for active scraping state for THIS video
       const scrapingState = await getScrapingState();
       if (scrapingState.isActive && scrapingState.videoId === videoId && commentScrapeStatusEl) {
         updateScrapingStatusUI(commentScrapeStatusEl, scrapingState, scrapeCommentsBtn);
       }
     } else {
-      // Video not scraped - disable button and show message
       if (scrapeCommentsBtn) {
         scrapeCommentsBtn.disabled = true;
-      }
-      if (commentLimitHintEl) {
-        commentLimitHintEl.style.display = "none";
       }
       if (videoNotScrapedHintEl) {
         videoNotScrapedHintEl.style.display = "block";
@@ -592,17 +580,14 @@ async function init(): Promise<void> {
       return;
     }
 
-    const commentLimit = await getCommentLimit();
-
     isCommentScraping = true;
     updateScrapeButtonState(scrapeCommentsBtn, true, "Collect Comments");
     commentScrapeStatusEl.className = "scrape-status active";
-    renderSpinnerWithText(commentScrapeStatusEl, `Collecting up to ${commentLimit} comments...`);
+    renderSpinnerWithText(commentScrapeStatusEl, "Collecting comments...");
 
     try {
       const response = await chrome.tabs.sendMessage(currentTab.id, {
         type: MessageType.SCRAPE_VIDEO_COMMENTS_START,
-        payload: { maxComments: commentLimit },
       });
 
       if (!response?.success) {

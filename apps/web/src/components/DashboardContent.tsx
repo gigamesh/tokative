@@ -72,7 +72,6 @@ export function DashboardContent() {
 
   const {
     comments: allComments,
-    commentLimit,
     postLimit,
     hideOwnReplies,
     deleteMissingComments,
@@ -80,7 +79,6 @@ export function DashboardContent() {
     error,
     removeComments,
     updateComment,
-    saveCommentLimit,
     savePostLimit,
     saveHideOwnReplies,
     saveDeleteMissingComments,
@@ -175,9 +173,6 @@ export function DashboardContent() {
     string | null
   >(null);
   const [postLimitInput, setPostLimitInput] = useState(String(postLimit));
-  const [commentLimitInput, setCommentLimitInput] = useState(
-    String(commentLimit),
-  );
 
   const [dismissedError, setDismissedError] = useState<string | null>(null);
 
@@ -230,10 +225,6 @@ export function DashboardContent() {
   }, [postLimit]);
 
   useEffect(() => {
-    setCommentLimitInput(String(commentLimit));
-  }, [commentLimit]);
-
-  useEffect(() => {
     if (error && error !== dismissedError) {
       setDismissedError(null);
     }
@@ -246,10 +237,6 @@ export function DashboardContent() {
     }
   }, [searchParams, showToast, router]);
 
-  const maxCommentLimit = !BILLING_ENABLED
-    ? 10_000
-    : (accessStatus?.subscription?.monthlyLimit ??
-      PLAN_LIMITS.free.monthlyComments);
   const currentPlan = accessStatus?.subscription?.plan ?? "free";
   const replyLimit =
     accessStatus?.subscription?.replyLimit ?? PLAN_LIMITS.free.monthlyReplies;
@@ -280,24 +267,6 @@ export function DashboardContent() {
     setPostLimitInput(String(value));
     savePostLimit(value);
   }, [postLimitInput, savePostLimit]);
-  const [commentLimitError, setCommentLimitError] = useState<string | null>(
-    null,
-  );
-
-  const handleCommentLimitBlur = useCallback(() => {
-    const parsed = parseInt(commentLimitInput);
-    let value = isNaN(parsed) || parsed < 1 ? maxCommentLimit : parsed;
-    if (value > maxCommentLimit) {
-      value = maxCommentLimit;
-      setCommentLimitError(
-        `Capped at ${maxCommentLimit.toLocaleString()} on your ${currentPlan} plan.`,
-      );
-    } else {
-      setCommentLimitError(null);
-    }
-    setCommentLimitInput(String(value));
-    saveCommentLimit(value);
-  }, [commentLimitInput, saveCommentLimit, maxCommentLimit, currentPlan]);
 
   const selectedVideo = useMemo(() => {
     if (!selectedPostId) return null;
@@ -899,12 +868,6 @@ export function DashboardContent() {
       <SettingsModal
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
-        commentLimitInput={commentLimitInput}
-        maxCommentLimit={maxCommentLimit}
-        commentLimitError={commentLimitError}
-        plan={currentPlan}
-        onCommentLimitChange={setCommentLimitInput}
-        onCommentLimitBlur={handleCommentLimitBlur}
         ignoreList={ignoreList}
         onAddToIgnoreList={addToIgnoreList}
         onRemoveFromIgnoreList={removeFromIgnoreList}

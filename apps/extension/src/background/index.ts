@@ -15,7 +15,6 @@ import {
   clearRateLimitState,
   clearScrapingState,
   getAccountHandle,
-  getCommentLimit,
   getIgnoreList,
   getPostLimit,
   getRateLimitState,
@@ -30,7 +29,6 @@ import {
   removeVideo,
   removeVideos,
   saveAccountHandle,
-  saveCommentLimit,
   savePostLimit,
   saveScrapingState,
   updateScrapedComment,
@@ -342,17 +340,6 @@ export async function handleMessage(
     case MessageType.SAVE_ACCOUNT_HANDLE: {
       const { handle } = message.payload as { handle: string };
       await saveAccountHandle(handle);
-      return { success: true };
-    }
-
-    case MessageType.GET_COMMENT_LIMIT: {
-      const limit = await getCommentLimit();
-      return { limit };
-    }
-
-    case MessageType.SAVE_COMMENT_LIMIT: {
-      const { limit } = message.payload as { limit: number };
-      await saveCommentLimit(limit);
       return { success: true };
     }
 
@@ -1102,8 +1089,6 @@ async function handleGetVideoComments(
       },
     });
 
-    const commentLimit = await getCommentLimit();
-
     const responseHandler = async (msg: ExtensionMessage) => {
       if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
         const payload = msg.payload as {
@@ -1157,7 +1142,6 @@ async function handleGetVideoComments(
 
     chrome.tabs.sendMessage(tab.id, {
       type: MessageType.SCRAPE_VIDEO_COMMENTS_START,
-      payload: { maxComments: commentLimit },
     });
   } catch (error) {
     await cleanupScrapingSession();
@@ -1198,10 +1182,8 @@ async function handleGetBatchComments(
   // Cumulative stats across all videos
   const cumulativeStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
 
-  // Get the total comment limit for the entire batch
-  const totalCommentLimit = await getCommentLimit();
   logger.log(
-    `[Background] Starting batch scrape: ${videosToProcess.length} videos, limit: ${totalCommentLimit} comments total`,
+    `[Background] Starting batch scrape: ${videosToProcess.length} videos`,
   );
 
   const sendProgress = (
@@ -1237,12 +1219,8 @@ async function handleGetBatchComments(
 
       const video = videosToProcess[i];
 
-      // Calculate remaining comment budget for this video
-      const remainingBudget = totalCommentLimit - totalComments;
-      if (remainingBudget <= 0) {
-        logger.log(
-          `[Background] Comment limit reached (${totalComments}/${totalCommentLimit}), stopping batch`,
-        );
+      if (batchLimitReached) {
+        logger.log("[Background] Monthly limit reached, stopping batch");
         break;
       }
 
@@ -1282,7 +1260,6 @@ async function handleGetBatchComments(
       const result = await scrapeVideoComments(
         tab!.id!,
         video.videoId,
-        remainingBudget,
         (videoId, message) => {
           sendProgress(videoIndex, videoId, message);
         },
@@ -1335,7 +1312,7 @@ async function handleGetBatchComments(
           totalComments,
           videoIds: videosToProcess.map((v) => v.videoId),
           stats: cumulativeStats,
-          limitReached: batchLimitReached || totalComments >= totalCommentLimit,
+          limitReached: batchLimitReached,
         },
       });
     }
@@ -1376,7 +1353,6 @@ interface VideoScrapeResult {
 async function scrapeVideoComments(
   tabId: number,
   videoId: string,
-  commentLimit: number,
   onProgress: (videoId: string, message: string) => void,
 ): Promise<VideoScrapeResult> {
   return new Promise((resolve, reject) => {
@@ -1421,7 +1397,6 @@ async function scrapeVideoComments(
 
     chrome.tabs.sendMessage(tabId, {
       type: MessageType.SCRAPE_VIDEO_COMMENTS_START,
-      payload: { maxComments: commentLimit },
     });
   });
 }

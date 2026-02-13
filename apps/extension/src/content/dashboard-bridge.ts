@@ -259,8 +259,6 @@ function getResponseType(requestType: MessageType): MessageType {
     [MessageType.GET_SCRAPED_COMMENTS]: MessageType.SCRAPED_COMMENTS_RESPONSE,
     [MessageType.GET_ACCOUNT_HANDLE]: MessageType.GET_ACCOUNT_HANDLE,
     [MessageType.SAVE_ACCOUNT_HANDLE]: MessageType.SAVE_ACCOUNT_HANDLE,
-    [MessageType.GET_COMMENT_LIMIT]: MessageType.GET_COMMENT_LIMIT,
-    [MessageType.SAVE_COMMENT_LIMIT]: MessageType.SAVE_COMMENT_LIMIT,
     [MessageType.GET_POST_LIMIT]: MessageType.GET_POST_LIMIT,
     [MessageType.SAVE_POST_LIMIT]: MessageType.SAVE_POST_LIMIT,
     [MessageType.GET_STORED_VIDEOS]: MessageType.GET_STORED_VIDEOS,

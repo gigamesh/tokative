@@ -19,7 +19,6 @@ describe("settings", () => {
       expect(settings).toEqual({
         messageDelay: 2000,
         scrollDelay: 1000,
-        commentLimit: 100,
         postLimit: 50,
         accountHandle: null,
         hasCompletedSetup: false,
@@ -31,11 +30,11 @@ describe("settings", () => {
     it("returns saved settings", async () => {
       await t.mutation(api.settings.update, {
         clerkId,
-        settings: { commentLimit: 200 },
+        settings: { postLimit: 200 },
       });
 
       const settings = await t.query(api.settings.get, { clerkId });
-      expect(settings.commentLimit).toBe(200);
+      expect(settings.postLimit).toBe(200);
       expect(settings.messageDelay).toBe(2000); // Still default
     });
   });
@@ -75,18 +74,18 @@ describe("settings", () => {
         clerkId,
         settings: {
           messageDelay: 5000,
-          commentLimit: 150,
+          postLimit: 150,
         },
       });
 
       await t.mutation(api.settings.update, {
         clerkId,
-        settings: { commentLimit: 200 },
+        settings: { postLimit: 200 },
       });
 
       const settings = await t.query(api.settings.get, { clerkId });
       expect(settings.messageDelay).toBe(5000);
-      expect(settings.commentLimit).toBe(200);
+      expect(settings.postLimit).toBe(200);
     });
   });
 });

@@ -135,7 +135,6 @@ function createVideo(overrides: Partial<ScrapedVideo> = {}): ScrapedVideo {
 const defaultSettings = {
   messageDelay: 2000,
   scrollDelay: 1000,
-  commentLimit: 100,
   postLimit: 50,
   accountHandle: null as string | null,
 };
@@ -340,45 +339,6 @@ describe("Background Message Handler", () => {
   });
 
   describe("Limit Operations", () => {
-    it("GET_COMMENT_LIMIT returns stored limit", async () => {
-      mockedConvexApi.fetchSettings.mockResolvedValue({
-        ...defaultSettings,
-        commentLimit: 200,
-      });
-
-      const result = await handleMessage(
-        { type: MessageType.GET_COMMENT_LIMIT },
-        mockSender
-      );
-
-      expect(result).toEqual({ limit: 200 });
-    });
-
-    it("GET_COMMENT_LIMIT returns default when not set", async () => {
-      mockedConvexApi.fetchSettings.mockResolvedValue(defaultSettings);
-
-      const result = await handleMessage(
-        { type: MessageType.GET_COMMENT_LIMIT },
-        mockSender
-      );
-
-      expect(result).toEqual({ limit: 100 });
-    });
-
-    it("SAVE_COMMENT_LIMIT saves the limit", async () => {
-      mockedConvexApi.updateSettings.mockResolvedValue(undefined);
-
-      const result = await handleMessage(
-        { type: MessageType.SAVE_COMMENT_LIMIT, payload: { limit: 500 } },
-        mockSender
-      );
-
-      expect(result).toEqual({ success: true });
-      expect(mockedConvexApi.updateSettings).toHaveBeenCalledWith({
-        commentLimit: 500,
-      });
-    });
-
     it("GET_POST_LIMIT returns stored limit", async () => {
       mockedConvexApi.fetchSettings.mockResolvedValue({
         ...defaultSettings,

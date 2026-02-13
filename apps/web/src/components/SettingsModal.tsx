@@ -1,7 +1,5 @@
 import { IgnoreListEntry } from "@/utils/constants";
-import { BILLING_ENABLED } from "@tokative/convex";
 import { X } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { Button } from "./Button";
 import { Modal } from "./Modal";
@@ -9,12 +7,6 @@ import { Modal } from "./Modal";
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  commentLimitInput: string;
-  maxCommentLimit: number;
-  commentLimitError: string | null;
-  plan: string;
-  onCommentLimitChange: (value: string) => void;
-  onCommentLimitBlur: () => void;
   ignoreList: IgnoreListEntry[];
   onAddToIgnoreList: (text: string) => void;
   onRemoveFromIgnoreList: (text: string) => void;
@@ -27,12 +19,6 @@ interface SettingsModalProps {
 export function SettingsModal({
   isOpen,
   onClose,
-  commentLimitInput,
-  maxCommentLimit,
-  commentLimitError,
-  plan,
-  onCommentLimitChange,
-  onCommentLimitBlur,
   ignoreList,
   onAddToIgnoreList,
   onRemoveFromIgnoreList,
@@ -70,41 +56,6 @@ export function SettingsModal({
       </div>
 
       <div className="space-y-5">
-        <div>
-          <label className="block text-sm text-foreground-muted mb-2">
-            Comment Limit
-          </label>
-          <input
-            type="number"
-            value={commentLimitInput}
-            onChange={(e) => onCommentLimitChange(e.target.value)}
-            onBlur={onCommentLimitBlur}
-            min={1}
-            max={maxCommentLimit}
-            className="w-24 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
-          />
-          {commentLimitError ? (
-            <p className="text-xs text-red-400 mt-1">
-              {commentLimitError}
-              {BILLING_ENABLED && plan !== "premium" && (
-                <>
-                  {" "}
-                  <Link
-                    href="/pricing"
-                    className="underline hover:text-red-300"
-                  >
-                    Upgrade for more
-                  </Link>
-                </>
-              )}
-            </p>
-          ) : (
-            <p className="text-xs text-foreground-muted mt-1">
-              Max comments per collection (up to {maxCommentLimit.toLocaleString()})
-            </p>
-          )}
-        </div>
-
         <div className="space-y-3">
           <label className="flex items-center gap-3 cursor-pointer">
             <input

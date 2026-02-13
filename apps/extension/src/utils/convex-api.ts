@@ -28,7 +28,6 @@ export interface ConvexSyncResult {
 export interface ConvexSettings {
   messageDelay: number;
   scrollDelay: number;
-  commentLimit: number;
   postLimit: number;
   accountHandle: string | null;
 }

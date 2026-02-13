@@ -41,8 +41,6 @@ import {
   removeVideos,
   getAccountHandle,
   saveAccountHandle,
-  getCommentLimit,
-  saveCommentLimit,
   getPostLimit,
   savePostLimit,
   getScrapingState,
@@ -307,7 +305,6 @@ describe("Account Handle Storage (Convex-backed)", () => {
       mockedConvexApi.fetchSettings.mockResolvedValue({
         messageDelay: 2000,
         scrollDelay: 1000,
-        commentLimit: 100,
         postLimit: 50,
         accountHandle: "myhandle",
       });
@@ -322,7 +319,6 @@ describe("Account Handle Storage (Convex-backed)", () => {
       mockedConvexApi.fetchSettings.mockResolvedValue({
         messageDelay: 2000,
         scrollDelay: 1000,
-        commentLimit: 100,
         postLimit: 50,
         accountHandle: null,
       });
@@ -361,41 +357,11 @@ describe("Limit Storage (Convex-backed)", () => {
     vi.clearAllMocks();
   });
 
-  describe("getCommentLimit", () => {
-    it("fetches comment limit from Convex settings", async () => {
-      mockedConvexApi.fetchSettings.mockResolvedValue({
-        messageDelay: 2000,
-        scrollDelay: 1000,
-        commentLimit: 200,
-        postLimit: 50,
-        accountHandle: null,
-      });
-
-      const limit = await getCommentLimit();
-
-      expect(mockedConvexApi.fetchSettings).toHaveBeenCalled();
-      expect(limit).toBe(200);
-    });
-  });
-
-  describe("saveCommentLimit", () => {
-    it("saves comment limit to Convex settings", async () => {
-      mockedConvexApi.updateSettings.mockResolvedValue(undefined);
-
-      await saveCommentLimit(300);
-
-      expect(mockedConvexApi.updateSettings).toHaveBeenCalledWith({
-        commentLimit: 300,
-      });
-    });
-  });
-
   describe("getPostLimit", () => {
     it("fetches post limit from Convex settings", async () => {
       mockedConvexApi.fetchSettings.mockResolvedValue({
         messageDelay: 2000,
         scrollDelay: 1000,
-        commentLimit: 100,
         postLimit: 75,
         accountHandle: null,
       });

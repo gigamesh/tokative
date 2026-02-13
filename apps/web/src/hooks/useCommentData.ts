@@ -9,7 +9,6 @@ import { MessageType, ScrapedComment } from "@/utils/constants";
 import { useDebounce } from "./useDebounce";
 
 interface CommentDataState {
-  commentLimit: number;
   postLimit: number;
   hideOwnReplies: boolean;
   deleteMissingComments: boolean | null;
@@ -32,7 +31,6 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, DEBOUNCE_MS);
   const [state, setState] = useState<CommentDataState>({
-    commentLimit: 100,
     postLimit: 50,
     hideOwnReplies: false,
     deleteMissingComments: null,
@@ -74,7 +72,6 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     if (settings) {
       setState((prev) => ({
         ...prev,
-        commentLimit: settings.commentLimit ?? 100,
         postLimit: settings.postLimit ?? 50,
         hideOwnReplies: settings.hideOwnReplies ?? false,
         deleteMissingComments: settings.deleteMissingComments ?? null,
@@ -125,23 +122,6 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     const newOptimistic = optimisticComments.filter((c) => !convexIds.has(c.id));
     return [...newOptimistic, ...convexComments];
   }, [paginatedComments, optimisticComments]);
-
-  const saveCommentLimit = useCallback(
-    async (limit: number) => {
-      if (!userId) return;
-
-      setState((prev) => ({ ...prev, commentLimit: limit }));
-      await updateSettingsMutation({
-        clerkId: userId,
-        settings: { commentLimit: limit },
-      });
-
-      if (bridge) {
-        bridge.send(MessageType.SAVE_COMMENT_LIMIT, { limit });
-      }
-    },
-    [userId, updateSettingsMutation]
-  );
 
   const savePostLimit = useCallback(
     async (limit: number) => {
@@ -277,7 +257,6 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
 
   return {
     comments,
-    commentLimit: state.commentLimit,
     postLimit: state.postLimit,
     hideOwnReplies: state.hideOwnReplies,
     deleteMissingComments: state.deleteMissingComments,
@@ -286,7 +265,6 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     removeComment,
     removeComments,
     updateComment,
-    saveCommentLimit,
     savePostLimit,
     saveHideOwnReplies,
     saveDeleteMissingComments,

@@ -120,15 +120,6 @@ export async function removeFromIgnoreList(text: string): Promise<void> {
   await convexApi.removeFromIgnoreListRemote(text);
 }
 
-export async function getCommentLimit(): Promise<number> {
-  const settings = await convexApi.fetchSettings();
-  return settings.commentLimit;
-}
-
-export async function saveCommentLimit(limit: number): Promise<void> {
-  await convexApi.updateSettings({ commentLimit: limit });
-}
-
 export async function getPostLimit(): Promise<number> {
   const settings = await convexApi.fetchSettings();
   return settings.postLimit;
