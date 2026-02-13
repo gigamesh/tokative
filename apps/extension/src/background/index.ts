@@ -209,7 +209,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     await updateAndBroadcastScrapingState({
       isPaused: true,
       status: "paused",
-      message: getLoadedConfig().messages?.backgroundPaused ?? "Paused \u2014 TikTok pauses in background tabs",
+      message: getLoadedConfig().messages.backgroundPaused,
     });
   } else {
     chrome.tabs.sendMessage(scrapingTabId, { type: MessageType.SCRAPE_RESUME });

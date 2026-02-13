@@ -201,7 +201,7 @@ function getTemplate(): string {
             Rate limit detected — waiting before retrying...
           </div>
           <button class="cancel-btn" id="cancel-btn">Cancel</button>
-          <p class="footer-note" id="footer-note">${getLoadedConfig().messages?.overlayFooter ?? "Keep this tab active \u2014 TikTok won't load comments in a background tab."}</p>
+          <p class="footer-note" id="footer-note">${getLoadedConfig().messages.overlayFooter}</p>
         </div>
       </div>
     </div>
@@ -312,7 +312,7 @@ export function updateOverlayPaused(): void {
   const statusText = el("status-text");
   if (statusText) {
     statusText.className = "status-text paused";
-    statusText.textContent = getLoadedConfig().messages?.overlayPaused ?? "Paused \u2014 TikTok pauses in background tabs. Switch back to resume.";
+    statusText.textContent = getLoadedConfig().messages.overlayPaused;
   }
 
   setStatusIndicator("icon", "⏸", colors.status.warning);

@@ -40,10 +40,10 @@ export interface ExtensionConfig {
     enableRateLimitAutoResume?: boolean;
   };
 
-  messages?: {
-    overlayFooter?: string;
-    overlayPaused?: string;
-    backgroundPaused?: string;
+  messages: {
+    overlayFooter: string;
+    overlayPaused: string;
+    backgroundPaused: string;
   };
 }
 
