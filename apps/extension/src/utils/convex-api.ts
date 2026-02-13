@@ -171,7 +171,11 @@ export async function syncComments(
 
   return apiRequest("/api/comments/batch", {
     method: "POST",
-    body: JSON.stringify({ comments: convexComments, ignoreList }),
+    body: JSON.stringify({
+      comments: convexComments,
+      ignoreList,
+      targetLanguage: navigator.language.slice(0, 2),
+    }),
   });
 }
 

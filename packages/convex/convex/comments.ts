@@ -15,6 +15,7 @@ import {
   getEffectivePlan,
   getMonthlyLimit,
   getMonthlyReplyLimit,
+  hasTranslation,
 } from "./plans";
 import { buildSearchResults } from "./searchHelpers";
 import { getOrCreate as getOrCreateProfile } from "./tiktokProfiles";
@@ -287,6 +288,7 @@ export const addBatch = mutation({
     clerkId: v.string(),
     comments: v.array(v.object(commentInput)),
     ignoreList: v.optional(v.array(v.string())),
+    targetLanguage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -431,6 +433,22 @@ export const addBatch = mutation({
       }
       if (newDocIds.length > 0) {
         await detectLanguages(ctx, newDocIds);
+
+        if (args.targetLanguage && hasTranslation(plan)) {
+          const appReplyDocIds = newDocIds.filter(
+            (_, i) => commentsToInsert[i]?.data.source === "app",
+          );
+          if (appReplyDocIds.length > 0) {
+            await ctx.scheduler.runAfter(
+              0,
+              internal.translation.translateAppReplies,
+              {
+                commentDocIds: appReplyDocIds,
+                targetLanguage: args.targetLanguage,
+              },
+            );
+          }
+        }
       }
     }
 

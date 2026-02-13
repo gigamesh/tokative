@@ -127,6 +127,7 @@ http.route({
         clerkId: auth.clerkId,
         comments: body.comments,
         ignoreList: body.ignoreList,
+        targetLanguage: body.targetLanguage,
       });
       return jsonResponse(result);
     } catch (error) {

@@ -196,7 +196,7 @@ export function CommentCard({
                 Show original
               </button>
             )}
-            {translationEnabled && !comment.translatedText && onTranslate && comment.source !== "app" &&
+            {translationEnabled && !comment.translatedText && onTranslate &&
               comment.detectedLanguage && comment.detectedLanguage !== targetLanguage && (
               <button
                 onClick={onTranslate}

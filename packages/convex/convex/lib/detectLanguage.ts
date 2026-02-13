@@ -40,11 +40,6 @@ export async function detectLanguages(
     const doc = docId === commentDocIds[0] ? firstDoc : await ctx.db.get(docId);
     if (!doc) continue;
 
-    if (doc.source === "app") {
-      if (doc.detectedLanguage) await ctx.db.patch(docId, { detectedLanguage: undefined });
-      continue;
-    }
-
     if (ownHandle) {
       const profileKey = doc.tiktokProfileId.toString();
       let handle = profileHandleCache.get(profileKey);

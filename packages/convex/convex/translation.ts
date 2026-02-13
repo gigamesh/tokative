@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery, action } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { translateText, iso639_3to1 } from "./lib/translate";
@@ -37,6 +37,56 @@ export const detectLanguagesBatch = internalMutation({
   },
   handler: async (ctx, args) => {
     await detectLanguages(ctx, args.commentDocIds);
+  },
+});
+
+/** Translates app replies in the background. Scheduled by addBatch after scraping. */
+export const translateAppReplies = internalAction({
+  args: {
+    commentDocIds: v.array(v.id("comments")),
+    targetLanguage: v.string(),
+  },
+  handler: async (ctx, args) => {
+    for (const docId of args.commentDocIds) {
+      try {
+        const comment = await ctx.runQuery(
+          internal.translation.getCommentById,
+          { commentDocId: docId },
+        );
+        if (!comment) continue;
+
+        const result = await translateText(
+          comment.comment,
+          args.targetLanguage,
+          comment.detectedLanguage ?? undefined,
+        );
+
+        if (result.detectedSourceLanguage === args.targetLanguage) {
+          continue;
+        }
+
+        await ctx.runMutation(internal.translation.patchTranslation, {
+          commentDocId: docId,
+          translatedText: result.translatedText,
+        });
+
+        if (result.detectedSourceLanguage && result.detectedSourceLanguage !== comment.detectedLanguage) {
+          await ctx.runMutation(internal.translation.patchLanguage, {
+            commentDocId: docId,
+            detectedLanguage: result.detectedSourceLanguage,
+          });
+        }
+      } catch (e) {
+        console.error(`Failed to translate app reply ${docId}:`, e);
+      }
+    }
+  },
+});
+
+export const getCommentById = internalQuery({
+  args: { commentDocId: v.id("comments") },
+  handler: async (ctx, args) => {
+    return ctx.db.get(args.commentDocId);
   },
 });
 
