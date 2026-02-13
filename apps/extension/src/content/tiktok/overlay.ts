@@ -164,10 +164,11 @@ function getStyles(): string {
 
     .footer-note {
       margin-top: 12px;
-      font-size: 11px;
+      font-size: 13px;
       color: ${colors.text.muted};
       text-align: center;
       line-height: 1.4;
+      text-wrap: balance;
       opacity: 0.7;
     }
 
