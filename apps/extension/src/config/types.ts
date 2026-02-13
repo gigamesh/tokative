@@ -39,6 +39,12 @@ export interface ExtensionConfig {
     enableReplyDetection?: boolean;
     enableRateLimitAutoResume?: boolean;
   };
+
+  messages?: {
+    overlayFooter?: string;
+    overlayPaused?: string;
+    backgroundPaused?: string;
+  };
 }
 
 export function compareVersions(a: string, b: string): number {

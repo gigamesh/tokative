@@ -1,4 +1,5 @@
 import { colors } from "@tokative/shared";
+import { getLoadedConfig } from "../../config/loader";
 import type {
   ScrapeStats,
   VideoMetadataScrapeProgress,
@@ -200,7 +201,7 @@ function getTemplate(): string {
             Rate limit detected — waiting before retrying...
           </div>
           <button class="cancel-btn" id="cancel-btn">Cancel</button>
-          <p class="footer-note" id="footer-note">This tab must remain open while collecting.</p>
+          <p class="footer-note" id="footer-note">${getLoadedConfig().messages?.overlayFooter ?? "Keep this tab active \u2014 TikTok won't load comments in a background tab."}</p>
         </div>
       </div>
     </div>
@@ -311,7 +312,7 @@ export function updateOverlayPaused(): void {
   const statusText = el("status-text");
   if (statusText) {
     statusText.className = "status-text paused";
-    statusText.textContent = "Paused — switch back to this tab to continue";
+    statusText.textContent = getLoadedConfig().messages?.overlayPaused ?? "Paused \u2014 TikTok pauses in background tabs. Switch back to resume.";
   }
 
   setStatusIndicator("icon", "⏸", colors.status.warning);
