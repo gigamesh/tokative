@@ -35,7 +35,7 @@ export function useCommenterData() {
     userId
       ? {
           clerkId: userId,
-          search: debouncedSearch || undefined,
+          search: debouncedSearch,
         }
       : "skip",
     { initialNumItems: PAGE_SIZE }

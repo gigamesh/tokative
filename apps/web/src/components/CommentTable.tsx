@@ -172,24 +172,48 @@ export function CommentTable({
       sortedTopLevel.map((c) => c.commentId).filter(Boolean),
     );
 
-    const includedReplies = replies.filter(
+    const childReplies = replies.filter(
       (c) =>
         c.parentCommentId && includedParentCommentIds.has(c.parentCommentId),
     );
 
-    return [...sortedTopLevel, ...includedReplies];
+    const orphanReplies = replies
+      .filter(
+        (c) =>
+          !c.parentCommentId || !includedParentCommentIds.has(c.parentCommentId),
+      )
+      .filter((c) => matchesFilterStatus(c))
+      .sort((a, b) => {
+        const aTime = a.commentTimestamp
+          ? new Date(a.commentTimestamp).getTime()
+          : 0;
+        const bTime = b.commentTimestamp
+          ? new Date(b.commentTimestamp).getTime()
+          : 0;
+        return sort === "newest" ? bTime - aTime : aTime - bTime;
+      });
+
+    return [...sortedTopLevel, ...orphanReplies, ...childReplies];
   }, [comments, filter, sort, videoIdFilter]);
 
   const displayComments = useMemo((): DisplayComment[] => {
     const topLevel = filteredComments.filter((c) => !c.isReply);
+    const parentIdsInList = new Set(
+      topLevel.map((c) => c.commentId).filter(Boolean),
+    );
+
     const repliesMap = new Map<string, ScrapedComment[]>();
+    const orphanReplies: ScrapedComment[] = [];
 
     filteredComments
-      .filter((c) => c.isReply && c.parentCommentId)
+      .filter((c) => c.isReply)
       .forEach((reply) => {
-        const parentId = reply.parentCommentId!;
-        if (!repliesMap.has(parentId)) repliesMap.set(parentId, []);
-        repliesMap.get(parentId)!.push(reply);
+        if (reply.parentCommentId && parentIdsInList.has(reply.parentCommentId)) {
+          if (!repliesMap.has(reply.parentCommentId)) repliesMap.set(reply.parentCommentId, []);
+          repliesMap.get(reply.parentCommentId)!.push(reply);
+        } else {
+          orphanReplies.push(reply);
+        }
       });
 
     repliesMap.forEach((replies) => {
@@ -200,12 +224,11 @@ export function CommentTable({
       );
     });
 
-    const result: DisplayComment[] = [];
-    const parentIdsInList = new Set(
-      topLevel.map((c) => c.commentId).filter(Boolean),
-    );
+    const allTopLevel = [...topLevel, ...orphanReplies];
 
-    for (const parent of topLevel) {
+    const result: DisplayComment[] = [];
+
+    for (const parent of allTopLevel) {
       const replies = repliesMap.get(parent.commentId!) || [];
 
       result.push({ ...parent, depth: 0, replyCount: replies.length });

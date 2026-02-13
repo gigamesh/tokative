@@ -52,7 +52,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
           clerkId: userId,
           videoId: videoIdFilter ?? undefined,
           sortOrder,
-          search: debouncedSearch || undefined,
+          search: debouncedSearch,
         }
       : "skip",
     { initialNumItems: PAGE_SIZE }
@@ -254,6 +254,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
   const isInitialLoading = state.loading ||
     paginationStatus === "LoadingFirstPage" ||
     (!hasLoadedInitial && paginatedComments === undefined);
+
 
   return {
     comments,
