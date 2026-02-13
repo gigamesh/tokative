@@ -47,6 +47,30 @@ interface PostsGridProps {
   commentLimitReached?: boolean;
 }
 
+function PostCardSkeleton() {
+  return (
+    <div className="rounded-lg overflow-hidden border border-border animate-pulse">
+      <div className="aspect-[9/16] bg-surface-secondary" />
+    </div>
+  );
+}
+
+function PostsGridSkeleton({ count = 12 }: { count?: number }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+        gap: "0.75rem",
+      }}
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <PostCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
 export function PostsGrid({
   videos,
   loading,
@@ -210,7 +234,7 @@ export function PostsGrid({
     <TabContentContainer stickyHeader={stickyHeader}>
 
       {loading ? (
-        <div className="text-center py-12 text-foreground-muted">Loading posts...</div>
+        <PostsGridSkeleton />
       ) : videos.length === 0 ? (
         <div className="text-center py-12 text-foreground-muted">
           <Image className="w-16 h-16 mx-auto mb-4 text-foreground-muted" strokeWidth={1.5} />
