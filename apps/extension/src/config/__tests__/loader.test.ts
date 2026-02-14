@@ -265,6 +265,55 @@ describe("Config Loader", () => {
       expect(config.messages?.overlayFooter).toBe("Custom footer");
     });
 
+    it("deep-merges api sub-objects, preserving defaults for missing keys", async () => {
+      const remote = makeRemoteConfig({
+        api: {
+          endpoints: { commentList: "https://www.tiktok.com/api/v2/comment/list/?" },
+          pagination: { pageCount: 50 },
+        },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api.endpoints.commentList).toBe("https://www.tiktok.com/api/v2/comment/list/?");
+      expect(config.api.endpoints.commentReply).toBe(DEFAULT_CONFIG.api.endpoints.commentReply);
+      expect(config.api.pagination.pageCount).toBe(50);
+      expect(config.api.pagination.batchSize).toBe(DEFAULT_CONFIG.api.pagination.batchSize);
+      expect(config.api.params).toEqual(DEFAULT_CONFIG.api.params);
+      expect(config.api.signing).toEqual(DEFAULT_CONFIG.api.signing);
+    });
+
+    it("replaces perRequestParams array entirely when overridden", async () => {
+      const customParams = ["cursor", "count", "video_id"];
+      const remote = makeRemoteConfig({
+        api: { perRequestParams: customParams },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api.perRequestParams).toEqual(customParams);
+    });
+
+    it("preserves all api defaults when api section is missing", async () => {
+      const remote = makeRemoteConfig();
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api).toEqual(DEFAULT_CONFIG.api);
+    });
+
     it("merges optional features field", async () => {
       const remote = makeRemoteConfig({
         features: { enableReplyDetection: false },

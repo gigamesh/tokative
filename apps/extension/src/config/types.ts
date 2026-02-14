@@ -44,6 +44,74 @@ export interface ExtensionConfig {
     enableApiFetching?: boolean;
   };
 
+  api: {
+    endpoints: {
+      commentList: string;
+      commentReply: string;
+    };
+    interceptPattern: string;
+    replyPathSegment: string;
+
+    params: {
+      videoId: string;
+      itemId: string;
+      commentId: string;
+      cursor: string;
+      count: string;
+      msToken: string;
+    };
+    perRequestParams: string[];
+
+    response: {
+      comments: string;
+      cursor: string;
+      hasMore: string;
+      total: string;
+      statusCode: string;
+      successValue: number;
+      hasMoreValue: number;
+    };
+
+    commentFields: {
+      id: string;
+      createTime: string;
+      videoId: string;
+      text: string;
+      user: string;
+      replyId: string;
+      replyToReplyId: string;
+      replyCount: string;
+      replies: string;
+    };
+
+    userFields: {
+      id: string;
+      uniqueId: string;
+      nickname: string;
+      avatarThumb: string;
+      avatarUrlList: string;
+    };
+
+    signing: {
+      primaryPath: string;
+      fallbackMethod: string;
+      fallbackSign: string;
+      fallbackKeyPattern: string;
+    };
+
+    cookie: {
+      tokenName: string;
+      tokenPattern: string;
+    };
+
+    pagination: {
+      pageCount: number;
+      batchSize: number;
+      maxRetries: number;
+      capturedParamsTimeout: number;
+    };
+  };
+
   messages: {
     overlayFooter: string;
   };

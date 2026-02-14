@@ -162,6 +162,77 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
     enableRateLimitAutoResume: true,
     enableApiFetching: true,
   },
+  api: {
+    endpoints: {
+      commentList: "https://www.tiktok.com/api/comment/list/?",
+      commentReply: "https://www.tiktok.com/api/comment/list/reply/?",
+    },
+    interceptPattern: "/api/comment/list/",
+    replyPathSegment: "/reply/",
+
+    params: {
+      videoId: "aweme_id",
+      itemId: "item_id",
+      commentId: "comment_id",
+      cursor: "cursor",
+      count: "count",
+      msToken: "msToken",
+    },
+    perRequestParams: [
+      "cursor", "count", "aweme_id", "item_id", "comment_id",
+      "X-Bogus", "X-Gnarly", "msToken",
+    ],
+
+    response: {
+      comments: "comments",
+      cursor: "cursor",
+      hasMore: "has_more",
+      total: "total",
+      statusCode: "status_code",
+      successValue: 0,
+      hasMoreValue: 1,
+    },
+
+    commentFields: {
+      id: "cid",
+      createTime: "create_time",
+      videoId: "aweme_id",
+      text: "text",
+      user: "user",
+      replyId: "reply_id",
+      replyToReplyId: "reply_to_reply_id",
+      replyCount: "reply_comment_total",
+      replies: "reply_comment",
+    },
+
+    userFields: {
+      id: "uid",
+      uniqueId: "unique_id",
+      nickname: "nickname",
+      avatarThumb: "avatar_thumb",
+      avatarUrlList: "url_list",
+    },
+
+    signing: {
+      primaryPath: "byted_acrawler.frontierSign",
+      fallbackMethod: "frontierSign",
+      fallbackSign: "sign",
+      fallbackKeyPattern: "bogus|acrawler|signer|frontier",
+    },
+
+    cookie: {
+      tokenName: "msToken",
+      tokenPattern: "(?:^|;\\s*)msToken=([^;]+)",
+    },
+
+    pagination: {
+      pageCount: 20,
+      batchSize: 50,
+      maxRetries: 3,
+      capturedParamsTimeout: 15000,
+    },
+  },
+
   messages: {
     overlayFooter: "Comments are being collected. You can continue browsing.",
   },

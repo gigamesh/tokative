@@ -1975,6 +1975,7 @@ export async function fetchVideoCommentsViaApi(
         apiPageDelay: config.timeouts.apiPageDelay,
         apiBackoffInitial: config.timeouts.apiBackoffInitial,
         apiBackoffMax: config.timeouts.apiBackoffMax,
+        api: config.api,
       }),
     );
     document.dispatchEvent(new Event("tokative-api-start"));
