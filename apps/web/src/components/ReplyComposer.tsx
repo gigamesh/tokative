@@ -2,8 +2,8 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { ScrapedComment } from "@/utils/constants";
 import { BulkReplyProgress } from "@tokative/shared";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
-import { AlertTriangle, Smile, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Globe, Smile, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
 import { Spinner } from "./Spinner";
@@ -20,6 +20,11 @@ interface ReplyComposerProps {
   disabled?: boolean;
   replyBudget?: number;
   replyLimitReached?: boolean;
+  translationEnabled?: boolean;
+  targetLanguage?: string;
+  translateRepliesEnabled?: boolean;
+  onTranslateRepliesToggle?: (enabled: boolean) => void;
+  isTranslatingReplies?: boolean;
 }
 
 export function ReplyComposer({
@@ -34,6 +39,11 @@ export function ReplyComposer({
   disabled,
   replyBudget,
   replyLimitReached,
+  translationEnabled,
+  targetLanguage,
+  translateRepliesEnabled,
+  onTranslateRepliesToggle,
+  isTranslatingReplies,
 }: ReplyComposerProps) {
   const [messages, setMessages] = useState<string[]>([""]);
   const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(
@@ -44,6 +54,40 @@ export function ReplyComposer({
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
+
+  const langDisplayNames = useMemo(
+    () => new Intl.DisplayNames(["en"], { type: "language" }),
+    [],
+  );
+
+  const { hasTranslatableComments, languageSummary } = useMemo(() => {
+    if (!translationEnabled || !targetLanguage) {
+      return { hasTranslatableComments: false, languageSummary: "" };
+    }
+    const counts = new Map<string, number>();
+    let translatableCount = 0;
+    for (const c of selectedComments) {
+      const lang = c.detectedLanguage || "unknown";
+      counts.set(lang, (counts.get(lang) ?? 0) + 1);
+      if (lang !== targetLanguage && lang !== "unknown") translatableCount++;
+    }
+    if (translatableCount === 0) {
+      return { hasTranslatableComments: false, languageSummary: "" };
+    }
+    const parts: string[] = [];
+    for (const [lang, count] of counts) {
+      if (lang === "unknown") {
+        parts.push(`${count} → unknown (no translation)`);
+      } else if (lang === targetLanguage) {
+        const name = langDisplayNames.of(lang) ?? lang;
+        parts.push(`${count} → ${name} (no translation)`);
+      } else {
+        const name = langDisplayNames.of(lang) ?? lang;
+        parts.push(`${count} → ${name}`);
+      }
+    }
+    return { hasTranslatableComments: true, languageSummary: parts.join(", ") };
+  }, [selectedComments, translationEnabled, targetLanguage, langDisplayNames]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -112,7 +156,7 @@ export function ReplyComposer({
     messages.length > 1 && selectedCount < messages.length;
 
   const canSend =
-    allMessagesValid && selectedCount > 0 && !hasVariationMismatch;
+    allMessagesValid && selectedCount > 0 && !hasVariationMismatch && !isTranslatingReplies;
 
   const needsMoreVariations =
     (selectedCount > 30 && messages.length < 3) ||
@@ -306,6 +350,35 @@ export function ReplyComposer({
         + Add Reply Variation
       </button>
 
+      {translationEnabled && hasTranslatableComments && (
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            onClick={() => onTranslateRepliesToggle?.(!translateRepliesEnabled)}
+            className="flex items-center gap-2 w-full text-left text-sm"
+          >
+            <Globe className="w-4 h-4 text-accent-cyan-text flex-shrink-0" />
+            <span className="flex-1 text-foreground-muted">
+              Translate replies to commenter&apos;s language
+            </span>
+            <div
+              className={`w-8 h-[18px] rounded-full transition-colors flex items-center ${
+                translateRepliesEnabled
+                  ? "bg-accent-cyan-muted justify-end"
+                  : "bg-border justify-start"
+              }`}
+            >
+              <div className="w-3.5 h-3.5 bg-white rounded-full mx-0.5" />
+            </div>
+          </button>
+          {translateRepliesEnabled && (
+            <p className="text-xs text-foreground-muted pl-6">
+              {languageSummary}
+            </p>
+          )}
+        </div>
+      )}
+
       {replyLimitReached && (
         <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
           <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -342,7 +415,7 @@ export function ReplyComposer({
           onClick={handleSend}
           disabled={disabled || !canSend}
         >
-          {disabled ? "Replying..." : "Reply"}
+          {isTranslatingReplies ? "Translating..." : disabled ? "Replying..." : "Reply"}
         </Button>
         {hasVariationMismatch && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-elevated text-foreground-secondary text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">

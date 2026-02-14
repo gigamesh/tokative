@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalAction, internalMutation, internalQuery, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import { translateText, iso639_3to1 } from "./lib/translate";
+import { translateText, translateBatch, iso639_3to1 } from "./lib/translate";
 import { franc } from "franc-min";
 import { isPremiumWhitelisted } from "./constants";
 import { detectLanguages } from "./lib/detectLanguage";
@@ -128,6 +128,48 @@ export const translateComment = action({
       commentDocId: comment._id,
       translatedText: result.translatedText,
     });
+  },
+});
+
+/** Translates reply texts for bulk reply. Groups by target language to minimize API calls. */
+export const translateReplies = action({
+  args: {
+    clerkId: v.string(),
+    translations: v.array(
+      v.object({ text: v.string(), targetLanguage: v.string() }),
+    ),
+  },
+  handler: async (ctx, args): Promise<Array<{ translatedText: string }>> => {
+    const user = await ctx.runQuery(internal.translation.getUserByClerkId, {
+      clerkId: args.clerkId,
+    });
+    if (!user || !isPremiumWhitelisted(user.email ?? "")) {
+      throw new Error("Not authorized");
+    }
+
+    const results: Array<{ translatedText: string }> = new Array(
+      args.translations.length,
+    );
+
+    const byLang = new Map<string, number[]>();
+    for (let i = 0; i < args.translations.length; i++) {
+      const lang = args.translations[i].targetLanguage;
+      const indices = byLang.get(lang);
+      if (indices) indices.push(i);
+      else byLang.set(lang, [i]);
+    }
+
+    for (const [lang, indices] of byLang) {
+      const texts = indices.map((i) => args.translations[i].text);
+      const translated = await translateBatch(texts, lang);
+      for (let j = 0; j < indices.length; j++) {
+        results[indices[j]] = {
+          translatedText: translated[j].translatedText,
+        };
+      }
+    }
+
+    return results;
   },
 });
 

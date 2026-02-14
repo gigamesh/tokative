@@ -31,6 +31,40 @@ export interface TranslateResult {
   detectedSourceLanguage?: string;
 }
 
+/** Translates multiple texts to a single target language in one API call. */
+export async function translateBatch(
+  texts: string[],
+  targetLang: string,
+): Promise<TranslateResult[]> {
+  if (texts.length === 0) return [];
+
+  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+  if (!apiKey) throw new Error("GOOGLE_TRANSLATE_API_KEY not set");
+
+  const params = new URLSearchParams({
+    target: targetLang,
+    format: "text",
+    key: apiKey,
+  });
+  for (const t of texts) params.append("q", t);
+
+  const res = await fetch(
+    `https://translation.googleapis.com/language/translate/v2?${params}`,
+    { method: "POST" },
+  );
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Google Translate API error ${res.status}: ${body}`);
+  }
+
+  const json: TranslateResponse = await res.json();
+  return json.data.translations.map((t) => ({
+    translatedText: t.translatedText,
+    detectedSourceLanguage: t.detectedSourceLanguage,
+  }));
+}
+
 /** Translates a single text string via Google Cloud Translate v2 REST API. */
 export async function translateText(
   text: string,

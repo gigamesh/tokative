@@ -146,6 +146,8 @@ export function DashboardContent() {
     translatingIds,
     targetLanguage,
     translateComment: handleTranslateComment,
+    translateReplies,
+    isTranslatingReplies,
   } = useTranslation(translationEnabled);
 
   const { commentCountsByVideo, totalCount: totalCommentCount } =
@@ -197,6 +199,7 @@ export function DashboardContent() {
   }>({ isOpen: false, pendingMessages: [] });
 
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [translateRepliesEnabled, setTranslateRepliesEnabled] = useState(false);
 
   const [replyReport, setReplyReport] = useState<{
     completed: number;
@@ -462,11 +465,53 @@ export function DashboardContent() {
   }, []);
 
   const executeBulkReply = useCallback(
-    (messages: string[], deleteMissing: boolean) => {
+    async (messages: string[], deleteMissing: boolean) => {
       const capped = selectedCommentsForDisplay.slice(0, replyBudget);
+
+      if (translateRepliesEnabled && translationEnabled) {
+        try {
+          const pairs: Array<{ text: string; targetLanguage: string; commentIdx: number; msgIdx: number }> = [];
+          for (let ci = 0; ci < capped.length; ci++) {
+            const lang = capped[ci].detectedLanguage;
+            if (!lang || lang === targetLanguage) continue;
+            for (let mi = 0; mi < messages.length; mi++) {
+              pairs.push({ text: messages[mi], targetLanguage: lang, commentIdx: ci, msgIdx: mi });
+            }
+          }
+
+          if (pairs.length > 0) {
+            const deduped = new Map<string, number>();
+            const dedupedList: Array<{ text: string; targetLanguage: string }> = [];
+            for (const p of pairs) {
+              const key = `${p.targetLanguage}:${p.text}`;
+              if (!deduped.has(key)) {
+                deduped.set(key, dedupedList.length);
+                dedupedList.push({ text: p.text, targetLanguage: p.targetLanguage });
+              }
+            }
+
+            const results = await translateReplies(dedupedList);
+            if (results && results.length > 0) {
+              for (let ci = 0; ci < capped.length; ci++) {
+                const lang = capped[ci].detectedLanguage;
+                if (!lang || lang === targetLanguage) continue;
+                const msgIdx = ci % messages.length;
+                const key = `${lang}:${messages[msgIdx]}`;
+                const idx = deduped.get(key);
+                if (idx !== undefined && results[idx]) {
+                  capped[ci] = { ...capped[ci], messageToSend: results[idx].translatedText };
+                }
+              }
+            }
+          }
+        } catch {
+          showToast("Translation failed — sending original messages");
+        }
+      }
+
       startBulkReply(capped, messages, deleteMissing);
     },
-    [selectedCommentsForDisplay, replyBudget, startBulkReply],
+    [selectedCommentsForDisplay, replyBudget, startBulkReply, translateRepliesEnabled, translationEnabled, targetLanguage, translateReplies, showToast],
   );
 
   const handleBulkReply = useCallback(
@@ -855,9 +900,14 @@ export function DashboardContent() {
               bulkReplyProgress={bulkReplyProgress}
               replyStatusMessage={replyStatusMessage}
               onStopBulkReply={stopBulkReply}
-              disabled={isReplying || replyLimitReached}
+              disabled={isReplying || replyLimitReached || isTranslatingReplies}
               replyBudget={replyBudget}
               replyLimitReached={replyLimitReached}
+              translationEnabled={translationEnabled}
+              targetLanguage={targetLanguage}
+              translateRepliesEnabled={translateRepliesEnabled}
+              onTranslateRepliesToggle={setTranslateRepliesEnabled}
+              isTranslatingReplies={isTranslatingReplies}
             />
           </div>
         </div>
