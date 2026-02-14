@@ -1,3 +1,6 @@
+import { initSentry } from "../utils/sentry";
+initSentry("background");
+
 import { colors, ScrapeStats } from "@tokative/shared";
 import { getLoadedConfig, loadConfig, refreshConfig } from "../config/loader";
 import {

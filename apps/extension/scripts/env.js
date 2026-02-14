@@ -50,4 +50,5 @@ module.exports = {
     "TOKATIVE_ENDPOINT",
     "http://localhost:3000",
   ),
+  SENTRY_DSN_EXTENSION: getEnvWithDefault("SENTRY_DSN_EXTENSION", ""),
 };

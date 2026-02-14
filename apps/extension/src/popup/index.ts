@@ -1,3 +1,6 @@
+import { initSentry } from "../utils/sentry";
+initSentry("popup");
+
 import { MessageType, CommentScrapingState, RateLimitState } from "../types";
 import { getPostLimit, getScrapingState, getVideos, getRateLimitState } from "../utils/storage";
 import { getAuthToken, clearAuthToken, requestAuthTokenFromWebApp } from "../utils/convex-api";

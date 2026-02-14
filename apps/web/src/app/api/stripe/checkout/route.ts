@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/nextjs";
 import { ConvexHttpClient } from "convex/browser";
 import { api, BILLING_ENABLED } from "@tokative/convex";
 import { NextResponse } from "next/server";
@@ -19,11 +20,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing plan or interval" }, { status: 400 });
   }
 
-  const result = await convex.action(api.stripe.createCheckoutSession, {
-    clerkId: userId,
-    plan,
-    interval,
-  });
+  try {
+    const result = await convex.action(api.stripe.createCheckoutSession, {
+      clerkId: userId,
+      plan,
+      interval,
+    });
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (error) {
+    Sentry.withScope((scope) => {
+      scope.setContext("checkout", { userId, plan, interval });
+      Sentry.captureException(error);
+    });
+    return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 });
+  }
 }
