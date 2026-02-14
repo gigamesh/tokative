@@ -8,6 +8,7 @@ import {
   ScrapedVideo,
 } from "../types";
 import { setAuthToken } from "../utils/convex-api";
+import { TabError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import {
   addToIgnoreList,
@@ -755,7 +756,7 @@ async function handleReplyToComment(
 
   try {
     if (!comment.videoUrl) {
-      throw new Error("No video URL available for this comment");
+      throw new TabError("NO_VIDEO_URL", "No video URL available for this comment");
     }
 
     port.postMessage({
@@ -781,7 +782,7 @@ async function handleReplyToComment(
         index: await getDashboardTabIndex(),
       });
 
-      if (!tab.id) throw new Error("Failed to create tab");
+      if (!tab.id) throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
       tabId = tab.id;
       tabCreatedHere = true;
       chrome.tabs.update(tabId, { muted: true });
@@ -1038,7 +1039,7 @@ async function handleGetVideoCommentsViaApi(
       index: await getDashboardTabIndex(),
     });
 
-    if (!tab.id) throw new Error("Failed to create tab");
+    if (!tab.id) throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
     chrome.tabs.update(tab.id, { muted: true });
 
     activeScrapingTabId = tab.id;
@@ -1213,7 +1214,7 @@ async function handleGetBatchComments(
           active: false,
           index: await getDashboardTabIndex(),
         });
-        if (!tab?.id) throw new Error("Failed to create tab");
+        if (!tab?.id) throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
         chrome.tabs.update(tab.id, { muted: true });
         activeScrapingTabId = tab.id;
         isApiScraping = true;
@@ -1386,7 +1387,7 @@ function waitForTabLoad(tabId: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(listener);
-      reject(new Error("Tab load timeout"));
+      reject(new TabError("TAB_LOAD_TIMEOUT", "Tab load timeout", { tabId }));
     }, config.timeouts.tabLoad);
 
     const listener = (

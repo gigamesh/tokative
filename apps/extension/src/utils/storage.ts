@@ -6,35 +6,13 @@ import {
   RateLimitState,
 } from "../types";
 import * as convexApi from "./convex-api";
+export { CommentLimitError, type AddCommentsResult } from "./errors";
+import { CommentLimitError, type AddCommentsResult } from "./errors";
 
 const STORAGE_KEYS = {
   SCRAPING_STATE: "tokative_scraping_state",
   RATE_LIMIT_STATE: "tokative_rate_limit_state",
 } as const;
-
-// ===== CONVEX-FIRST (user data) =====
-
-export class CommentLimitError extends Error {
-  monthlyLimit: number;
-  currentCount: number;
-  plan: string;
-  partialResult: AddCommentsResult;
-
-  constructor(monthlyLimit: number, currentCount: number, plan: string, partialResult: AddCommentsResult) {
-    super(`Monthly comment limit reached (${currentCount}/${monthlyLimit})`);
-    this.name = "CommentLimitError";
-    this.monthlyLimit = monthlyLimit;
-    this.currentCount = currentCount;
-    this.plan = plan;
-    this.partialResult = partialResult;
-  }
-}
-
-export interface AddCommentsResult {
-  new: number;
-  preexisting: number;
-  ignored: number;
-}
 
 export async function getScrapedComments(): Promise<ScrapedComment[]> {
   return convexApi.fetchComments();

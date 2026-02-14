@@ -8,6 +8,7 @@ import type {
 import { MessageType } from "../../types";
 import { humanDelay, humanDelayWithJitter, isVisible } from "../../utils/dom";
 import { addScrapedComments, addVideos, CommentLimitError } from "../../utils/storage";
+import { ScrapeSetupError, fromPageScriptError } from "../../utils/errors";
 import { closestMatch, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { getAllCommentElements, VIDEO_SELECTORS } from "./video-selectors";
 import { getLoadedConfig } from "../../config/loader";
@@ -1826,19 +1827,19 @@ export async function fetchVideoCommentsViaApi(
   const isReady =
     document.documentElement.getAttribute("data-tokative-ready") === "true";
   if (!isReady) {
-    throw new Error("Page script not ready");
+    throw new ScrapeSetupError("PAGE_SCRIPT_NOT_READY", "Page script not ready");
   }
 
   const videoId = getVideoId();
   if (!videoId) {
-    throw new Error("Could not determine video ID");
+    throw new ScrapeSetupError("VIDEO_ID_NOT_FOUND", "Could not determine video ID");
   }
 
   // Open comments panel to trigger TikTok's initial comment API call.
   // Our fetch interceptor in page-script captures the base params from this.
   const panelOpened = await openCommentsPanel();
   if (!panelOpened) {
-    throw new Error("Could not open comments panel");
+    throw new ScrapeSetupError("COMMENTS_PANEL_FAILED", "Could not open comments panel");
   }
 
   await waitForSelector(VIDEO_SELECTORS.commentItem, { timeout: 10000 });
@@ -1875,7 +1876,7 @@ export async function fetchVideoCommentsViaApi(
       if (resolved) return;
       resolved = true;
       cleanup();
-      reject(new Error(error));
+      reject(fromPageScriptError(error));
     };
 
     const processBatch = async (comments: CommentReactData[]) => {

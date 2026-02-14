@@ -552,7 +552,7 @@ interface ApiConfig {
     });
 
     if (resp.status === 429) {
-      const err = new Error("Rate limited") as Error & { status: number };
+      const err = new Error("Rate limited by TikTok — try again in a few minutes") as Error & { status: number };
       err.status = 429;
       throw err;
     }
@@ -578,7 +578,7 @@ interface ApiConfig {
     });
 
     if (resp.status === 429) {
-      const err = new Error("Rate limited") as Error & { status: number };
+      const err = new Error("Rate limited by TikTok — try again in a few minutes") as Error & { status: number };
       err.status = 429;
       throw err;
     }

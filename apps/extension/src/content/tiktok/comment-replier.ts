@@ -1,6 +1,7 @@
 import { ScrapedComment, MessageType, ReplyProgress } from "../../types";
 import { humanDelay, humanClick } from "../../utils/dom";
 import { addScrapedComments } from "../../utils/storage";
+import { CommentReplyError } from "../../utils/errors";
 import { SELECTORS, closestMatch, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { VIDEO_SELECTORS } from "./video-selectors";
 import { findRecentlyPostedReplyWithRetry } from "./video-scraper";
@@ -21,7 +22,7 @@ export async function replyToComment(
 
   const firstComment = await waitForFirstComment();
   if (!firstComment) {
-    throw new Error("No comments found on this video");
+    throw new CommentReplyError("NO_COMMENTS_ON_VIDEO", "No comments found on this video", { commentId: user.id });
   }
 
   sendProgress(user.id, "finding", "Verifying comment...");
@@ -32,7 +33,7 @@ export async function replyToComment(
       `[CommentReplier] Comment mismatch. Expected @${user.handle} but found @${verification.foundHandle}. ` +
       `Expected "${user.comment.substring(0, 30)}..." but found "${verification.foundComment.substring(0, 30)}..."`
     );
-    throw new Error("Comment not found");
+    throw new CommentReplyError("COMMENT_NOT_FOUND", "Comment not found", { commentId: user.id });
   }
 
   sendProgress(user.id, "replying", "Comment verified, clicking reply...");
@@ -43,7 +44,7 @@ export async function replyToComment(
 
   const replyButton = querySelector<HTMLElement>(SELECTORS.commentReplyButton, commentWrapper || firstComment);
   if (!replyButton) {
-    throw new Error("Could not find reply button on comment");
+    throw new CommentReplyError("REPLY_BUTTON_NOT_FOUND", "Could not find reply button on comment", { commentId: user.id });
   }
 
   await humanClick(replyButton);
@@ -56,7 +57,7 @@ export async function replyToComment(
   });
 
   if (!commentInput) {
-    throw new Error("Could not find comment input field");
+    throw new CommentReplyError("COMMENT_INPUT_NOT_FOUND", "Could not find comment input field", { commentId: user.id });
   }
 
   // Find the editable area and click it directly (skip clicking parent container)
