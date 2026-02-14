@@ -328,5 +328,180 @@ describe("Config Loader", () => {
       expect(config.features?.enableReplyDetection).toBe(false);
       expect(config.features?.enableRateLimitAutoResume).toBe(true);
     });
+
+    it("deep-merges limits, preserving defaults for missing keys", async () => {
+      const remote = makeRemoteConfig({
+        limits: { maxClicksPerThread: 50 },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.limits.maxClicksPerThread).toBe(50);
+      expect(config.limits.stableIterationsRequired).toBe(DEFAULT_CONFIG.limits.stableIterationsRequired);
+      expect(config.limits.consecutiveNoReplies).toBe(DEFAULT_CONFIG.limits.consecutiveNoReplies);
+      expect(config.limits.contentScriptRetries).toBe(DEFAULT_CONFIG.limits.contentScriptRetries);
+      expect(config.limits.contentScriptRetryDelay).toBe(DEFAULT_CONFIG.limits.contentScriptRetryDelay);
+    });
+
+    it("deep-merges delays scalar fields alongside profiles", async () => {
+      const remote = makeRemoteConfig({
+        delays: { reactSettle: 999, postReply: 888 },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.delays.reactSettle).toBe(999);
+      expect(config.delays.postReply).toBe(888);
+      expect(config.delays.scrollUp).toBe(DEFAULT_CONFIG.delays.scrollUp);
+      expect(config.delays.fallbackContent).toBe(DEFAULT_CONFIG.delays.fallbackContent);
+      expect(config.delays.profiles).toEqual(DEFAULT_CONFIG.delays.profiles);
+    });
+
+    it("deep-merges api.response, preserving defaults for missing keys", async () => {
+      const remote = makeRemoteConfig({
+        api: { response: { successValue: 1 } },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api.response.successValue).toBe(1);
+      expect(config.api.response.comments).toBe(DEFAULT_CONFIG.api.response.comments);
+      expect(config.api.response.cursor).toBe(DEFAULT_CONFIG.api.response.cursor);
+      expect(config.api.response.hasMore).toBe(DEFAULT_CONFIG.api.response.hasMore);
+    });
+
+    it("deep-merges api.commentFields, preserving defaults for missing keys", async () => {
+      const remote = makeRemoteConfig({
+        api: { commentFields: { id: "comment_id" } },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api.commentFields.id).toBe("comment_id");
+      expect(config.api.commentFields.text).toBe(DEFAULT_CONFIG.api.commentFields.text);
+      expect(config.api.commentFields.user).toBe(DEFAULT_CONFIG.api.commentFields.user);
+      expect(config.api.commentFields.replyCount).toBe(DEFAULT_CONFIG.api.commentFields.replyCount);
+    });
+
+    it("deep-merges api.userFields, preserving defaults for missing keys", async () => {
+      const remote = makeRemoteConfig({
+        api: { userFields: { id: "user_id" } },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api.userFields.id).toBe("user_id");
+      expect(config.api.userFields.uniqueId).toBe(DEFAULT_CONFIG.api.userFields.uniqueId);
+      expect(config.api.userFields.nickname).toBe(DEFAULT_CONFIG.api.userFields.nickname);
+    });
+
+    it("deep-merges api.cookie, preserving defaults for missing keys", async () => {
+      const remote = makeRemoteConfig({
+        api: { cookie: { tokenName: "newToken" } },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api.cookie.tokenName).toBe("newToken");
+      expect(config.api.cookie.tokenPattern).toBe(DEFAULT_CONFIG.api.cookie.tokenPattern);
+    });
+
+    it("deep-merges api.signing, preserving defaults for missing keys", async () => {
+      const remote = makeRemoteConfig({
+        api: { signing: { primaryPath: "custom.signer.path" } },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api.signing.primaryPath).toBe("custom.signer.path");
+      expect(config.api.signing.fallbackMethod).toBe(DEFAULT_CONFIG.api.signing.fallbackMethod);
+      expect(config.api.signing.fallbackSign).toBe(DEFAULT_CONFIG.api.signing.fallbackSign);
+    });
+
+    it("overrides api.interceptPattern and api.replyPathSegment via nullish coalescing", async () => {
+      const remote = makeRemoteConfig({
+        api: {
+          interceptPattern: "/api/v2/comment/list/",
+          replyPathSegment: "/v2/reply/",
+        },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api.interceptPattern).toBe("/api/v2/comment/list/");
+      expect(config.api.replyPathSegment).toBe("/v2/reply/");
+    });
+
+    it("preserves default api.interceptPattern and api.replyPathSegment when not provided", async () => {
+      const remote = makeRemoteConfig({
+        api: { endpoints: { commentList: "https://example.com/api/?" } },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      expect(config.api.interceptPattern).toBe(DEFAULT_CONFIG.api.interceptPattern);
+      expect(config.api.replyPathSegment).toBe(DEFAULT_CONFIG.api.replyPathSegment);
+    });
+
+    it("minimal config (only minExtensionVersion) preserves all defaults with no undefined values", async () => {
+      const remote = { minExtensionVersion: "1.0.0" };
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(remote),
+      });
+
+      const config = await loadConfig();
+
+      function assertNoUndefined(obj: Record<string, unknown>, path: string) {
+        for (const [key, value] of Object.entries(obj)) {
+          const fullPath = `${path}.${key}`;
+          if (value === undefined) {
+            throw new Error(`Unexpected undefined at ${fullPath}`);
+          }
+          if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+            assertNoUndefined(value as Record<string, unknown>, fullPath);
+          }
+        }
+      }
+
+      assertNoUndefined(config as unknown as Record<string, unknown>, "config");
+      expect(config).toEqual(DEFAULT_CONFIG);
+    });
   });
 });
