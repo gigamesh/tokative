@@ -30,7 +30,7 @@ import { useAuth } from "@/providers/ConvexProvider";
 import { ScrapedComment } from "@/utils/constants";
 import { api, BILLING_ENABLED, PLAN_LIMITS } from "@tokative/convex";
 import { useQuery } from "convex/react";
-import { AlertTriangle, PauseCircle, Settings, X } from "lucide-react";
+import { AlertTriangle, Settings, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -132,7 +132,6 @@ export function DashboardContent() {
     getCommentsProgress,
     getCommentsForVideos,
     removeVideos: removeVideosList,
-    scrapingState,
     batchProgress,
     isScraping,
     isCancelling,
@@ -664,20 +663,6 @@ export function DashboardContent() {
           })()}
 
         <div className="sticky top-[60px] z-10 bg-surface -mx-4 px-4 pt-4 pb-4 -mt-1">
-          {scrapingState?.isPaused && !isCancelling && (
-            <div className="mb-3 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
-              <PauseCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-              <div>
-                <span className="text-yellow-400 font-medium">
-                  Collecting Paused
-                </span>
-                <span className="text-yellow-400/80 ml-2">
-                  Return to the TikTok tab to continue collecting.
-                </span>
-              </div>
-            </div>
-          )}
-
           {isCancelling && (
             <div className="mb-3 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
               <Spinner size="md" />
@@ -685,7 +670,7 @@ export function DashboardContent() {
             </div>
           )}
 
-          {batchProgress && !scrapingState?.isPaused && !isCancelling && (
+          {batchProgress && !isCancelling && (
             <div className="mb-3 p-3 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
               <Spinner size="md" />
               <div>
@@ -700,7 +685,7 @@ export function DashboardContent() {
             </div>
           )}
 
-          {!batchProgress && !isCancelling && !scrapingState?.isPaused && getCommentsProgress.size > 0 && (() => {
+          {!batchProgress && !isCancelling && getCommentsProgress.size > 0 && (() => {
             const progress = Array.from(getCommentsProgress.values())[0];
             if (!progress || progress.status === "complete") return null;
             return (

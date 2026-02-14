@@ -46,8 +46,6 @@ export interface ExtensionConfig {
 
   messages: {
     overlayFooter: string;
-    overlayPaused: string;
-    backgroundPaused: string;
   };
 }
 

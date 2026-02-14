@@ -306,34 +306,6 @@ export function updateOverlayProgress(
   }
 }
 
-/** Shows paused state with amber styling. */
-export function updateOverlayPaused(): void {
-  if (!shadowRoot) return;
-
-  const statusText = el("status-text");
-  if (statusText) {
-    statusText.className = "status-text paused";
-    statusText.textContent = getLoadedConfig().messages.overlayPaused;
-  }
-
-  setStatusIndicator("icon", "⏸", colors.status.warning);
-}
-
-/** Returns overlay to active scraping state. */
-export function updateOverlayResumed(): void {
-  if (!shadowRoot) return;
-
-  const statusText = el("status-text");
-  if (statusText) {
-    statusText.className = "status-text";
-    statusText.textContent =
-      currentMode === "comments"
-        ? "Collecting comments..."
-        : "Collecting videos...";
-  }
-
-  setStatusIndicator("spinner");
-}
 
 /** Shows completion summary, auto-hides after 3 seconds. */
 export function updateOverlayComplete(stats?: ScrapeStats): void {

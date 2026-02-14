@@ -177,15 +177,12 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   }
 });
 
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  // Skip pause/resume for API scraping — fetch() works regardless of tab focus.
+chrome.tabs.onActivated.addListener(async () => {
   if (isApiScraping) return;
 
-  // Get the scraping tab ID from runtime variable or storage
   let scrapingTabId = activeScrapingTabId;
 
   if (!scrapingTabId) {
-    // Service worker may have restarted - check storage for active scraping state
     const state = await getScrapingState();
     if (state.isActive && state.tabId) {
       scrapingTabId = state.tabId;
@@ -195,34 +192,14 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
   if (!scrapingTabId) return;
 
-  // Verify the scraping tab still exists - if not, clear stale state
   try {
     await chrome.tabs.get(scrapingTabId);
   } catch {
-    // Tab no longer exists - clear stale state
     logger.log(
       "[Background] Scraping tab no longer exists, clearing stale state",
     );
     activeScrapingTabId = null;
     await clearScrapingState();
-    return;
-  }
-
-  if (activeInfo.tabId !== scrapingTabId) {
-    // Pause scraping when leaving the TikTok tab (for both single and batch scraping)
-    chrome.tabs.sendMessage(scrapingTabId, { type: MessageType.SCRAPE_PAUSE });
-    await updateAndBroadcastScrapingState({
-      isPaused: true,
-      status: "paused",
-      message: getLoadedConfig().messages.backgroundPaused,
-    });
-  } else {
-    chrome.tabs.sendMessage(scrapingTabId, { type: MessageType.SCRAPE_RESUME });
-    await updateAndBroadcastScrapingState({
-      isPaused: false,
-      status: "scraping",
-      message: "Collecting comments...",
-    });
   }
 });
 

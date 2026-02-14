@@ -162,10 +162,7 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
     enableRateLimitAutoResume: true,
     enableApiFetching: true,
   },
-
   messages: {
     overlayFooter: "Comments are being collected. You can continue browsing.",
-    overlayPaused: "Paused",
-    backgroundPaused: "Paused",
   },
 };

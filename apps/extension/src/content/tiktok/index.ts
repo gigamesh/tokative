@@ -1,7 +1,7 @@
 import { MessageType, ExtensionMessage, ScrapedComment } from "../../types";
 import { guardExtensionContext } from "../../utils/dom";
 import { replyToComment } from "./comment-replier";
-import { showOverlay, updateOverlayProgress, updateOverlayPaused, updateOverlayResumed, updateOverlayComplete, updateOverlayError, updateOverlayLimitReached, hideOverlay } from "./overlay";
+import { showOverlay, updateOverlayProgress, updateOverlayComplete, updateOverlayError, updateOverlayLimitReached, hideOverlay } from "./overlay";
 import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape, fetchVideoCommentsViaApi, injectReactExtractor } from "./video-scraper";
 import { CommentLimitError } from "../../utils/storage";
 import { loadConfig } from "../../config/loader";
@@ -237,14 +237,12 @@ function handleMessage(
 
     case MessageType.SCRAPE_PAUSE: {
       pauseVideoScrape();
-      updateOverlayPaused();
       sendResponse({ success: true });
       return true;
     }
 
     case MessageType.SCRAPE_RESUME: {
       resumeVideoScrape();
-      updateOverlayResumed();
       sendResponse({ success: true });
       return true;
     }
