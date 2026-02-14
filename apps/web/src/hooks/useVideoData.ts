@@ -277,6 +277,7 @@ export function useVideoData() {
               videoId: progress.currentVideoId,
               status: "scraping",
               message: progress.message,
+              stats: progress.currentVideoStats,
             });
           }
 

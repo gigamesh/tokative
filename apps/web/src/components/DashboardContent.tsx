@@ -547,42 +547,6 @@ export function DashboardContent() {
   return (
     <div className="min-h-content bg-surface">
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {scrapingState?.isPaused && !isCancelling && (
-          <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
-            <PauseCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-            <div>
-              <span className="text-yellow-400 font-medium">
-                Collecting Paused
-              </span>
-              <span className="text-yellow-400/80 ml-2">
-                Return to the TikTok tab to continue collecting.
-              </span>
-            </div>
-          </div>
-        )}
-
-        {isCancelling && (
-          <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
-            <Spinner size="md" />
-            <span className="text-yellow-400 font-medium">Cancelling...</span>
-          </div>
-        )}
-
-        {batchProgress && !scrapingState?.isPaused && !isCancelling && (
-          <div className="mb-6 p-4 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
-            <Spinner size="md" />
-            <div>
-              <span className="text-accent-cyan-text font-medium">
-                Collecting post {batchProgress.currentVideoIndex}/
-                {batchProgress.totalVideos}
-              </span>
-              <span className="text-accent-cyan-text/80 ml-2">
-                ({batchProgress.totalComments} comments)
-              </span>
-            </div>
-          </div>
-        )}
-
         {error && error !== dismissedError && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 flex items-start justify-between gap-3">
             <span>{error}</span>
@@ -699,7 +663,56 @@ export function DashboardContent() {
             return null;
           })()}
 
-        <div className="sticky top-[60px] z-10 bg-surface py-4 -mx-4 px-4 -mt-1">
+        <div className="sticky top-[60px] z-10 bg-surface -mx-4 px-4 pt-4 pb-4 -mt-1">
+          {scrapingState?.isPaused && !isCancelling && (
+            <div className="mb-3 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+              <PauseCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+              <div>
+                <span className="text-yellow-400 font-medium">
+                  Collecting Paused
+                </span>
+                <span className="text-yellow-400/80 ml-2">
+                  Return to the TikTok tab to continue collecting.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {isCancelling && (
+            <div className="mb-3 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+              <Spinner size="md" />
+              <span className="text-yellow-400 font-medium">Cancelling...</span>
+            </div>
+          )}
+
+          {batchProgress && !scrapingState?.isPaused && !isCancelling && (
+            <div className="mb-3 p-3 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
+              <Spinner size="md" />
+              <div>
+                <span className="text-accent-cyan-text font-medium">
+                  Collecting post {batchProgress.currentVideoIndex}/
+                  {batchProgress.totalVideos}
+                </span>
+                <span className="text-accent-cyan-text/80 ml-2">
+                  ({batchProgress.totalComments} comments)
+                </span>
+              </div>
+            </div>
+          )}
+
+          {!batchProgress && !isCancelling && !scrapingState?.isPaused && getCommentsProgress.size > 0 && (() => {
+            const progress = Array.from(getCommentsProgress.values())[0];
+            if (!progress || progress.status === "complete") return null;
+            return (
+              <div className="mb-3 p-3 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
+                <Spinner size="md" />
+                <span className="text-accent-cyan-text font-medium">
+                  {progress.message || "Collecting comments..."}
+                </span>
+              </div>
+            );
+          })()}
+
           <TabNavigation
             activeTab={activeTab}
             onTabChange={setTab}

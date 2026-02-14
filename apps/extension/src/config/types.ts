@@ -17,6 +17,9 @@ export interface ExtensionConfig {
     replyTimeout: number;
     commentLoadWait: number;
     firstCommentWait: number;
+    apiPageDelay: number;
+    apiBackoffInitial: number;
+    apiBackoffMax: number;
   };
 
   delays: {
@@ -38,6 +41,7 @@ export interface ExtensionConfig {
   features?: {
     enableReplyDetection?: boolean;
     enableRateLimitAutoResume?: boolean;
+    enableApiFetching?: boolean;
   };
 
   messages: {

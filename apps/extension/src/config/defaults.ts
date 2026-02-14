@@ -5,52 +5,29 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
 
   selectors: {
     inbox: {
-      activityButton: [
-        '[data-e2e="nav-activity"]',
-        '[aria-label="Activity"]',
-      ],
-      notificationPanel: [
-        '[data-e2e="inbox-notifications"]',
-      ],
+      activityButton: ['[data-e2e="nav-activity"]', '[aria-label="Activity"]'],
+      notificationPanel: ['[data-e2e="inbox-notifications"]'],
       commentsTab: [
         '[data-e2e="comments"]',
         'button[role="tab"]:has-text("Comments")',
       ],
-      inboxList: [
-        '[data-e2e="inbox-list"]',
-      ],
-      inboxItem: [
-        '[data-e2e="inbox-list-item"]',
-      ],
-      inboxTitle: [
-        '[data-e2e="inbox-title"]',
-      ],
-      inboxContent: [
-        '[data-e2e="inbox-content"]',
-      ],
-      profileLink: [
-        'a[href*="/@"]',
-      ],
-      commentItem: [
-        '[data-e2e="comment-level-1"]',
-      ],
-      commentUsername: [
-        '[data-e2e="comment-username-1"]',
-      ],
+      inboxList: ['[data-e2e="inbox-list"]'],
+      inboxItem: ['[data-e2e="inbox-list-item"]'],
+      inboxTitle: ['[data-e2e="inbox-title"]'],
+      inboxContent: ['[data-e2e="inbox-content"]'],
+      profileLink: ['a[href*="/@"]'],
+      commentItem: ['[data-e2e="comment-level-1"]'],
+      commentUsername: ['[data-e2e="comment-username-1"]'],
       commentText: [
         '[data-e2e="comment-level-1"] span[data-e2e="comment-text"]',
         '[data-e2e="comment-level-1"] > div > span',
       ],
-      commentReplyButton: [
-        '[data-e2e="comment-reply-1"]',
-      ],
+      commentReplyButton: ['[data-e2e="comment-reply-1"]'],
       commentInput: [
         '[data-e2e="comment-input"]',
         '[data-e2e="comment-input"] [contenteditable="true"]',
       ],
-      commentPostButton: [
-        '[data-e2e="comment-post"]',
-      ],
+      commentPostButton: ['[data-e2e="comment-post"]'],
     },
 
     video: {
@@ -92,9 +69,7 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
         '[data-e2e="browse-close"]',
         '[class*="DivCloseIcon"]',
       ],
-      commentsContainer: [
-        '[class*="DivCommentListContainer"]',
-      ],
+      commentsContainer: ['[class*="DivCommentListContainer"]'],
       commentItem: [
         '[class*="DivCommentObjectWrapper"]',
         '[class*="DivCommentItemContainer"]',
@@ -111,19 +86,13 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
         '[data-e2e="comment-level-1"] span',
         'span[data-e2e="comment-level-1"]',
       ],
-      commentStickerImage: [
-        '[data-e2e="comment-thumbnail"]',
-      ],
-      commentReplyButton: [
-        '[data-e2e="comment-reply-1"]',
-      ],
+      commentStickerImage: ['[data-e2e="comment-thumbnail"]'],
+      commentReplyButton: ['[data-e2e="comment-reply-1"]'],
       viewRepliesButton: [
         '[class*="DivViewRepliesContainer"]',
         '[class*="DivViewMoreRepliesWrapper"]',
       ],
-      replyContainer: [
-        '[class*="DivReplyContainer"]',
-      ],
+      replyContainer: ['[class*="DivReplyContainer"]'],
       replyItem: [
         '[class*="DivReplyContainer"] [class*="DivCommentItemWrapper"]',
         '[class*="DivReplyContainer"] [class*="DivCommentContentContainer"]',
@@ -134,7 +103,7 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
       ],
       skeletonLoader: [
         '[class*="DivVirtualItemSkeleton"]',
-        '.TUXSkeletonRectangle',
+        ".TUXSkeletonRectangle",
       ],
       commentTextInWrapper: [
         '[class*="CommentText"]',
@@ -146,10 +115,7 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
         'meta[property="og:image:secure_url"]',
         'meta[name="twitter:image"]',
       ],
-      videoMetaUrl: [
-        'meta[property="og:url"]',
-        'meta[name="twitter:url"]',
-      ],
+      videoMetaUrl: ['meta[property="og:url"]', 'meta[name="twitter:url"]'],
     },
   },
 
@@ -164,6 +130,9 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
     replyTimeout: 60000,
     commentLoadWait: 10000,
     firstCommentWait: 15000,
+    apiPageDelay: 500,
+    apiBackoffInitial: 5000,
+    apiBackoffMax: 60000,
   },
 
   delays: {
@@ -191,11 +160,12 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
   features: {
     enableReplyDetection: true,
     enableRateLimitAutoResume: true,
+    enableApiFetching: true,
   },
 
   messages: {
-    overlayFooter: "Keep this tab active \u2014 TikTok won't load comments in a background tab.",
-    overlayPaused: "Paused \u2014 TikTok pauses in background tabs. Switch back to resume.",
-    backgroundPaused: "Paused \u2014 TikTok pauses in background tabs",
+    overlayFooter: "Comments are being collected. You can continue browsing.",
+    overlayPaused: "Paused",
+    backgroundPaused: "Paused",
   },
 };

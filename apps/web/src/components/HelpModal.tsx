@@ -43,9 +43,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
         <Step number={2} title="Collect Comments">
           Select any of the posts in the posts tab, then click Fetch Comments.
-          TikTok will open in a new browser tab and you&apos;ll see all the
-          comments getting loaded. You&apos;ll need to keep this tab open until
-          the process completes.
+          Comments will be collected automatically in a background tab.
         </Step>
 
         <Step number={3} title="Reply to Comments">

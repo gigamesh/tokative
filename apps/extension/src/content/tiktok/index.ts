@@ -2,7 +2,7 @@ import { MessageType, ExtensionMessage, ScrapedComment } from "../../types";
 import { guardExtensionContext } from "../../utils/dom";
 import { replyToComment } from "./comment-replier";
 import { showOverlay, updateOverlayProgress, updateOverlayPaused, updateOverlayResumed, updateOverlayComplete, updateOverlayError, updateOverlayLimitReached, hideOverlay } from "./overlay";
-import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape } from "./video-scraper";
+import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape, fetchVideoCommentsViaApi, injectReactExtractor } from "./video-scraper";
 import { CommentLimitError } from "../../utils/storage";
 import { loadConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
@@ -32,8 +32,9 @@ async function init(): Promise<void> {
     logger.warn("[TikTok] Failed to load config, using defaults:", error);
   }
 
-  // Inject main world script early so it's ready for React props extraction
+  // Inject main world scripts early so they're ready before TikTok's API calls
   injectMainWorldScript();
+  injectReactExtractor();
 
   chrome.runtime.onMessage.addListener(handleMessage);
 
@@ -82,6 +83,61 @@ function handleMessage(
             },
           });
           sendResponse({ success: false, error: error.message });
+        });
+
+      return true;
+    }
+
+    case MessageType.SCRAPE_VIDEO_COMMENTS_API_START: {
+      showOverlay("comments", () => {
+        cancelVideoScrape();
+        hideOverlay();
+        chrome.runtime.sendMessage({ type: MessageType.SCRAPE_VIDEO_COMMENTS_STOP });
+      });
+
+      fetchVideoCommentsViaApi((stats) => {
+        updateOverlayProgress({
+          videosProcessed: 0,
+          totalVideos: 1,
+          commentsFound: stats.found,
+          status: "scraping",
+          message: `Found ${stats.found} (${stats.new} new)`,
+          stats,
+        });
+        chrome.runtime.sendMessage({
+          type: MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
+          payload: {
+            videosProcessed: 0,
+            totalVideos: 1,
+            commentsFound: stats.found,
+            status: "scraping",
+            message: `Found ${stats.found} (${stats.new} new)`,
+            stats,
+          },
+        });
+      })
+        .then((result) => {
+          updateOverlayComplete(result.stats);
+          chrome.runtime.sendMessage({
+            type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
+            payload: { comments: result.comments, stats: result.stats, limitReached: result.limitReached },
+          });
+          sendResponse({ success: true });
+        })
+        .catch((error) => {
+          logger.error("[TikTok] API scraping error:", error);
+          if (error instanceof CommentLimitError) {
+            updateOverlayLimitReached(error.monthlyLimit, error.currentCount, error.plan);
+          } else {
+            updateOverlayError(error instanceof Error ? error.message : "Unknown error");
+          }
+          chrome.runtime.sendMessage({
+            type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
+            payload: {
+              error: error instanceof Error ? error.message : "Unknown error",
+            },
+          });
+          sendResponse({ success: false, error: error instanceof Error ? error.message : "Unknown error" });
         });
 
       return true;
@@ -200,6 +256,59 @@ function handleMessage(
 
 function handlePortMessage(message: ExtensionMessage): void {
   switch (message.type) {
+    case MessageType.SCRAPE_VIDEO_COMMENTS_API_START: {
+      if (port) {
+        showOverlay("comments", () => {
+          cancelVideoScrape();
+          hideOverlay();
+          chrome.runtime.sendMessage({ type: MessageType.SCRAPE_VIDEO_COMMENTS_STOP });
+        });
+        fetchVideoCommentsViaApi((stats) => {
+          updateOverlayProgress({
+            videosProcessed: 0,
+            totalVideos: 1,
+            commentsFound: stats.found,
+            status: "scraping",
+            message: `Found ${stats.found} (${stats.new} new)`,
+            stats,
+          });
+          port?.postMessage({
+            type: MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
+            payload: {
+              videosProcessed: 0,
+              totalVideos: 1,
+              commentsFound: stats.found,
+              status: "scraping",
+              message: `Found ${stats.found} (${stats.new} new)`,
+              stats,
+            },
+          });
+        })
+          .then((result) => {
+            updateOverlayComplete(result.stats);
+            port?.postMessage({
+              type: MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE,
+              payload: { comments: result.comments, stats: result.stats, limitReached: result.limitReached },
+            });
+          })
+          .catch((error) => {
+            logger.error("[TikTok] Port: API scraping error:", error);
+            if (error instanceof CommentLimitError) {
+              updateOverlayLimitReached(error.monthlyLimit, error.currentCount, error.plan);
+            } else {
+              updateOverlayError(error instanceof Error ? error.message : "Unknown error");
+            }
+            port?.postMessage({
+              type: MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
+              payload: {
+                error: error instanceof Error ? error.message : "Unknown error",
+              },
+            });
+          });
+      }
+      break;
+    }
+
     case MessageType.SCRAPE_VIDEO_COMMENTS_START: {
       if (port) {
         const { maxComments } = (message.payload as { maxComments?: number }) || {};
