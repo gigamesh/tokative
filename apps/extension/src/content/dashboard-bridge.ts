@@ -1,6 +1,7 @@
 import { EXTENSION_SOURCE, ExtensionMessage, MessageType } from "../types";
 import { guardExtensionContext } from "../utils/dom";
 import { logger } from "../utils/logger";
+import { initSentry } from "../utils/sentry";
 
 declare const TOKATIVE_ENDPOINT_PLACEHOLDER: string;
 const DASHBOARD_ORIGIN = TOKATIVE_ENDPOINT_PLACEHOLDER;
@@ -21,6 +22,8 @@ function initBridge(): void {
     logger.warn("[Bridge] Extension context invalid");
     return;
   }
+
+  initSentry("content-dashboard");
 
   // Clean up any existing bridge from previous injection (e.g., after extension re-enable)
   if (window.__tokativeBridge) {

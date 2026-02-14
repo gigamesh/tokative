@@ -6,6 +6,7 @@ import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pau
 import { CommentLimitError } from "../../utils/storage";
 import { loadConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
+import { initSentry } from "../../utils/sentry";
 
 let port: chrome.runtime.Port | null = null;
 
@@ -22,6 +23,7 @@ async function init(): Promise<void> {
     return;
   }
 
+  initSentry("content-tiktok");
   logger.log("[TikTok] Content script initialized");
 
   // Load config early so it's available for all operations

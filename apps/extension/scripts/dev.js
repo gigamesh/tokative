@@ -153,6 +153,7 @@ const buildOptions = {
     "process.env.NODE_ENV": '"development"',
     CONVEX_SITE_URL_PLACEHOLDER: JSON.stringify(env.CONVEX_SITE_URL),
     TOKATIVE_ENDPOINT_PLACEHOLDER: JSON.stringify(env.TOKATIVE_ENDPOINT),
+    SENTRY_DSN_EXTENSION_PLACEHOLDER: JSON.stringify(env.SENTRY_DSN_EXTENSION),
   },
 };
 

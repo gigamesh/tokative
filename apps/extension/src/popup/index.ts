@@ -1,4 +1,8 @@
+import { initSentry } from "../utils/sentry";
+initSentry("popup");
+
 import { MessageType, CommentScrapingState, RateLimitState } from "../types";
+import { logger } from "../utils/logger";
 import { getPostLimit, getScrapingState, getVideos, getRateLimitState } from "../utils/storage";
 import { getAuthToken, clearAuthToken, requestAuthTokenFromWebApp } from "../utils/convex-api";
 
@@ -302,6 +306,7 @@ async function handleDisconnect(): Promise<void> {
 }
 
 async function init(): Promise<void> {
+
   const profileSection = document.getElementById("profile-section");
   const videoSection = document.getElementById("video-section");
   const nonTiktokSection = document.getElementById("non-tiktok-section");

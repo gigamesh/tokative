@@ -18,9 +18,11 @@
     "version:major": "node scripts/version.js major"
   },
   "dependencies": {
+    "@sentry/browser": "^10.38.0",
     "@tokative/shared": "workspace:*"
   },
   "devDependencies": {
+    "@sentry/esbuild-plugin": "^4.9.1",
     "@types/chrome": "^0.0.268",
     "archiver": "^7.0.0",
     "chokidar": "^3.6.0",

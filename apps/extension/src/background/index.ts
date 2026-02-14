@@ -1,3 +1,6 @@
+import { initSentry } from "../utils/sentry";
+initSentry("background");
+
 import { colors, ScrapeStats } from "@tokative/shared";
 import { getLoadedConfig, loadConfig, refreshConfig } from "../config/loader";
 import {
@@ -48,7 +51,10 @@ let batchCancelled = false;
 const closingTabsIntentionally = new Set<number>();
 let lastScrapingVideoId: string | null = null;
 let lastScrapingStats: ScrapeStats | null = null;
-let lastBatchProgress: { completedVideos: number; totalComments: number } | null = null;
+let lastBatchProgress: {
+  completedVideos: number;
+  totalComments: number;
+} | null = null;
 
 // Message types that should be forwarded directly to dashboard
 const FORWARD_TO_DASHBOARD_MESSAGES: Set<MessageType> = new Set([
@@ -756,7 +762,10 @@ async function handleReplyToComment(
 
   try {
     if (!comment.videoUrl) {
-      throw new TabError("NO_VIDEO_URL", "No video URL available for this comment");
+      throw new TabError(
+        "NO_VIDEO_URL",
+        "No video URL available for this comment",
+      );
     }
 
     port.postMessage({
@@ -782,7 +791,8 @@ async function handleReplyToComment(
         index: await getDashboardTabIndex(),
       });
 
-      if (!tab.id) throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
+      if (!tab.id)
+        throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
       tabId = tab.id;
       tabCreatedHere = true;
       chrome.tabs.update(tabId, { muted: true });
@@ -1039,7 +1049,8 @@ async function handleGetVideoCommentsViaApi(
       index: await getDashboardTabIndex(),
     });
 
-    if (!tab.id) throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
+    if (!tab.id)
+      throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
     chrome.tabs.update(tab.id, { muted: true });
 
     activeScrapingTabId = tab.id;
@@ -1068,13 +1079,21 @@ async function handleGetVideoCommentsViaApi(
 
     port.postMessage({
       type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
-      payload: { videoId, status: "scraping", message: "Collecting comments..." },
+      payload: {
+        videoId,
+        status: "scraping",
+        message: "Collecting comments...",
+      },
     });
 
     return new Promise<void>((resolve) => {
       const responseHandler = async (msg: ExtensionMessage) => {
         if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
-          const payload = msg.payload as { commentsFound?: number; message?: string; stats?: ScrapeStats };
+          const payload = msg.payload as {
+            commentsFound?: number;
+            message?: string;
+            stats?: ScrapeStats;
+          };
           if (payload.stats) lastScrapingStats = payload.stats;
           const count = payload.commentsFound || 0;
           await updateAndBroadcastScrapingState({
@@ -1087,7 +1106,9 @@ async function handleGetVideoCommentsViaApi(
             payload: { videoId, ...payload },
           });
         } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-          const { comments: scrapedComments } = msg.payload as { comments: ScrapedComment[] };
+          const { comments: scrapedComments } = msg.payload as {
+            comments: ScrapedComment[];
+          };
           updateVideo(videoId, { commentsScraped: true });
           port.postMessage({
             type: MessageType.GET_VIDEO_COMMENTS_COMPLETE,
@@ -1214,7 +1235,8 @@ async function handleGetBatchComments(
           active: false,
           index: await getDashboardTabIndex(),
         });
-        if (!tab?.id) throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
+        if (!tab?.id)
+          throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
         chrome.tabs.update(tab.id, { muted: true });
         activeScrapingTabId = tab.id;
         isApiScraping = true;
@@ -1378,7 +1400,9 @@ async function scrapeVideoInTab(
 
     chrome.runtime.onMessage.addListener(responseHandler);
 
-    chrome.tabs.sendMessage(tabId, { type: MessageType.SCRAPE_VIDEO_COMMENTS_API_START });
+    chrome.tabs.sendMessage(tabId, {
+      type: MessageType.SCRAPE_VIDEO_COMMENTS_API_START,
+    });
   });
 }
 

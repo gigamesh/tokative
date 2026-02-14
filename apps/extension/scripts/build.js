@@ -1,6 +1,7 @@
 const esbuild = require("esbuild");
 const path = require("path");
 const fs = require("fs");
+const { sentryEsbuildPlugin } = require("@sentry/esbuild-plugin");
 const env = require("./env");
 
 const isWatch = process.argv.includes("--watch");
@@ -27,12 +28,21 @@ const buildOptions = {
   platform: "browser",
   target: "chrome110",
   format: "iife",
-  sourcemap: isWatch ? "inline" : false,
+  sourcemap: isWatch ? "inline" : "linked",
   minify: !isWatch,
   define: {
     CONVEX_SITE_URL_PLACEHOLDER: JSON.stringify(env.CONVEX_SITE_URL),
     TOKATIVE_ENDPOINT_PLACEHOLDER: JSON.stringify(env.TOKATIVE_ENDPOINT),
+    SENTRY_DSN_EXTENSION_PLACEHOLDER: JSON.stringify(env.SENTRY_DSN_EXTENSION),
   },
+  plugins: !isWatch && env.SENTRY_DSN_EXTENSION ? [
+    sentryEsbuildPlugin({
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT_EXTENSION,
+      silent: !process.env.CI,
+    }),
+  ] : [],
 };
 
 async function copyPublicFiles() {
@@ -95,6 +105,16 @@ async function build() {
       console.log("Watching for changes...");
     } else {
       await esbuild.build(buildOptions);
+
+      // Delete .map files from dist so they don't ship in the extension
+      const distDir = path.join(__dirname, "..", "dist");
+      for (const file of fs.readdirSync(distDir, { recursive: true })) {
+        const filePath = path.join(distDir, String(file));
+        if (filePath.endsWith(".map") && fs.statSync(filePath).isFile()) {
+          fs.unlinkSync(filePath);
+        }
+      }
+
       console.log("Build complete!");
     }
   } catch (error) {
