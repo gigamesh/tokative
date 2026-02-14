@@ -5,8 +5,10 @@ import type {
   VideoMetadataScrapeProgress,
   VideoScrapeProgress,
 } from "../../types";
+import { MessageType } from "../../types";
 import { humanDelay, humanDelayWithJitter, isVisible } from "../../utils/dom";
 import { addScrapedComments, addVideos, CommentLimitError } from "../../utils/storage";
+import { ScrapeSetupError, fromPageScriptError } from "../../utils/errors";
 import { closestMatch, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { getAllCommentElements, VIDEO_SELECTORS } from "./video-selectors";
 import { getLoadedConfig } from "../../config/loader";
@@ -39,6 +41,7 @@ let isPaused = false;
 
 export function cancelVideoScrape(): void {
   isCancelled = true;
+  document.dispatchEvent(new Event("tokative-api-cancel"));
 }
 
 export function pauseVideoScrape(): void {
@@ -1786,4 +1789,196 @@ export async function scrapeVideoComments(
   });
 
   return result;
+}
+
+/** Converts a flat API comment (from page-script) to RawCommentData. */
+function apiCommentToRawComment(
+  comment: CommentReactData,
+  videoId: string,
+): RawCommentData {
+  return {
+    commentId: comment.cid,
+    tiktokUserId: comment.user?.uid || "",
+    handle: comment.user?.unique_id || "",
+    displayName: comment.user?.nickname || comment.user?.unique_id || "",
+    comment: comment.text || "",
+    createTime: comment.create_time || Math.floor(Date.now() / 1000),
+    videoId,
+    avatarUrl: comment.user?.avatar_thumb,
+    parentCommentId: comment.reply_id !== "0" ? comment.reply_id : null,
+    replyToReplyId:
+      comment.reply_to_reply_id !== "0" ? comment.reply_to_reply_id : null,
+    replyCount: comment.reply_comment_total,
+  };
+}
+
+/**
+ * Fetches all comments for the current video via TikTok's internal API.
+ * Communicates with page-script.ts via DOM events. Falls back to DOM scraping
+ * if the signing function can't be discovered.
+ */
+export async function fetchVideoCommentsViaApi(
+  onProgress?: (stats: ScrapeStats) => void,
+): Promise<ScrapeCommentsResult> {
+  isCancelled = false;
+
+  await injectReactExtractor();
+
+  const isReady =
+    document.documentElement.getAttribute("data-tokative-ready") === "true";
+  if (!isReady) {
+    throw new ScrapeSetupError("PAGE_SCRIPT_NOT_READY", "Page script not ready");
+  }
+
+  const videoId = getVideoId();
+  if (!videoId) {
+    throw new ScrapeSetupError("VIDEO_ID_NOT_FOUND", "Could not determine video ID");
+  }
+
+  // Open comments panel to trigger TikTok's initial comment API call.
+  // Our fetch interceptor in page-script captures the base params from this.
+  const panelOpened = await openCommentsPanel();
+  if (!panelOpened) {
+    throw new ScrapeSetupError("COMMENTS_PANEL_FAILED", "Could not open comments panel");
+  }
+
+  await waitForSelector(VIDEO_SELECTORS.commentItem, { timeout: 10000 });
+  await waitForCommentContent({ timeout: 10000 });
+
+  const videoAuthor = getVideoAuthorFromUrl();
+  const config = getLoadedConfig();
+  const allComments: ScrapedComment[] = [];
+  const savedCommentIds = new Set<string>();
+  const cumulativeStats: ScrapeStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
+  let limitReached = false;
+
+  if (isCancelled) {
+    return { comments: allComments, stats: cumulativeStats, limitReached };
+  }
+
+  return new Promise<ScrapeCommentsResult>((resolve, reject) => {
+    let resolved = false;
+    const cleanup = () => {
+      document.removeEventListener("tokative-api-batch", onBatch);
+      document.removeEventListener("tokative-api-progress", onApiProgress);
+      document.removeEventListener("tokative-api-complete", onComplete);
+      document.removeEventListener("tokative-api-error", onError);
+    };
+
+    const finish = (result: ScrapeCommentsResult) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      resolve(result);
+    };
+
+    const finishWithError = (error: string) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      reject(fromPageScriptError(error));
+    };
+
+    const processBatch = async (comments: CommentReactData[]) => {
+      const newComments: ScrapedComment[] = [];
+      for (const c of comments) {
+        const raw = apiCommentToRawComment(c, videoId);
+        const scraped = rawCommentToScrapedComment(raw);
+        if (scraped && !savedCommentIds.has(scraped.id)) {
+          newComments.push(scraped);
+          savedCommentIds.add(scraped.id);
+          allComments.push(scraped);
+        }
+      }
+
+      cumulativeStats.found += newComments.length;
+
+      if (newComments.length > 0) {
+        try {
+          const result = await addScrapedComments(newComments);
+          cumulativeStats.new += result.new;
+          cumulativeStats.preexisting += result.preexisting;
+          cumulativeStats.ignored += result.ignored;
+        } catch (err) {
+          if (err instanceof CommentLimitError) {
+            cumulativeStats.new += err.partialResult.new;
+            cumulativeStats.preexisting += err.partialResult.preexisting;
+            cumulativeStats.ignored += err.partialResult.ignored;
+            limitReached = true;
+          } else {
+            logger.error("[Tokative] Error saving API comments:", err);
+          }
+        }
+        onProgress?.(cumulativeStats);
+      }
+    };
+
+    const onBatch = async () => {
+      const dataStr = document.documentElement.getAttribute("data-tokative-api-batch");
+      document.documentElement.removeAttribute("data-tokative-api-batch");
+      if (!dataStr) return;
+
+      try {
+        const { comments } = JSON.parse(dataStr) as { comments: CommentReactData[] };
+        await processBatch(comments);
+      } catch (e) {
+        logger.error("[Tokative] Failed to parse API batch:", e);
+      }
+    };
+
+    const onApiProgress = () => {
+      const dataStr = document.documentElement.getAttribute("data-tokative-api-progress");
+      document.documentElement.removeAttribute("data-tokative-api-progress");
+      if (!dataStr) return;
+
+      try {
+        const progress = JSON.parse(dataStr);
+        logger.log(
+          `[Tokative] API progress: topLevel=${progress.topLevel}, replies=${progress.replies}, hasMore=${progress.hasMore}`,
+        );
+      } catch { /* ignore */ }
+    };
+
+    const onComplete = () => {
+      const dataStr = document.documentElement.getAttribute("data-tokative-api-complete");
+      document.documentElement.removeAttribute("data-tokative-api-complete");
+
+      logger.log(
+        `[Tokative] API fetch complete: ${allComments.length} comments, stats: ${JSON.stringify(cumulativeStats)}`,
+      );
+      finish({ comments: allComments, stats: cumulativeStats, limitReached });
+    };
+
+    const onError = () => {
+      const dataStr = document.documentElement.getAttribute("data-tokative-api-error");
+      document.documentElement.removeAttribute("data-tokative-api-error");
+
+      let errorData = { error: "Unknown error" };
+      try {
+        if (dataStr) errorData = JSON.parse(dataStr);
+      } catch { /* ignore */ }
+
+      logger.error(`[Tokative] API fetch error: ${errorData.error}`);
+      finishWithError(errorData.error);
+    };
+
+    document.addEventListener("tokative-api-batch", onBatch);
+    document.addEventListener("tokative-api-progress", onApiProgress);
+    document.addEventListener("tokative-api-complete", onComplete);
+    document.addEventListener("tokative-api-error", onError);
+
+    // Pass config to page-script via attribute, then trigger
+    document.documentElement.setAttribute(
+      "data-tokative-api-config",
+      JSON.stringify({
+        awemeId: videoId,
+        videoAuthor,
+        apiPageDelay: config.timeouts.apiPageDelay,
+        apiBackoffInitial: config.timeouts.apiBackoffInitial,
+        apiBackoffMax: config.timeouts.apiBackoffMax,
+        api: config.api,
+      }),
+    );
+    document.dispatchEvent(new Event("tokative-api-start"));
+  });
 }

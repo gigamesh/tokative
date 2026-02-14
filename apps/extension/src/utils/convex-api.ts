@@ -4,6 +4,7 @@ import {
   ScrapedComment,
   ScrapedVideo,
 } from "../types";
+import { AuthError } from "./errors";
 
 declare const CONVEX_SITE_URL_PLACEHOLDER: string;
 const CONVEX_HTTP_URL = CONVEX_SITE_URL_PLACEHOLDER;
@@ -117,9 +118,7 @@ async function apiRequest<T>(
   const token = await getOrRequestAuthToken();
 
   if (!token) {
-    throw new Error(
-      "Not authenticated - please sign in to the Tokative web app",
-    );
+    throw new AuthError("NOT_AUTHENTICATED", "Not authenticated - please sign in to the Tokative web app");
   }
 
   const response = await fetch(`${CONVEX_HTTP_URL}${endpoint}`, {
@@ -135,7 +134,7 @@ async function apiRequest<T>(
     const error = await response
       .json()
       .catch(() => ({ error: "Unknown error" }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+    throw new AuthError("API_HTTP_ERROR", error.error || `HTTP ${response.status}`, { httpStatus: response.status });
   }
 
   return response.json();

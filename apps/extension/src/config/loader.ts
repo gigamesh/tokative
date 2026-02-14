@@ -78,6 +78,19 @@ function mergeWithDefaults(remote: Partial<ExtensionConfig>): ExtensionConfig {
     },
     limits: { ...DEFAULT_CONFIG.limits, ...remote.limits },
     features: { ...DEFAULT_CONFIG.features, ...remote.features },
+    api: {
+      endpoints: { ...DEFAULT_CONFIG.api.endpoints, ...remote.api?.endpoints },
+      interceptPattern: remote.api?.interceptPattern ?? DEFAULT_CONFIG.api.interceptPattern,
+      replyPathSegment: remote.api?.replyPathSegment ?? DEFAULT_CONFIG.api.replyPathSegment,
+      params: { ...DEFAULT_CONFIG.api.params, ...remote.api?.params },
+      perRequestParams: remote.api?.perRequestParams ?? DEFAULT_CONFIG.api.perRequestParams,
+      response: { ...DEFAULT_CONFIG.api.response, ...remote.api?.response },
+      commentFields: { ...DEFAULT_CONFIG.api.commentFields, ...remote.api?.commentFields },
+      userFields: { ...DEFAULT_CONFIG.api.userFields, ...remote.api?.userFields },
+      signing: { ...DEFAULT_CONFIG.api.signing, ...remote.api?.signing },
+      cookie: { ...DEFAULT_CONFIG.api.cookie, ...remote.api?.cookie },
+      pagination: { ...DEFAULT_CONFIG.api.pagination, ...remote.api?.pagination },
+    },
     messages: { ...DEFAULT_CONFIG.messages, ...remote.messages },
   };
 }

@@ -16,35 +16,7 @@ function updateScrapingStatusUI(
   state: CommentScrapingState,
   btn: HTMLButtonElement | null
 ): void {
-  if (state.isPaused) {
-    statusEl.className = "scrape-status paused";
-
-    // Create elements properly instead of using innerHTML
-    const span = document.createElement("span");
-    span.className = "paused-text";
-    span.textContent = `⏸ Paused (${state.commentsFound} comments) - `;
-
-    const resumeLink = document.createElement("a");
-    resumeLink.href = "#";
-    resumeLink.textContent = "Click to resume";
-
-    if (state.tabId) {
-      const tabId = state.tabId;
-      resumeLink.addEventListener("click", async (e) => {
-        e.preventDefault();
-        // Activate the tab first, which triggers SCRAPE_RESUME via background script
-        await chrome.tabs.update(tabId, { active: true });
-        // Close popup after a brief delay to ensure tab activation completes
-        setTimeout(() => window.close(), 100);
-      });
-    }
-
-    span.appendChild(resumeLink);
-    statusEl.innerHTML = "";
-    statusEl.appendChild(span);
-
-    if (btn) btn.disabled = true;
-  } else if (state.status === "scraping" || state.status === "loading") {
+  if (state.status === "scraping" || state.status === "loading") {
     statusEl.className = "scrape-status active";
     statusEl.textContent = state.message || `${state.commentsFound} comments found...`;
     if (btn) btn.disabled = true;

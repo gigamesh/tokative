@@ -44,6 +44,7 @@ export const MessageType = {
   BULK_REPLY_STOP: "BULK_REPLY_STOP",
 
   // Video comment scraping (single video)
+  SCRAPE_VIDEO_COMMENTS_API_START: "SCRAPE_VIDEO_COMMENTS_API_START",
   SCRAPE_VIDEO_COMMENTS_START: "SCRAPE_VIDEO_COMMENTS_START",
   SCRAPE_VIDEO_COMMENTS_PROGRESS: "SCRAPE_VIDEO_COMMENTS_PROGRESS",
   SCRAPE_VIDEO_COMMENTS_COMPLETE: "SCRAPE_VIDEO_COMMENTS_COMPLETE",
@@ -232,6 +233,7 @@ export interface BatchCommentsProgress {
   totalComments: number;
   status: "processing" | "complete" | "error";
   message?: string;
+  currentVideoStats?: ScrapeStats;
 }
 
 export interface RateLimitState {
