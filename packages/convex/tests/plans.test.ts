@@ -15,8 +15,8 @@ describe("plans", () => {
       expect(getMonthlyLimit("free")).toBe(500);
     });
 
-    it("returns 2500 for pro", () => {
-      expect(getMonthlyLimit("pro")).toBe(2_500);
+    it("returns 3000 for pro", () => {
+      expect(getMonthlyLimit("pro")).toBe(3_000);
     });
 
     it("returns 25000 for premium", () => {

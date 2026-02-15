@@ -35,6 +35,8 @@ export default defineSchema({
     monthlyReplyResetAt: v.optional(v.number()),
     referralCode: v.optional(v.string()),
     referredByUserId: v.optional(v.id("users")),
+    trialEndsAt: v.optional(v.number()),
+    trialSource: v.optional(v.string()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_stripe_customer_id", ["stripeCustomerId"])

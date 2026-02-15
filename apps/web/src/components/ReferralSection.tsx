@@ -1,10 +1,10 @@
 "use client";
 
-import { api } from "@tokative/convex";
-import { useMutation, useQuery } from "convex/react";
-import { Check, Copy, Gift } from "lucide-react";
-import { useCallback, useState } from "react";
 import { useAuth } from "@/providers/ConvexProvider";
+import { api, REFERRAL_CREDIT } from "@tokative/convex";
+import { useMutation, useQuery } from "convex/react";
+import { Check, Copy, DollarSign, Gift, Users } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function ReferralSection() {
   const { userId } = useAuth();
@@ -14,22 +14,18 @@ export function ReferralSection() {
   );
   const getOrCreateCode = useMutation(api.referrals.getOrCreateReferralCode);
   const [copied, setCopied] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const hasTriggered = useRef(false);
 
   const referralCode = stats?.referralCode;
   const referralUrl = referralCode
     ? `${window.location.origin}/r/${referralCode}`
     : null;
 
-  const handleGenerateCode = useCallback(async () => {
-    if (!userId) return;
-    setGenerating(true);
-    try {
-      await getOrCreateCode({ clerkId: userId });
-    } finally {
-      setGenerating(false);
-    }
-  }, [userId, getOrCreateCode]);
+  useEffect(() => {
+    if (!userId || referralCode || !stats || hasTriggered.current) return;
+    hasTriggered.current = true;
+    getOrCreateCode({ clerkId: userId });
+  }, [userId, referralCode, stats, getOrCreateCode]);
 
   const handleCopy = useCallback(async () => {
     if (!referralUrl) return;
@@ -41,63 +37,76 @@ export function ReferralSection() {
   if (!stats) return null;
 
   return (
-    <div>
-      <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-        <Gift className="w-4 h-4" />
-        Referral Program
-      </h3>
-      <p className="text-xs text-foreground-muted mb-3">
-        Share your link with friends. When they subscribe to a paid plan, you get
-        a free month after their subscription stays active for 7 days.
+    <div className="space-y-5">
+      <div className="flex gap-4 items-center">
+        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent-cyan-muted/20 border border-accent-cyan-muted-half flex items-center justify-center">
+          <Gift className="w-5 h-5 text-accent-cyan-text" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground">
+          Referral Program
+        </h3>
+      </div>
+      <h4 className="text-sm font-medium text-foreground">
+        Earn ${REFERRAL_CREDIT / 100} for every friend who subscribes!
+      </h4>
+      <p className="text-sm text-foreground-muted text-balance">
+        Each friend gets 7 days of a paid plan for free. You get a $
+        {REFERRAL_CREDIT / 100} credit per subscriber.
       </p>
 
-      {referralCode ? (
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              readOnly
-              value={referralUrl ?? ""}
-              className="flex-1 px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground truncate"
-            />
-            <button
-              onClick={handleCopy}
-              className="px-3 py-2 bg-accent-cyan-solid hover:bg-accent-cyan-solid/90 text-white rounded-lg text-sm flex items-center gap-1.5 transition-colors"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  Copy
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="flex gap-4 text-xs text-foreground-muted">
-            <span>
-              <span className="text-foreground font-medium">{stats.qualified}</span>{" "}
-              qualified
-            </span>
-            <span>
-              <span className="text-foreground font-medium">{stats.pending}</span>{" "}
-              pending
-            </span>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex items-center gap-3 p-3.5 rounded-xl bg-surface-secondary border border-border">
+          <Users className="w-4 h-4 text-accent-cyan-text flex-shrink-0" />
+          <div>
+            <p className="text-lg font-bold text-foreground leading-tight">
+              {stats.pending + stats.qualified}
+            </p>
+            <p className="text-xs text-foreground-muted mt-0.5">Referrals</p>
           </div>
         </div>
-      ) : (
-        <button
-          onClick={handleGenerateCode}
-          disabled={generating}
-          className="px-4 py-2 bg-accent-cyan-solid hover:bg-accent-cyan-solid/90 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
-        >
-          {generating ? "Generating..." : "Get your referral link"}
-        </button>
-      )}
+        <div className="flex items-center gap-3 p-3.5 rounded-xl bg-surface-secondary border border-border">
+          <DollarSign className="w-4 h-4 text-green-400 flex-shrink-0" />
+          <div>
+            <p className="text-lg font-bold text-foreground leading-tight">
+              ${stats.qualified * (REFERRAL_CREDIT / 100)}
+            </p>
+            <p className="text-xs text-foreground-muted mt-0.5">
+              Credits earned
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-foreground-muted uppercase tracking-wide">
+          Your referral link
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            readOnly
+            value={referralUrl ?? "Generating..."}
+            className="flex-1 px-3 py-2.5 bg-surface-secondary border border-border rounded-lg text-sm text-foreground truncate"
+          />
+          <button
+            onClick={handleCopy}
+            disabled={!referralUrl}
+            className="px-4 py-2.5 bg-accent-cyan-solid hover:bg-accent-cyan-solid/90 text-white rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                Copy Link
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

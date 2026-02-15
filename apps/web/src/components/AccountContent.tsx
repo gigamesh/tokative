@@ -7,6 +7,7 @@ import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { Button } from "./Button";
+import { ReferralSection } from "./ReferralSection";
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
   active: { label: "Active", className: "bg-green-500/20 text-green-400" },
@@ -74,7 +75,7 @@ export function AccountContent() {
   if (!subscription) {
     return (
       <div className="min-h-content bg-surface">
-        <main className="max-w-2xl mx-auto px-6 py-20">
+        <main className="max-w-2xl mx-auto px-6 py-10">
           <div className="bg-surface-elevated rounded-lg p-6 animate-pulse h-48" />
         </main>
       </div>
@@ -98,7 +99,7 @@ export function AccountContent() {
 
   return (
     <div className="min-h-content bg-surface">
-      <main className="max-w-2xl mx-auto px-6 py-20">
+      <main className="max-w-2xl mx-auto px-6 py-10">
         <h1 className="text-3xl font-bold text-foreground mb-8">Account</h1>
 
         <div className="bg-surface-elevated rounded-lg p-6 space-y-6">
@@ -182,6 +183,12 @@ export function AccountContent() {
             )}
           </div>
         </div>
+
+        {subscription.plan !== "free" && (
+          <div className="bg-surface-elevated rounded-lg p-6 mt-6">
+            <ReferralSection />
+          </div>
+        )}
       </main>
     </div>
   );

@@ -5,7 +5,7 @@ import Stripe from "stripe";
 import { internal } from "./_generated/api";
 import { action, internalAction } from "./_generated/server";
 import { getStripePriceIds, priceIdToPlanName } from "./plans";
-import { REFERRAL_DISCOUNT_CENTS } from "./referrals";
+import { REFERRAL_CREDIT } from "./referrals";
 
 function getStripeKey(): string {
   return process.env.STRIPE_SECRET_KEY!;
@@ -38,6 +38,7 @@ export const createCheckoutSession = action({
     clerkId: v.string(),
     plan: v.union(v.literal("pro"), v.literal("premium")),
     interval: v.union(v.literal("month"), v.literal("year")),
+    trialDays: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<{ url: string | null }> => {
     const user = await ctx.runQuery(internal.stripeHelpers.getUserByClerkId, {
@@ -92,6 +93,9 @@ export const createCheckoutSession = action({
       success_url: `${tokativeEndpoint}/dashboard?checkout=success`,
       cancel_url: `${tokativeEndpoint}/pricing`,
       allow_promotion_codes: true,
+      ...(args.trialDays
+        ? { subscription_data: { trial_period_days: args.trialDays } }
+        : {}),
     });
 
     return { url: session.url };
@@ -262,10 +266,10 @@ export const applyReferralCredit = internalAction({
 
     const stripe = getStripe();
     const coupon = await stripe.coupons.create({
-      amount_off: REFERRAL_DISCOUNT_CENTS,
+      amount_off: REFERRAL_CREDIT,
       currency: "usd",
       duration: "once",
-      name: `Referral credit — $${REFERRAL_DISCOUNT_CENTS / 100} off`,
+      name: `Referral account credit — $${REFERRAL_CREDIT / 100}`,
     });
 
     await stripe.subscriptions.update(user.stripeSubscriptionId, {

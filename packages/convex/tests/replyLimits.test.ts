@@ -70,7 +70,7 @@ describe("comments.update reply limit tracking", () => {
         .unique();
       if (!user) throw new Error("User not found");
       await ctx.db.patch(user._id, {
-        monthlyReplyCount: 49,
+        monthlyReplyCount: 99,
         monthlyReplyResetAt: Date.now(),
       });
     });
@@ -99,7 +99,7 @@ describe("comments.update reply limit tracking", () => {
         .unique();
       if (!user) throw new Error("User not found");
       await ctx.db.patch(user._id, {
-        monthlyReplyCount: 50,
+        monthlyReplyCount: 100,
         monthlyReplyResetAt: lastMonth.getTime(),
       });
     });
@@ -123,7 +123,7 @@ describe("comments.update reply limit tracking", () => {
       await ctx.db.patch(user._id, {
         subscriptionPlan: "pro",
         subscriptionStatus: "active",
-        monthlyReplyCount: 49,
+        monthlyReplyCount: 99,
         monthlyReplyResetAt: Date.now(),
       });
     });
@@ -134,7 +134,7 @@ describe("comments.update reply limit tracking", () => {
     expect(result.replyLimitReached).toBe(false);
 
     const status = await t.query(api.users.getAccessStatus, { clerkId });
-    expect(status!.subscription.replyLimit).toBe(BILLING_ENABLED ? 500 : Number.MAX_SAFE_INTEGER);
-    expect(status!.subscription.repliesUsed).toBe(50);
+    expect(status!.subscription.replyLimit).toBe(BILLING_ENABLED ? 1_000 : Number.MAX_SAFE_INTEGER);
+    expect(status!.subscription.repliesUsed).toBe(100);
   });
 });
