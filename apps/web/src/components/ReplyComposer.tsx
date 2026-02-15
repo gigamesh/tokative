@@ -69,7 +69,7 @@ export function ReplyComposer({
     for (const c of selectedComments) {
       const lang = c.detectedLanguage || "unknown";
       counts.set(lang, (counts.get(lang) ?? 0) + 1);
-      if (lang !== targetLanguage && lang !== "unknown") translatableCount++;
+      if (lang !== targetLanguage && lang !== "unknown" && lang !== "other") translatableCount++;
     }
     if (translatableCount === 0) {
       return { hasTranslatableComments: false, languageSummary: "" };
@@ -78,6 +78,8 @@ export function ReplyComposer({
     for (const [lang, count] of counts) {
       if (lang === "unknown") {
         parts.push(`${count} → unknown (no translation)`);
+      } else if (lang === "other") {
+        parts.push(`${count} → other (no translation)`);
       } else if (lang === targetLanguage) {
         const name = langDisplayNames.of(lang) ?? lang;
         parts.push(`${count} → ${name} (no translation)`);
@@ -152,11 +154,8 @@ export function ReplyComposer({
   const allMessagesValid =
     messages.length > 1 ? messages.every((m) => m.trim()) : messages[0]?.trim();
 
-  const hasVariationMismatch =
-    messages.length > 1 && selectedCount < messages.length;
-
   const canSend =
-    allMessagesValid && selectedCount > 0 && !hasVariationMismatch && !isTranslatingReplies;
+    allMessagesValid && selectedCount > 0 && !isTranslatingReplies;
 
   const needsMoreVariations =
     (selectedCount > 30 && messages.length < 3) ||
@@ -417,12 +416,6 @@ export function ReplyComposer({
         >
           {isTranslatingReplies ? "Translating..." : disabled ? "Replying..." : "Reply"}
         </Button>
-        {hasVariationMismatch && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-elevated text-foreground-secondary text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-            Select at least {messages.length} comments or remove reply
-            variations
-          </div>
-        )}
       </div>
     </div>
   );

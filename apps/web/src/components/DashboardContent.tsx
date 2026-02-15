@@ -473,7 +473,7 @@ export function DashboardContent() {
           const pairs: Array<{ text: string; targetLanguage: string; commentIdx: number; msgIdx: number }> = [];
           for (let ci = 0; ci < capped.length; ci++) {
             const lang = capped[ci].detectedLanguage;
-            if (!lang || lang === targetLanguage) continue;
+            if (!lang || lang === "other" || lang === targetLanguage) continue;
             for (let mi = 0; mi < messages.length; mi++) {
               pairs.push({ text: messages[mi], targetLanguage: lang, commentIdx: ci, msgIdx: mi });
             }
@@ -494,7 +494,7 @@ export function DashboardContent() {
             if (results && results.length > 0) {
               for (let ci = 0; ci < capped.length; ci++) {
                 const lang = capped[ci].detectedLanguage;
-                if (!lang || lang === targetLanguage) continue;
+                if (!lang || lang === "other" || lang === targetLanguage) continue;
                 const msgIdx = ci % messages.length;
                 const key = `${lang}:${messages[msgIdx]}`;
                 const idx = deduped.get(key);
