@@ -3,8 +3,9 @@
 import { v } from "convex/values";
 import Stripe from "stripe";
 import { internal } from "./_generated/api";
-import { action } from "./_generated/server";
-import { getStripePriceIds, priceIdToPlanName, type PlanName } from "./plans";
+import { action, internalAction } from "./_generated/server";
+import { getStripePriceIds, priceIdToPlanName } from "./plans";
+import { REFERRAL_DISCOUNT_CENTS } from "./referrals";
 
 function getStripeKey(): string {
   return process.env.STRIPE_SECRET_KEY!;
@@ -170,6 +171,24 @@ export const handleWebhook = action({
           currentPeriodEnd: periodEnd * 1000,
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
         });
+
+        if (
+          mapStripeStatus(subscription.status) === "active" &&
+          plan !== "free"
+        ) {
+          const referral = await ctx.runQuery(
+            internal.referralHelpers.getReferralByReferred,
+            { referredId: user._id },
+          );
+          if (referral && referral.status === "pending") {
+            const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+            await ctx.scheduler.runAfter(
+              SEVEN_DAYS,
+              internal.referrals.qualifyReferral,
+              { referralId: referral._id },
+            );
+          }
+        }
         break;
       }
       case "customer.subscription.deleted": {
@@ -224,5 +243,39 @@ export const handleWebhook = action({
         break;
       }
     }
+  },
+});
+
+/** Creates a one-time 100% discount coupon and applies it to the referrer's subscription. */
+export const applyReferralCredit = internalAction({
+  args: {
+    referralId: v.id("referrals"),
+    referrerUserId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const user = await ctx.runQuery(internal.referralHelpers.getUserById, {
+      userId: args.referrerUserId,
+    });
+    if (!user?.stripeSubscriptionId || user.subscriptionStatus !== "active") {
+      return;
+    }
+
+    const stripe = getStripe();
+    const coupon = await stripe.coupons.create({
+      amount_off: REFERRAL_DISCOUNT_CENTS,
+      currency: "usd",
+      duration: "once",
+      name: `Referral credit — $${REFERRAL_DISCOUNT_CENTS / 100} off`,
+    });
+
+    await stripe.subscriptions.update(user.stripeSubscriptionId, {
+      discounts: [{ coupon: coupon.id }],
+    });
+
+    await ctx.runMutation(internal.referralHelpers.updateReferralStatus, {
+      referralId: args.referralId,
+      status: "qualified",
+      stripeCouponId: coupon.id,
+    });
   },
 });
