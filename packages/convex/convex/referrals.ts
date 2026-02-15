@@ -3,16 +3,17 @@ import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 
 export const QUALIFICATION_DELAY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-export const REFERRAL_DISCOUNT_CENTS = 1900; // $19 off next invoice
+export const REFERRAL_CREDIT = 3000; // $30 account credit
 
 const UNAMBIGUOUS_CHARS = "abcdefghjkmnpqrstuvwxyz23456789";
 
 function generateCode(): string {
   let code = "";
   for (let i = 0; i < 8; i++) {
-    code += UNAMBIGUOUS_CHARS[Math.floor(Math.random() * UNAMBIGUOUS_CHARS.length)];
+    code +=
+      UNAMBIGUOUS_CHARS[Math.floor(Math.random() * UNAMBIGUOUS_CHARS.length)];
   }
-  return `TOK-${code}`;
+  return `tok-${code}`;
 }
 
 /** Normalizes a Gmail address by stripping dots and +suffixes. */
@@ -68,7 +69,9 @@ export const getReferralStats = query({
       .collect();
 
     const pending = allReferrals.filter((r) => r.status === "pending").length;
-    const qualified = allReferrals.filter((r) => r.status === "qualified").length;
+    const qualified = allReferrals.filter(
+      (r) => r.status === "qualified",
+    ).length;
 
     return {
       referralCode: user.referralCode ?? null,
@@ -90,11 +93,14 @@ export const applyReferralCode = mutation({
       .unique();
     if (!referredUser) throw new Error("Referred user not found");
 
-    if (referredUser.referredByUserId) return { applied: false, reason: "already_referred" };
+    if (referredUser.referredByUserId)
+      return { applied: false, reason: "already_referred" };
 
     const referrer = await ctx.db
       .query("users")
-      .withIndex("by_referral_code", (q) => q.eq("referralCode", args.referralCode))
+      .withIndex("by_referral_code", (q) =>
+        q.eq("referralCode", args.referralCode),
+      )
       .unique();
     if (!referrer) return { applied: false, reason: "invalid_code" };
 
@@ -103,12 +109,16 @@ export const applyReferralCode = mutation({
     }
 
     if (referrer.email && referredUser.email) {
-      if (normalizeEmail(referrer.email) === normalizeEmail(referredUser.email)) {
+      if (
+        normalizeEmail(referrer.email) === normalizeEmail(referredUser.email)
+      ) {
         return { applied: false, reason: "same_email" };
       }
     }
 
-    await ctx.db.patch(referredUser._id, { referredByUserId: referrer._id });
+    await ctx.db.patch(referredUser._id, {
+      referredByUserId: referrer._id,
+    });
     await ctx.db.insert("referrals", {
       referrerId: referrer._id,
       referredId: referredUser._id,
@@ -142,7 +152,10 @@ export const qualifyReferral = internalMutation({
     });
 
     const referrer = await ctx.db.get(referral.referrerId);
-    if (referrer?.stripeSubscriptionId && referrer.subscriptionStatus === "active") {
+    if (
+      referrer?.stripeSubscriptionId &&
+      referrer.subscriptionStatus === "active"
+    ) {
       await ctx.scheduler.runAfter(0, internal.stripe.applyReferralCredit, {
         referralId: args.referralId,
         referrerUserId: referral.referrerId,

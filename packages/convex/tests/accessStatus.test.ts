@@ -27,7 +27,7 @@ describe("getAccessStatus", () => {
     expect(result!.subscription.plan).toBe("free");
     expect(result!.subscription.monthlyLimit).toBe(BILLING_ENABLED ? 500 : Number.MAX_SAFE_INTEGER);
     expect(result!.subscription.monthlyUsed).toBe(0);
-    expect(result!.subscription.replyLimit).toBe(BILLING_ENABLED ? 50 : Number.MAX_SAFE_INTEGER);
+    expect(result!.subscription.replyLimit).toBe(BILLING_ENABLED ? 100 : Number.MAX_SAFE_INTEGER);
     expect(result!.subscription.repliesUsed).toBe(0);
     expect(result!.features.translation).toBe(BILLING_ENABLED ? false : true);
     expect(result!.isAllowed).toBe(true);
@@ -56,8 +56,8 @@ describe("getAccessStatus", () => {
     expect(result!.subscription.plan).toBe("pro");
     expect(result!.subscription.status).toBe("active");
     expect(result!.subscription.interval).toBe("month");
-    expect(result!.subscription.monthlyLimit).toBe(BILLING_ENABLED ? 2_500 : Number.MAX_SAFE_INTEGER);
-    expect(result!.subscription.replyLimit).toBe(BILLING_ENABLED ? 500 : Number.MAX_SAFE_INTEGER);
+    expect(result!.subscription.monthlyLimit).toBe(BILLING_ENABLED ? 3_000 : Number.MAX_SAFE_INTEGER);
+    expect(result!.subscription.replyLimit).toBe(BILLING_ENABLED ? 1_000 : Number.MAX_SAFE_INTEGER);
     expect(result!.features.translation).toBe(true);
   });
 

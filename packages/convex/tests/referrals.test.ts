@@ -1,7 +1,7 @@
-import { describe, it, beforeEach } from "vitest";
+import { beforeEach, describe, it } from "vitest";
 import { api } from "../convex/_generated/api";
-import { createTestContext, createTestUser, expect } from "./helpers";
 import { Id } from "../convex/_generated/dataModel";
+import { createTestContext, createTestUser, expect } from "./helpers";
 
 describe("referrals", () => {
   let t: ReturnType<typeof createTestContext>;
@@ -17,7 +17,7 @@ describe("referrals", () => {
         clerkId,
       });
 
-      expect(code).toMatch(/^TOK-[a-z2-9]{8}$/);
+      expect(code).toMatch(/^tok-[a-z2-9]{8}$/);
     });
 
     it("returns the same code on subsequent calls", async () => {
@@ -111,7 +111,7 @@ describe("referrals", () => {
 
       const result = await t.mutation(api.referrals.applyReferralCode, {
         referredClerkId,
-        referralCode: "TOK-nonexist",
+        referralCode: "tok-nonexist",
       });
 
       expect(result).toMatchObject({ applied: false, reason: "invalid_code" });
@@ -184,7 +184,6 @@ describe("referrals", () => {
           createdAt: Date.now(),
           subscriptionPlan: "pro",
           subscriptionStatus: "active",
-          stripeSubscriptionId: "sub_test_referrer",
         });
         const referredId = await ctx.db.insert("users", {
           clerkId: referredClerkId,
@@ -253,6 +252,5 @@ describe("referrals", () => {
         expect(referral!.status).toBe("pending");
       });
     });
-
-});
+  });
 });

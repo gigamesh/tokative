@@ -156,7 +156,7 @@ describe("addBatch limit enforcement", () => {
 
     expect(result.limitReached).toBe(false);
     expect(result.plan).toBe("pro");
-    expect(result.monthlyLimit).toBe(BILLING_ENABLED ? 2_500 : Number.MAX_SAFE_INTEGER);
+    expect(result.monthlyLimit).toBe(BILLING_ENABLED ? 3_000 : Number.MAX_SAFE_INTEGER);
   });
 
   it("blocks at 500 for free but not for pro", async () => {

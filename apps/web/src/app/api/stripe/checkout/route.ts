@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { plan, interval } = await request.json();
+  const { plan, interval, trialDays } = await request.json();
   if (!plan || !interval) {
     return NextResponse.json({ error: "Missing plan or interval" }, { status: 400 });
   }
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       clerkId: userId,
       plan,
       interval,
+      ...(trialDays ? { trialDays } : {}),
     });
 
     return NextResponse.json(result);
