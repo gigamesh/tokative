@@ -1,5 +1,4 @@
-import { LinkButton } from "@/components/Button";
-import { ArrowRight } from "lucide-react";
+import { EarlyAccessForm } from "@/components/EarlyAccessForm";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -30,21 +29,18 @@ export default function Home() {
             <h1 className="text-6xl sm:text-7xl font-bold tracking-tight">
               <span className="text-gradient-brand">Tokative</span>
             </h1>
-            <p className="mt-6 text-lg sm:text-xl text-foreground-muted leading-relaxed max-w-xl mx-auto text-balance">
-              Manage TikTok engagement at scale. Collect comments, reply in
-              bulk, and track everything in one place.
+            <p className="mt-3 text-base text-foreground-muted">
+              TikTok community engagement made easy.
             </p>
-            <div className="mt-10">
-              <LinkButton
-                href="/sign-in"
-                variant="primary"
-                size="lg"
-                pill
-                className="group hover:scale-105"
-              >
-                Try It Out For Free
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-              </LinkButton>
+            <p className="mt-6 text-lg sm:text-xl text-foreground-muted leading-relaxed max-w-xl mx-auto text-balance">
+              Sign up for{" "}
+              <span className="text-foreground font-medium">
+                free premium access
+              </span>{" "}
+              when we launch.
+            </p>
+            <div className="mt-6">
+              <EarlyAccessForm />
             </div>
           </div>
         </section>
@@ -55,13 +51,13 @@ export default function Home() {
             <FeatureCard
               number="01"
               title="Collect"
-              description="Gather comments from any TikTok video with our Chrome extension. Automatic spam filtering included."
+              description="Gather comments from any TikTok video. Collate by user, translate to your native language, and find key search terms."
               accent="cyan"
             />
             <FeatureCard
               number="02"
               title="Reply"
-              description="Send personalized responses to multiple comments at once. Engage your audience efficiently."
+              description="Send language-translated responses to multiple comments at once. Engage your audience efficiently."
               accent="pink"
             />
             <FeatureCard

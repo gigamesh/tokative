@@ -48,7 +48,6 @@ export function Header() {
           Tokative
         </Link>
         <div className="flex items-center gap-6">
-          {BILLING_ENABLED && <NavLink href="/pricing">Pricing</NavLink>}
           {isLoaded && isSignedIn && (
             <NavLink href="/dashboard">Dashboard</NavLink>
           )}
@@ -63,7 +62,8 @@ export function Header() {
               <NavButton>Sign Out</NavButton>
             </SignOutButton>
           ) : (
-            <NavLink href="/sign-in">Sign In</NavLink>
+            // <NavLink href="/sign-in">Sign In</NavLink>
+            null
           )}
           {isDashboard && (
             <button

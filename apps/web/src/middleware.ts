@@ -1,13 +1,18 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import {
+  clerkClient,
+  clerkMiddleware,
+  createRouteMatcher,
+} from "@clerk/nextjs/server";
+import { isPremiumWhitelisted } from "@tokative/convex";
 import { NextResponse, NextRequest } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/api/webhooks(.*)",
+  "/api/early-access",
   "/not-authorized",
-  "/onboarding",
-  "/pricing",
+  "/verified",
   "/privacy",
   "/terms",
 ]);
@@ -40,8 +45,16 @@ function proxyClerkRequests(req: NextRequest) {
 }
 
 const clerkHandler = clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    await auth().protect();
+  if (isPublicRoute(req)) return;
+
+  const { userId } = await auth().protect();
+
+  const client = await clerkClient();
+  const user = await client.users.getUser(userId);
+  const email = user.emailAddresses[0]?.emailAddress;
+
+  if (!email || !isPremiumWhitelisted(email)) {
+    return NextResponse.redirect(new URL("/", req.url));
   }
 });
 

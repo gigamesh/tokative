@@ -7,8 +7,8 @@ const nextConfig = {
 };
 
 module.exports = withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
+  org: "gigamesh",
+  project: "tokative-web",
   silent: !process.env.CI,
   widenClientFileUpload: true,
   disableLogger: true,
