@@ -33,9 +33,12 @@ export default defineSchema({
     monthlyCommentResetAt: v.optional(v.number()),
     monthlyReplyCount: v.optional(v.number()),
     monthlyReplyResetAt: v.optional(v.number()),
+    referralCode: v.optional(v.string()),
+    referredByUserId: v.optional(v.id("users")),
   })
     .index("by_clerk_id", ["clerkId"])
-    .index("by_stripe_customer_id", ["stripeCustomerId"]),
+    .index("by_stripe_customer_id", ["stripeCustomerId"])
+    .index("by_referral_code", ["referralCode"]),
 
   tiktokProfiles: defineTable({
     userId: v.id("users"),
@@ -129,4 +132,16 @@ export default defineSchema({
     hideOwnReplies: v.optional(v.boolean()),
     deleteMissingComments: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
+
+  referrals: defineTable({
+    referrerId: v.id("users"),
+    referredId: v.id("users"),
+    status: v.union(v.literal("pending"), v.literal("qualified")),
+    qualifiedAt: v.optional(v.number()),
+    stripeCouponId: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_referrer", ["referrerId"])
+    .index("by_referred", ["referredId"])
+    .index("by_referrer_and_status", ["referrerId", "status"]),
 });
