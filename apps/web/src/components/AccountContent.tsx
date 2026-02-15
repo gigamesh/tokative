@@ -1,7 +1,8 @@
 "use client";
 
 import { useAuth } from "@/providers/ConvexProvider";
-import { api } from "@tokative/convex";
+import { api as convexApi } from "@tokative/convex";
+import { api } from "@/utils/api";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -54,7 +55,7 @@ export function AccountContent() {
   const [loading, setLoading] = useState(false);
 
   const accessStatus = useQuery(
-    api.users.getAccessStatus,
+    convexApi.users.getAccessStatus,
     userId ? { clerkId: userId } : "skip",
   );
 
@@ -63,11 +64,8 @@ export function AccountContent() {
   const handleManageSubscription = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/stripe/portal", { method: "POST" });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      const { url } = await api.post<{ url: string }>("/api/stripe/portal");
+      if (url) window.location.href = url;
     } finally {
       setLoading(false);
     }

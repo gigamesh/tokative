@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/Button";
+import { api, ApiError } from "@/utils/api";
 import { FormEvent, useState } from "react";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -16,22 +17,12 @@ export function EarlyAccessForm() {
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/early-access", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMsg(data.error || "Something went wrong.");
-        setStatus("error");
-        return;
-      }
-
+      await api.post("/api/early-access", { email: email.trim() });
       setStatus("success");
-    } catch {
-      setErrorMsg("Network error. Please try again.");
+    } catch (err) {
+      setErrorMsg(
+        err instanceof ApiError ? err.message : "Network error. Please try again.",
+      );
       setStatus("error");
     }
   }

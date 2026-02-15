@@ -1,7 +1,8 @@
 "use client";
 
 import { useAuth } from "@/providers/ConvexProvider";
-import { api, PLAN_LIMITS, type PlanName } from "@tokative/convex";
+import { api as convexApi, PLAN_LIMITS, type PlanName } from "@tokative/convex";
+import { api } from "@/utils/api";
 import { useQuery } from "convex/react";
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -59,7 +60,7 @@ export function PricingContent() {
   const router = useRouter();
 
   const accessStatus = useQuery(
-    api.users.getAccessStatus,
+    convexApi.users.getAccessStatus,
     userId ? { clerkId: userId } : "skip",
   );
 
@@ -73,15 +74,8 @@ export function PricingContent() {
 
     setLoadingPlan(planKey);
     try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planKey, interval }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      const { url } = await api.post<{ url: string }>("/api/stripe/checkout", { plan: planKey, interval });
+      if (url) window.location.href = url;
     } finally {
       setLoadingPlan(null);
     }
@@ -90,11 +84,8 @@ export function PricingContent() {
   async function handleManageSubscription() {
     setLoadingPlan("manage");
     try {
-      const res = await fetch("/api/stripe/portal", { method: "POST" });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      const { url } = await api.post<{ url: string }>("/api/stripe/portal");
+      if (url) window.location.href = url;
     } finally {
       setLoadingPlan(null);
     }
