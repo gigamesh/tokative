@@ -6,11 +6,14 @@ const nextConfig = {
   transpilePackages: ["@tokative/convex", "@tokative/shared"],
 };
 
-module.exports = withSentryConfig(nextConfig, {
-  org: "gigamesh",
-  project: "tokative-web",
-  silent: !process.env.CI,
-  widenClientFileUpload: true,
-  disableLogger: true,
-  hideSourceMaps: true,
-});
+module.exports =
+  process.env.NODE_ENV === "production"
+    ? withSentryConfig(nextConfig, {
+        org: "gigamesh",
+        project: "tokative-web",
+        silent: !process.env.CI,
+        widenClientFileUpload: true,
+        disableLogger: true,
+        hideSourceMaps: true,
+      })
+    : nextConfig;

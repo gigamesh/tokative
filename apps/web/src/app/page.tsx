@@ -32,12 +32,8 @@ export default function Home() {
             <p className="mt-3 text-base text-foreground-muted">
               TikTok community engagement made easy.
             </p>
-            <p className="mt-6 text-lg sm:text-xl text-foreground-muted leading-relaxed max-w-xl mx-auto text-balance">
-              Sign up for{" "}
-              <span className="text-foreground font-medium">
-                free premium access
-              </span>{" "}
-              when we launch.
+            <p className="mt-8 text-lg sm:text-xl text-foreground-muted leading-relaxed max-w-xl mx-auto text-balance">
+              Sign up for early access.
             </p>
             <div className="mt-6">
               <EarlyAccessForm />
