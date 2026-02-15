@@ -66,6 +66,13 @@ export const getAccessStatus = query({
         ? (user.monthlyReplyCount ?? 0)
         : 0;
 
+    const allReferrals = await ctx.db
+      .query("referrals")
+      .withIndex("by_referrer", (q) => q.eq("referrerId", user._id))
+      .collect();
+    const referralPending = allReferrals.filter((r) => r.status === "pending").length;
+    const referralQualified = allReferrals.filter((r) => r.status === "qualified").length;
+
     return {
       isAllowed: true,
       hasCompletedOnboarding: user.hasCompletedOnboarding ?? false,
@@ -82,6 +89,10 @@ export const getAccessStatus = query({
         monthlyUsed,
         replyLimit,
         repliesUsed,
+      },
+      referral: {
+        pending: referralPending,
+        qualified: referralQualified,
       },
     };
   },

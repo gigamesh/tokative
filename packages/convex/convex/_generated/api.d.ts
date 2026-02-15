@@ -20,6 +20,8 @@ import type * as lib_detectLanguage from "../lib/detectLanguage.js";
 import type * as lib_r2 from "../lib/r2.js";
 import type * as lib_translate from "../lib/translate.js";
 import type * as plans from "../plans.js";
+import type * as referralHelpers from "../referralHelpers.js";
+import type * as referrals from "../referrals.js";
 import type * as searchHelpers from "../searchHelpers.js";
 import type * as settings from "../settings.js";
 import type * as stripe from "../stripe.js";
@@ -49,6 +51,8 @@ declare const fullApi: ApiFromModules<{
   "lib/r2": typeof lib_r2;
   "lib/translate": typeof lib_translate;
   plans: typeof plans;
+  referralHelpers: typeof referralHelpers;
+  referrals: typeof referrals;
   searchHelpers: typeof searchHelpers;
   settings: typeof settings;
   stripe: typeof stripe;
