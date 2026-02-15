@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./Button";
 import { Modal } from "./Modal";
+import { ReferralSection } from "./ReferralSection";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -148,6 +149,8 @@ export function SettingsModal({
             </div>
           )}
         </div>
+
+        <ReferralSection />
       </div>
     </Modal>
   );
