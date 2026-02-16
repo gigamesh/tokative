@@ -30,7 +30,6 @@ interface VideoDataState {
   loading: boolean;
   error: string | null;
   getCommentsProgress: Map<string, GetVideoCommentsProgress>;
-  pendingVideoIds: string[];
   batchProgress: BatchCommentsProgress | null;
   scrapingState: ScrapingState | null;
   scrapeReport: ScrapeReport | null;
@@ -43,14 +42,11 @@ export function useVideoData() {
     loading: true,
     error: null,
     getCommentsProgress: new Map(),
-    pendingVideoIds: [],
     batchProgress: null,
     scrapingState: null,
     scrapeReport: null,
     isCancelling: false,
   });
-  const isProcessingRef = useRef(false);
-  const currentFetchingVideoId = useRef<string | null>(null);
   const lastBatchProgressRef = useRef<{ completedVideos: number; totalComments: number } | null>(null);
 
   const videosQuery = useQuery(
@@ -68,63 +64,38 @@ export function useVideoData() {
     }
   }, [videosQuery]);
 
-  const startVideoCommentFetch = useCallback((videoId: string) => {
-    if (!bridge) return;
-
-    isProcessingRef.current = true;
-    currentFetchingVideoId.current = videoId;
-    setState((prev) => {
-      const newProgress = new Map(prev.getCommentsProgress);
-      newProgress.set(videoId, {
-        videoId,
-        status: "navigating",
-        message: "Starting...",
-      });
-      return { ...prev, getCommentsProgress: newProgress };
-    });
-
-    bridge.send(MessageType.GET_VIDEO_COMMENTS, { videoId });
-  }, []);
-
-  const processNextInQueue = useCallback(() => {
-    setState((prev) => {
-      if (prev.pendingVideoIds.length === 0) {
-        isProcessingRef.current = false;
-        return prev;
-      }
-
-      const [nextVideoId, ...remainingIds] = prev.pendingVideoIds;
-      setTimeout(() => startVideoCommentFetch(nextVideoId), 500);
-      return { ...prev, pendingVideoIds: remainingIds };
-    });
-  }, [startVideoCommentFetch]);
-
   const getCommentsForVideos = useCallback(
     (videoIds: string[]) => {
       if (videoIds.length === 0 || !bridge) return;
 
-      if (videoIds.length === 1) {
-        startVideoCommentFetch(videoIds[0]);
-        return;
-      }
-
       lastBatchProgressRef.current = null;
-      setState((prev) => ({
-        ...prev,
-        batchProgress: {
-          totalVideos: videoIds.length,
-          completedVideos: 0,
-          currentVideoIndex: 0,
-          currentVideoId: null,
-          totalComments: 0,
-          status: "processing",
-          message: "Starting batch fetch...",
-        },
-      }));
+      setState((prev) => {
+        const newProgress = new Map(prev.getCommentsProgress);
+        for (const id of videoIds) {
+          newProgress.set(id, {
+            videoId: id,
+            status: "navigating",
+            message: "Queued...",
+          });
+        }
+        return {
+          ...prev,
+          batchProgress: {
+            totalVideos: videoIds.length,
+            completedVideos: 0,
+            currentVideoIndex: 0,
+            currentVideoId: null,
+            totalComments: 0,
+            status: "processing",
+            message: "Starting batch fetch...",
+          },
+          getCommentsProgress: newProgress,
+        };
+      });
 
       bridge.send(MessageType.GET_BATCH_COMMENTS, { videoIds });
     },
-    [startVideoCommentFetch]
+    []
   );
 
   useEffect(() => {
@@ -135,117 +106,11 @@ export function useVideoData() {
         // Convex will auto-update via real-time query
       }),
 
-      bridge.on(MessageType.GET_VIDEO_COMMENTS_PROGRESS, (payload) => {
-        const progress = payload as GetVideoCommentsProgress;
-        setState((prev) => {
-          if (prev.isCancelling) return prev;
-          const newProgress = new Map(prev.getCommentsProgress);
-          newProgress.set(progress.videoId, progress);
-          return { ...prev, getCommentsProgress: newProgress };
-        });
-      }),
-
-      bridge.on(MessageType.GET_VIDEO_COMMENTS_COMPLETE, (payload) => {
-        const { videoId } = payload as { videoId: string };
-        let wasCancelling = false;
-        setState((prev) => {
-          if (prev.isCancelling) {
-            wasCancelling = true;
-            return {
-              ...prev,
-              batchProgress: null,
-              getCommentsProgress: new Map(),
-              pendingVideoIds: [],
-              scrapingState: null,
-              isCancelling: false,
-            };
-          }
-          const newProgress = new Map(prev.getCommentsProgress);
-          newProgress.delete(videoId);
-          return {
-            ...prev,
-            getCommentsProgress: newProgress,
-            scrapingState: null,
-          };
-        });
-        if (wasCancelling) {
-          isProcessingRef.current = false;
-          toast("Collecting cancelled.");
-          return;
-        }
-        processNextInQueue();
-      }),
-
-      bridge.on(MessageType.GET_VIDEO_COMMENTS_ERROR, (payload) => {
-        const { videoId, error, stats } = payload as {
-          videoId?: string;
-          error: string;
-          stats?: ScrapeStats;
-        };
-        setState((prev) => {
-          if (videoId) {
-            const newProgress = new Map(prev.getCommentsProgress);
-            newProgress.delete(videoId);
-            return {
-              ...prev,
-              getCommentsProgress: newProgress,
-              error,
-              scrapingState: null,
-            };
-          }
-          return {
-            ...prev,
-            getCommentsProgress: new Map(),
-            pendingVideoIds: [],
-            error,
-            scrapingState: null,
-          };
-        });
-        console.error("Failed to scrape comments:", error, stats ? `| found: ${stats.found}, new: ${stats.new}, preexisting: ${stats.preexisting}, ignored: ${stats.ignored}` : "");
-        const tabClosed = error?.includes("tab was closed");
-        if (stats && stats.new > 0) {
-          toast(`Scraping stopped early — ${stats.found} comments found, ${stats.new} new saved.`);
-        } else if (stats) {
-          toast(`Scraping stopped — ${stats.found} comments found, none were new.`);
-        } else if (tabClosed) {
-          toast("Scraping cancelled — TikTok tab was closed.");
-        } else {
-          toast.error("Failed to collect comments. Check console for details.");
-        }
-        if (videoId) {
-          processNextInQueue();
-        }
-      }),
-
       bridge.on(MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE, (payload) => {
-        const { comments, stats, cancelled, limitReached } = payload as {
-          comments: Array<{ videoId?: string }>;
-          stats?: ScrapeStats;
-          cancelled?: boolean;
-          limitReached?: boolean;
-        };
-
+        const { cancelled } = payload as { cancelled?: boolean };
         if (cancelled) {
           setState((prev) => ({ ...prev, isCancelling: true }));
-          return;
         }
-
-        const videoId =
-          comments?.[0]?.videoId || currentFetchingVideoId.current;
-
-        setState((prev) => {
-          if (prev.isCancelling) return prev;
-          const newProgress = new Map(prev.getCommentsProgress);
-          if (videoId) {
-            newProgress.delete(videoId);
-          }
-          return {
-            ...prev,
-            getCommentsProgress: newProgress,
-            scrapingState: null,
-            scrapeReport: stats ? { stats, limitReached } : prev.scrapeReport,
-          };
-        });
       }),
 
       bridge.on(MessageType.GET_BATCH_COMMENTS_PROGRESS, (payload) => {
@@ -283,7 +148,10 @@ export function useVideoData() {
 
           return {
             ...prev,
-            batchProgress: progress,
+            batchProgress: {
+              ...progress,
+              totalVideos: Math.max(prev.batchProgress?.totalVideos ?? 0, progress.totalVideos),
+            },
             getCommentsProgress: newProgress,
           };
         });
@@ -332,7 +200,6 @@ export function useVideoData() {
             isCancelling: false,
           };
         });
-        isProcessingRef.current = false;
         if (wasCancelling) {
           const savedProgress = lastBatchProgressRef.current;
           lastBatchProgressRef.current = null;
@@ -357,7 +224,7 @@ export function useVideoData() {
     ];
 
     return () => cleanups.forEach((cleanup) => cleanup());
-  }, [processNextInQueue]);
+  }, []);
 
   const removeVideos = useCallback(
     async (videoIds: string[]) => {
@@ -373,6 +240,72 @@ export function useVideoData() {
       }
     },
     [userId, removeVideosMutation]
+  );
+
+  const addToBatch = useCallback(
+    (videoIds: string[]) => {
+      if (videoIds.length === 0 || !bridge || !state.batchProgress) return;
+
+      const alreadyInBatch = new Set(
+        Array.from(state.getCommentsProgress.keys()),
+      );
+      const newIds = videoIds.filter((id) => !alreadyInBatch.has(id));
+      if (newIds.length === 0) return;
+
+      setState((prev) => {
+        if (!prev.batchProgress) return prev;
+        const newProgress = new Map(prev.getCommentsProgress);
+        for (const id of newIds) {
+          newProgress.set(id, {
+            videoId: id,
+            status: "navigating",
+            message: "Queued...",
+          });
+        }
+        return {
+          ...prev,
+          batchProgress: {
+            ...prev.batchProgress,
+            totalVideos: prev.batchProgress.totalVideos + newIds.length,
+          },
+          getCommentsProgress: newProgress,
+        };
+      });
+
+      bridge.send(MessageType.ADD_BATCH_VIDEOS, { videoIds: newIds });
+    },
+    [state.batchProgress, state.getCommentsProgress],
+  );
+
+  const removeFromBatch = useCallback(
+    (videoIds: string[]) => {
+      if (videoIds.length === 0 || !bridge || !state.batchProgress) return;
+
+      const removable = videoIds.filter((id) => {
+        const progress = state.getCommentsProgress.get(id);
+        return !progress || progress.status === "navigating";
+      });
+      if (removable.length === 0) return;
+
+      setState((prev) => {
+        if (!prev.batchProgress) return prev;
+        const newProgress = new Map(prev.getCommentsProgress);
+        for (const id of removable) {
+          newProgress.delete(id);
+        }
+        return {
+          ...prev,
+          batchProgress: {
+            ...prev.batchProgress,
+            totalVideos: Math.max(0, prev.batchProgress.totalVideos - removable.length),
+          },
+          getCommentsProgress: newProgress,
+        };
+      });
+
+      bridge.send(MessageType.REMOVE_BATCH_VIDEOS, { videoIds: removable });
+    },
+    [state.batchProgress, state.getCommentsProgress],
   );
 
   const cancelScraping = useCallback(() => {
@@ -397,13 +330,14 @@ export function useVideoData() {
     loading: state.loading || videosQuery === undefined,
     error: state.error,
     getCommentsProgress: state.getCommentsProgress,
-    pendingVideoIds: state.pendingVideoIds,
     batchProgress: state.batchProgress,
     scrapingState: state.scrapingState,
     scrapeReport: state.scrapeReport,
     isScraping,
     isCancelling: state.isCancelling,
     getCommentsForVideos,
+    addToBatch,
+    removeFromBatch,
     removeVideos,
     cancelScraping,
     closeScrapeReport,

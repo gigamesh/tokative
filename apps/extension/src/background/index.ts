@@ -48,9 +48,9 @@ let activeScrapingTabId: number | null = null;
 let isApiScraping = false;
 let isBatchScraping = false;
 let batchCancelled = false;
+let batchVideoQueue: Array<{ videoId: string; videoUrl: string }> = [];
+let currentBatchIndex = 0;
 const closingTabsIntentionally = new Set<number>();
-let lastScrapingVideoId: string | null = null;
-let lastScrapingStats: ScrapeStats | null = null;
 let lastBatchProgress: {
   completedVideos: number;
   totalComments: number;
@@ -60,9 +60,6 @@ let lastBatchProgress: {
 const FORWARD_TO_DASHBOARD_MESSAGES: Set<MessageType> = new Set([
   MessageType.SCRAPE_VIDEOS_PROGRESS,
   MessageType.SCRAPE_VIDEOS_ERROR,
-  MessageType.GET_VIDEO_COMMENTS_PROGRESS,
-  MessageType.GET_VIDEO_COMMENTS_COMPLETE,
-  MessageType.GET_VIDEO_COMMENTS_ERROR,
   MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS,
   MessageType.SCRAPE_VIDEO_COMMENTS_ERROR,
   MessageType.REPLY_COMMENT_PROGRESS,
@@ -75,8 +72,6 @@ async function cleanupScrapingSession(): Promise<void> {
   activeScrapingTabId = null;
   isApiScraping = false;
   isBatchScraping = false;
-  lastScrapingVideoId = null;
-  lastScrapingStats = null;
   lastBatchProgress = null;
   await clearScrapingState();
   broadcastScrapingState();
@@ -156,31 +151,17 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 
   if (activeScrapingTabId && tabId === activeScrapingTabId) {
     logger.log("[Background] Scraping tab was closed by user");
-    const wasBatchScraping = isBatchScraping;
-    const savedVideoId = lastScrapingVideoId;
-    const savedStats = lastScrapingStats;
     const savedBatch = lastBatchProgress;
     await cleanupScrapingSession();
 
-    if (wasBatchScraping) {
-      broadcastToDashboard({
-        type: MessageType.GET_BATCH_COMMENTS_ERROR,
-        payload: {
-          error: "Collecting cancelled - TikTok tab was closed",
-          completedVideos: savedBatch?.completedVideos ?? 0,
-          totalComments: savedBatch?.totalComments ?? 0,
-        },
-      });
-    } else {
-      broadcastToDashboard({
-        type: MessageType.GET_VIDEO_COMMENTS_ERROR,
-        payload: {
-          error: "Collecting cancelled - TikTok tab was closed",
-          videoId: savedVideoId,
-          stats: savedStats,
-        },
-      });
-    }
+    broadcastToDashboard({
+      type: MessageType.GET_BATCH_COMMENTS_ERROR,
+      payload: {
+        error: "Collecting cancelled - TikTok tab was closed",
+        completedVideos: savedBatch?.completedVideos ?? 0,
+        totalComments: savedBatch?.totalComments ?? 0,
+      },
+    });
   }
 });
 
@@ -261,10 +242,6 @@ export async function handleMessage(
 ): Promise<unknown> {
   // Handle simple message forwarding to dashboard
   if (FORWARD_TO_DASHBOARD_MESSAGES.has(message.type)) {
-    if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
-      const payload = message.payload as { stats?: ScrapeStats };
-      if (payload.stats) lastScrapingStats = payload.stats;
-    }
     broadcastToDashboard(message);
     return { success: true };
   }
@@ -642,13 +619,46 @@ async function handlePortMessage(
 
     case MessageType.GET_VIDEO_COMMENTS: {
       const { videoId } = message.payload as { videoId: string };
-      await handleGetVideoComments(videoId, port);
+      await handleGetBatchComments([videoId], port);
       break;
     }
 
     case MessageType.GET_BATCH_COMMENTS: {
       const { videoIds } = message.payload as { videoIds: string[] };
       await handleGetBatchComments(videoIds, port);
+      break;
+    }
+
+    case MessageType.ADD_BATCH_VIDEOS: {
+      const { videoIds } = message.payload as { videoIds: string[] };
+      if (isBatchScraping && videoIds.length > 0) {
+        const videos = await getVideos();
+        const existingIds = new Set(batchVideoQueue.map((v) => v.videoId));
+        const newVideos = videoIds
+          .filter((id) => !existingIds.has(id))
+          .map((id) => videos.find((v) => v.videoId === id))
+          .filter((v): v is NonNullable<typeof v> => v !== undefined);
+        if (newVideos.length > 0) {
+          batchVideoQueue.push(...newVideos);
+          logger.log(`[Background] Added ${newVideos.length} videos to batch queue (now ${batchVideoQueue.length} total)`);
+        }
+      }
+      break;
+    }
+
+    case MessageType.REMOVE_BATCH_VIDEOS: {
+      const { videoIds } = message.payload as { videoIds: string[] };
+      if (isBatchScraping && videoIds.length > 0) {
+        const idsToRemove = new Set(videoIds);
+        const beforeLen = batchVideoQueue.length;
+        batchVideoQueue = batchVideoQueue.filter(
+          (v, idx) => idx <= currentBatchIndex || !idsToRemove.has(v.videoId),
+        );
+        const removed = beforeLen - batchVideoQueue.length;
+        if (removed > 0) {
+          logger.log(`[Background] Removed ${removed} videos from batch queue (now ${batchVideoQueue.length} total)`);
+        }
+      }
       break;
     }
 
@@ -1015,140 +1025,6 @@ async function handleBulkReply(
   }
 }
 
-async function handleGetVideoComments(
-  videoId: string,
-  port: chrome.runtime.Port,
-): Promise<void> {
-  await handleGetVideoCommentsViaApi(videoId, port);
-}
-
-async function handleGetVideoCommentsViaApi(
-  videoId: string,
-  port: chrome.runtime.Port,
-): Promise<void> {
-  try {
-    const videos = await getVideos();
-    const video = videos.find((v) => v.videoId === videoId);
-    if (!video) {
-      port.postMessage({
-        type: MessageType.GET_VIDEO_COMMENTS_ERROR,
-        payload: { videoId, error: "Video not found in storage" },
-      });
-      return;
-    }
-
-    port.postMessage({
-      type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
-      payload: { videoId, status: "navigating", message: "Opening video..." },
-    });
-
-    const tab = await chrome.tabs.create({
-      url: video.videoUrl,
-      active: false,
-      index: await getDashboardTabIndex(),
-    });
-
-    if (!tab.id)
-      throw new TabError("TAB_CREATE_FAILED", "Failed to create tab");
-    chrome.tabs.update(tab.id, { muted: true });
-
-    activeScrapingTabId = tab.id;
-    isApiScraping = true;
-    isBatchScraping = false;
-    lastScrapingVideoId = videoId;
-    lastScrapingStats = null;
-
-    await updateAndBroadcastScrapingState({
-      isActive: true,
-      isPaused: false,
-      videoId,
-      tabId: tab.id,
-      commentsFound: 0,
-      status: "loading",
-      message: "Opening video...",
-    });
-    updateBadge("...", colors.status.info);
-
-    await waitForTabLoad(tab.id);
-
-    await updateAndBroadcastScrapingState({
-      status: "scraping",
-      message: "Collecting comments...",
-    });
-
-    port.postMessage({
-      type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
-      payload: {
-        videoId,
-        status: "scraping",
-        message: "Collecting comments...",
-      },
-    });
-
-    return new Promise<void>((resolve) => {
-      const responseHandler = async (msg: ExtensionMessage) => {
-        if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
-          const payload = msg.payload as {
-            commentsFound?: number;
-            message?: string;
-            stats?: ScrapeStats;
-          };
-          if (payload.stats) lastScrapingStats = payload.stats;
-          const count = payload.commentsFound || 0;
-          await updateAndBroadcastScrapingState({
-            commentsFound: count,
-            message: payload.message || "Collecting...",
-          });
-          updateBadge(count.toString(), colors.status.info);
-          port.postMessage({
-            type: MessageType.GET_VIDEO_COMMENTS_PROGRESS,
-            payload: { videoId, ...payload },
-          });
-        } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-          const { comments: scrapedComments } = msg.payload as {
-            comments: ScrapedComment[];
-          };
-          updateVideo(videoId, { commentsScraped: true });
-          port.postMessage({
-            type: MessageType.GET_VIDEO_COMMENTS_COMPLETE,
-            payload: { videoId, commentCount: scrapedComments?.length || 0 },
-          });
-          chrome.runtime.onMessage.removeListener(responseHandler);
-          await cleanupScrapingSession();
-          closingTabsIntentionally.add(tab.id!);
-          chrome.tabs.remove(tab.id!);
-          await focusDashboardTab();
-          resolve();
-        } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {
-          const errorPayload = (msg.payload || {}) as Record<string, unknown>;
-          port.postMessage({
-            type: MessageType.GET_VIDEO_COMMENTS_ERROR,
-            payload: { videoId, ...errorPayload, stats: lastScrapingStats },
-          });
-          chrome.runtime.onMessage.removeListener(responseHandler);
-          await cleanupScrapingSession();
-          closingTabsIntentionally.add(tab.id!);
-          chrome.tabs.remove(tab.id!);
-          await focusDashboardTab();
-          resolve();
-        }
-      };
-
-      chrome.runtime.onMessage.addListener(responseHandler);
-
-      chrome.tabs.sendMessage(tab.id!, {
-        type: MessageType.SCRAPE_VIDEO_COMMENTS_API_START,
-      });
-    });
-  } catch (error) {
-    await cleanupScrapingSession();
-    port.postMessage({
-      type: MessageType.GET_VIDEO_COMMENTS_ERROR,
-      payload: { videoId, error: getErrorMessage(error) },
-    });
-  }
-}
-
 async function handleGetBatchComments(
   videoIds: string[],
   port: chrome.runtime.Port,
@@ -1156,11 +1032,11 @@ async function handleGetBatchComments(
   if (videoIds.length === 0) return;
 
   const videos = await getVideos();
-  const videosToProcess = videoIds
+  batchVideoQueue = videoIds
     .map((id) => videos.find((v) => v.videoId === id))
     .filter((v): v is NonNullable<typeof v> => v !== undefined);
 
-  if (videosToProcess.length === 0) {
+  if (batchVideoQueue.length === 0) {
     port.postMessage({
       type: MessageType.GET_BATCH_COMMENTS_ERROR,
       payload: { error: "No valid videos found" },
@@ -1180,7 +1056,7 @@ async function handleGetBatchComments(
   const cumulativeStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
 
   logger.log(
-    `[Background] Starting batch scrape: ${videosToProcess.length} videos`,
+    `[Background] Starting batch scrape: ${batchVideoQueue.length} videos`,
   );
 
   const sendProgress = (
@@ -1192,7 +1068,7 @@ async function handleGetBatchComments(
     port.postMessage({
       type: MessageType.GET_BATCH_COMMENTS_PROGRESS,
       payload: {
-        totalVideos: videosToProcess.length,
+        totalVideos: batchVideoQueue.length,
         completedVideos,
         currentVideoIndex,
         currentVideoId,
@@ -1203,19 +1079,20 @@ async function handleGetBatchComments(
       },
     });
     updateBadge(
-      `${currentVideoIndex}/${videosToProcess.length}`,
+      `${currentVideoIndex}/${batchVideoQueue.length}`,
       colors.status.info,
     );
   };
 
   try {
-    for (let i = 0; i < videosToProcess.length; i++) {
+    for (let i = 0; i < batchVideoQueue.length; i++) {
+      currentBatchIndex = i;
       if (batchCancelled) {
         logger.log("[Background] Batch cancelled, stopping loop");
         break;
       }
 
-      const video = videosToProcess[i];
+      const video = batchVideoQueue[i];
 
       if (batchLimitReached) {
         logger.log("[Background] Monthly limit reached, stopping batch");
@@ -1225,7 +1102,7 @@ async function handleGetBatchComments(
       sendProgress(
         i + 1,
         video.videoId,
-        `Collecting post ${i + 1} of ${videosToProcess.length}...`,
+        `Starting ${i + 1} of ${batchVideoQueue.length}...`,
       );
 
       if (!tab) {
@@ -1251,7 +1128,7 @@ async function handleGetBatchComments(
         tabId: tab?.id || null,
         commentsFound: 0,
         status: "loading",
-        message: `Opening post ${i + 1} of ${videosToProcess.length}...`,
+        message: `Opening post ${i + 1} of ${batchVideoQueue.length}...`,
       });
 
       await waitForTabLoad(tab!.id!);
@@ -1266,7 +1143,7 @@ async function handleGetBatchComments(
           port.postMessage({
             type: MessageType.GET_BATCH_COMMENTS_PROGRESS,
             payload: {
-              totalVideos: videosToProcess.length,
+              totalVideos: batchVideoQueue.length,
               completedVideos,
               currentVideoIndex: videoIndex,
               currentVideoId: videoId,
@@ -1277,7 +1154,7 @@ async function handleGetBatchComments(
             },
           });
           updateBadge(
-            `${videoIndex}/${videosToProcess.length}`,
+            `${videoIndex}/${batchVideoQueue.length}`,
             colors.status.info,
           );
         },
@@ -1296,7 +1173,7 @@ async function handleGetBatchComments(
       sendProgress(
         i + 1,
         video.videoId,
-        `Collected post ${i + 1} of ${videosToProcess.length}`,
+        `Collected post ${i + 1} of ${batchVideoQueue.length}`,
       );
 
       if (batchCancelled) {
@@ -1326,9 +1203,9 @@ async function handleGetBatchComments(
       port.postMessage({
         type: MessageType.GET_BATCH_COMMENTS_COMPLETE,
         payload: {
-          totalVideos: videosToProcess.length,
+          totalVideos: batchVideoQueue.length,
           totalComments,
-          videoIds: videosToProcess.map((v) => v.videoId),
+          videoIds: batchVideoQueue.map((v) => v.videoId),
           stats: cumulativeStats,
           limitReached: batchLimitReached,
         },

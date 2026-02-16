@@ -252,6 +252,8 @@ function isPortMessage(type: MessageType): boolean {
     MessageType.SCRAPE_VIDEOS_STOP,
     MessageType.GET_VIDEO_COMMENTS,
     MessageType.GET_BATCH_COMMENTS,
+    MessageType.ADD_BATCH_VIDEOS,
+    MessageType.REMOVE_BATCH_VIDEOS,
     MessageType.SCRAPE_VIDEO_COMMENTS_STOP,
   ];
   return portMessages.includes(type);

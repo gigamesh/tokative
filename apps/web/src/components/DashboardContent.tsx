@@ -6,10 +6,10 @@ import { Button } from "@/components/Button";
 import { CommentTable, SortOption } from "@/components/CommentTable";
 import { CommenterTable } from "@/components/CommenterTable";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
+import { LimitReachedModal } from "@/components/LimitReachedModal";
 import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
 import { PostsGrid } from "@/components/PostsGrid";
 import { ReplyComposer } from "@/components/ReplyComposer";
-import { LimitReachedModal } from "@/components/LimitReachedModal";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -131,6 +131,8 @@ export function DashboardContent() {
     loading: videosLoading,
     getCommentsProgress,
     getCommentsForVideos,
+    addToBatch,
+    removeFromBatch,
     removeVideos: removeVideosList,
     batchProgress,
     isScraping,
@@ -246,7 +248,8 @@ export function DashboardContent() {
   const replyBudget = Math.max(0, replyLimit - repliesUsed);
   const replyLimitReached = replyBudget === 0;
   const commentLimitReached =
-    (accessStatus?.subscription?.monthlyUsed ?? 0) >= (accessStatus?.subscription?.monthlyLimit ?? Infinity);
+    (accessStatus?.subscription?.monthlyUsed ?? 0) >=
+    (accessStatus?.subscription?.monthlyLimit ?? Infinity);
 
   useEffect(() => {
     if (bulkReplyProgress?.status === "complete") {
@@ -470,23 +473,37 @@ export function DashboardContent() {
 
       if (translateRepliesEnabled && translationEnabled) {
         try {
-          const pairs: Array<{ text: string; targetLanguage: string; commentIdx: number; msgIdx: number }> = [];
+          const pairs: Array<{
+            text: string;
+            targetLanguage: string;
+            commentIdx: number;
+            msgIdx: number;
+          }> = [];
           for (let ci = 0; ci < capped.length; ci++) {
             const lang = capped[ci].detectedLanguage;
             if (!lang || lang === "other" || lang === targetLanguage) continue;
             for (let mi = 0; mi < messages.length; mi++) {
-              pairs.push({ text: messages[mi], targetLanguage: lang, commentIdx: ci, msgIdx: mi });
+              pairs.push({
+                text: messages[mi],
+                targetLanguage: lang,
+                commentIdx: ci,
+                msgIdx: mi,
+              });
             }
           }
 
           if (pairs.length > 0) {
             const deduped = new Map<string, number>();
-            const dedupedList: Array<{ text: string; targetLanguage: string }> = [];
+            const dedupedList: Array<{ text: string; targetLanguage: string }> =
+              [];
             for (const p of pairs) {
               const key = `${p.targetLanguage}:${p.text}`;
               if (!deduped.has(key)) {
                 deduped.set(key, dedupedList.length);
-                dedupedList.push({ text: p.text, targetLanguage: p.targetLanguage });
+                dedupedList.push({
+                  text: p.text,
+                  targetLanguage: p.targetLanguage,
+                });
               }
             }
 
@@ -494,12 +511,16 @@ export function DashboardContent() {
             if (results && results.length > 0) {
               for (let ci = 0; ci < capped.length; ci++) {
                 const lang = capped[ci].detectedLanguage;
-                if (!lang || lang === "other" || lang === targetLanguage) continue;
+                if (!lang || lang === "other" || lang === targetLanguage)
+                  continue;
                 const msgIdx = ci % messages.length;
                 const key = `${lang}:${messages[msgIdx]}`;
                 const idx = deduped.get(key);
                 if (idx !== undefined && results[idx]) {
-                  capped[ci] = { ...capped[ci], messageToSend: results[idx].translatedText };
+                  capped[ci] = {
+                    ...capped[ci],
+                    messageToSend: results[idx].translatedText,
+                  };
                 }
               }
             }
@@ -511,7 +532,16 @@ export function DashboardContent() {
 
       startBulkReply(capped, messages, deleteMissing);
     },
-    [selectedCommentsForDisplay, replyBudget, startBulkReply, translateRepliesEnabled, translationEnabled, targetLanguage, translateReplies, showToast],
+    [
+      selectedCommentsForDisplay,
+      replyBudget,
+      startBulkReply,
+      translateRepliesEnabled,
+      translationEnabled,
+      targetLanguage,
+      translateReplies,
+      showToast,
+    ],
   );
 
   const handleBulkReply = useCallback(
@@ -588,6 +618,18 @@ export function DashboardContent() {
     cancelScraping();
   }, [cancelScraping]);
 
+  const handlePostSelectionChange = useCallback(
+    (videoIds: string[], selected: boolean) => {
+      if (!isScraping || isCancelling) return;
+      if (selected) {
+        addToBatch(videoIds);
+      } else {
+        removeFromBatch(videoIds);
+      }
+    },
+    [isScraping, isCancelling, addToBatch, removeFromBatch],
+  );
+
   return (
     <div className="min-h-content bg-surface">
       <main className="max-w-7xl mx-auto px-4 py-6">
@@ -604,7 +646,8 @@ export function DashboardContent() {
           </div>
         )}
 
-        {BILLING_ENABLED && accessStatus?.subscription &&
+        {BILLING_ENABLED &&
+          accessStatus?.subscription &&
           (() => {
             const { monthlyUsed, monthlyLimit, plan } =
               accessStatus.subscription;
@@ -656,7 +699,8 @@ export function DashboardContent() {
             return null;
           })()}
 
-        {BILLING_ENABLED && accessStatus?.subscription &&
+        {BILLING_ENABLED &&
+          accessStatus?.subscription &&
           (() => {
             const { repliesUsed, replyLimit } = accessStatus.subscription;
             const pct = Math.round((repliesUsed / replyLimit) * 100);
@@ -720,7 +764,7 @@ export function DashboardContent() {
               <Spinner size="md" />
               <div>
                 <span className="text-accent-cyan-text font-medium">
-                  Collecting post {batchProgress.currentVideoIndex}/
+                  Post {batchProgress.currentVideoIndex}/
                   {batchProgress.totalVideos}
                 </span>
                 <span className="text-accent-cyan-text/80 ml-2">
@@ -730,18 +774,21 @@ export function DashboardContent() {
             </div>
           )}
 
-          {!batchProgress && !isCancelling && getCommentsProgress.size > 0 && (() => {
-            const progress = Array.from(getCommentsProgress.values())[0];
-            if (!progress || progress.status === "complete") return null;
-            return (
-              <div className="mb-3 p-3 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
-                <Spinner size="md" />
-                <span className="text-accent-cyan-text font-medium">
-                  {progress.message || "Collecting comments..."}
-                </span>
-              </div>
-            );
-          })()}
+          {!batchProgress &&
+            !isCancelling &&
+            getCommentsProgress.size > 0 &&
+            (() => {
+              const progress = Array.from(getCommentsProgress.values())[0];
+              if (!progress || progress.status === "complete") return null;
+              return (
+                <div className="mb-3 p-3 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
+                  <Spinner size="md" />
+                  <span className="text-accent-cyan-text font-medium">
+                    {progress.message || "Collecting comments..."}
+                  </span>
+                </div>
+              );
+            })()}
 
           <TabNavigation
             activeTab={activeTab}
@@ -767,6 +814,7 @@ export function DashboardContent() {
                 onGetComments={getCommentsForVideos}
                 onRemoveVideos={handleRemoveVideosWithComments}
                 onViewPostComments={handleViewPostComments}
+                onPostSelectionChange={handlePostSelectionChange}
                 isScraping={isScraping}
                 isCancelling={isCancelling}
                 onCancelScraping={handleCancelScraping}
@@ -949,8 +997,8 @@ export function DashboardContent() {
         onSkip={handleSkipIgnoreList}
       />
 
-      {scrapeReport && (
-        BILLING_ENABLED && scrapeReport.limitReached ? (
+      {scrapeReport &&
+        (BILLING_ENABLED && scrapeReport.limitReached ? (
           <LimitReachedModal
             isOpen={true}
             onClose={closeScrapeReport}
@@ -966,8 +1014,7 @@ export function DashboardContent() {
             onClose={closeScrapeReport}
             stats={scrapeReport.stats}
           />
-        )
-      )}
+        ))}
 
       {BILLING_ENABLED && replyLimitModal && (
         <LimitReachedModal
