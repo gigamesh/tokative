@@ -1845,6 +1845,27 @@ export async function fetchVideoCommentsViaApi(
   await waitForSelector(VIDEO_SELECTORS.commentItem, { timeout: 10000 });
   await waitForCommentContent({ timeout: 10000 });
 
+  const paramsReady =
+    document.documentElement.getAttribute("data-tokative-params-ready") === "true";
+  if (!paramsReady) {
+    logger.log("[Tokative] Params not captured yet, scrolling comments to trigger pagination fetch");
+    const scroller = querySelector(VIDEO_SELECTORS.commentsScroller);
+    if (scroller) {
+      scroller.scrollTop = scroller.scrollHeight;
+      scroller.dispatchEvent(new Event("scroll", { bubbles: true }));
+    }
+    const waitStart = Date.now();
+    while (
+      Date.now() - waitStart < 5000 &&
+      document.documentElement.getAttribute("data-tokative-params-ready") !== "true"
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    const paramsReadyAfterScroll =
+      document.documentElement.getAttribute("data-tokative-params-ready") === "true";
+    logger.log("[Tokative] Params ready after scroll fallback:", paramsReadyAfterScroll);
+  }
+
   const videoAuthor = getVideoAuthorFromUrl();
   const config = getLoadedConfig();
   const allComments: ScrapedComment[] = [];
@@ -1943,8 +1964,14 @@ export async function fetchVideoCommentsViaApi(
       const dataStr = document.documentElement.getAttribute("data-tokative-api-complete");
       document.documentElement.removeAttribute("data-tokative-api-complete");
 
+      let completeData: { diag?: unknown } = {};
+      try {
+        if (dataStr) completeData = JSON.parse(dataStr);
+      } catch { /* ignore */ }
+
       logger.log(
         `[Tokative] API fetch complete: ${allComments.length} comments, stats: ${JSON.stringify(cumulativeStats)}`,
+        { diag: completeData.diag },
       );
       finish({ comments: allComments, stats: cumulativeStats, limitReached });
     };
@@ -1953,12 +1980,12 @@ export async function fetchVideoCommentsViaApi(
       const dataStr = document.documentElement.getAttribute("data-tokative-api-error");
       document.documentElement.removeAttribute("data-tokative-api-error");
 
-      let errorData = { error: "Unknown error" };
+      let errorData: { error: string; diag?: unknown } = { error: "Unknown error" };
       try {
         if (dataStr) errorData = JSON.parse(dataStr);
       } catch { /* ignore */ }
 
-      logger.error(`[Tokative] API fetch error: ${errorData.error}`);
+      logger.error("[Tokative] API fetch error", { error: errorData.error, diag: errorData.diag });
       finishWithError(errorData.error);
     };
 

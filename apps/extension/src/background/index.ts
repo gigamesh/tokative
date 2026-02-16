@@ -1262,7 +1262,24 @@ async function handleGetBatchComments(
         tab!.id!,
         video.videoId,
         (videoId, message, stats) => {
-          sendProgress(videoIndex, videoId, message, stats);
+          const liveTotal = totalComments + (stats?.found ?? 0);
+          port.postMessage({
+            type: MessageType.GET_BATCH_COMMENTS_PROGRESS,
+            payload: {
+              totalVideos: videosToProcess.length,
+              completedVideos,
+              currentVideoIndex: videoIndex,
+              currentVideoId: videoId,
+              totalComments: liveTotal,
+              status: "processing",
+              message,
+              currentVideoStats: stats,
+            },
+          });
+          updateBadge(
+            `${videoIndex}/${videosToProcess.length}`,
+            colors.status.info,
+          );
         },
       );
 

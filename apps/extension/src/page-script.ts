@@ -226,6 +226,7 @@ interface ApiConfig {
           }
         }
         capturedCommentParams = params;
+        document.documentElement.setAttribute("data-tokative-params-ready", "true");
       }
     } catch {
       // Ignore URL parse errors
@@ -489,6 +490,15 @@ interface ApiConfig {
       reply_to_reply_id: comment.reply_to_reply_id,
       reply_comment_total: comment.reply_comment_total || 0,
       reply_comment: [],
+    };
+  }
+
+  function buildDiagSummary() {
+    return {
+      totalIntercepts: interceptCount,
+      organicIntercepts: diagLogs.filter(l => l.includes('"organic"')).length,
+      totalDiagEntries: diagLogs.length,
+      lastEntries: diagLogs.slice(-5),
     };
   }
 
@@ -781,6 +791,7 @@ interface ApiConfig {
     dispatchApiEvent("api-complete", {
       topLevel: topLevelCount,
       replies: replyCount,
+      diag: buildDiagSummary(),
     });
   }
 
@@ -813,18 +824,18 @@ interface ApiConfig {
     }
 
     if (!awemeId) {
-      dispatchApiEvent("api-error", { error: "Could not determine video ID", fallback: true });
+      dispatchApiEvent("api-error", { error: "Could not determine video ID", fallback: true, diag: buildDiagSummary() });
       return;
     }
 
     if (!discoverSigningFunction()) {
-      dispatchApiEvent("api-error", { error: "Signing function not found", fallback: true });
+      dispatchApiEvent("api-error", { error: "Signing function not found", fallback: true, diag: buildDiagSummary() });
       return;
     }
 
     const hasCapturedParams = await waitForCapturedParams();
     if (!hasCapturedParams) {
-      dispatchApiEvent("api-error", { error: "Could not capture API params from TikTok", fallback: true });
+      dispatchApiEvent("api-error", { error: "Could not capture API params from TikTok", fallback: true, diag: buildDiagSummary() });
       return;
     }
 
@@ -837,7 +848,7 @@ interface ApiConfig {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      dispatchApiEvent("api-error", { error: message, fallback: true });
+      dispatchApiEvent("api-error", { error: message, fallback: true, diag: buildDiagSummary() });
     }
   });
 

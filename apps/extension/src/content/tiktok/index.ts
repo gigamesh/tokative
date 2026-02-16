@@ -4,9 +4,30 @@ import { replyToComment } from "./comment-replier";
 import { showOverlay, updateOverlayProgress, updateOverlayComplete, updateOverlayError, updateOverlayLimitReached, hideOverlay } from "./overlay";
 import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape, fetchVideoCommentsViaApi, injectReactExtractor } from "./video-scraper";
 import { CommentLimitError } from "../../utils/storage";
+import { ScrapeSetupError } from "../../utils/errors";
 import { loadConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
 import { initSentry } from "../../utils/sentry";
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Runs fetchVideoCommentsViaApi with a single retry for setup errors (panel not opening, params not captured, etc). */
+async function fetchApiWithSetupRetry(
+  onProgress: (stats: import("../../types").ScrapeStats) => void,
+): Promise<import("./video-scraper").ScrapeCommentsResult> {
+  try {
+    return await fetchVideoCommentsViaApi(onProgress);
+  } catch (error) {
+    if (error instanceof ScrapeSetupError) {
+      logger.warn("[TikTok] API setup failed, retrying in 3s...", error.code);
+      await sleep(3000);
+      return fetchVideoCommentsViaApi(onProgress);
+    }
+    throw error;
+  }
+}
 
 let port: chrome.runtime.Port | null = null;
 
@@ -97,7 +118,7 @@ function handleMessage(
         chrome.runtime.sendMessage({ type: MessageType.SCRAPE_VIDEO_COMMENTS_STOP });
       });
 
-      fetchVideoCommentsViaApi((stats) => {
+      fetchApiWithSetupRetry((stats) => {
         updateOverlayProgress({
           videosProcessed: 0,
           totalVideos: 1,
@@ -263,7 +284,7 @@ function handlePortMessage(message: ExtensionMessage): void {
           hideOverlay();
           chrome.runtime.sendMessage({ type: MessageType.SCRAPE_VIDEO_COMMENTS_STOP });
         });
-        fetchVideoCommentsViaApi((stats) => {
+        fetchApiWithSetupRetry((stats) => {
           updateOverlayProgress({
             videosProcessed: 0,
             totalVideos: 1,
