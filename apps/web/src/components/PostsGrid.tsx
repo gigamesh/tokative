@@ -10,10 +10,11 @@ import { PostCard } from "./PostCard";
 import { TabContentContainer } from "./TabContentContainer";
 
 const gridComponents: GridComponents<ScrapedVideo> = {
-  List: forwardRef(({ style, children, ...props }, ref) => (
+  List: forwardRef(({ style, children, className, ...props }, ref) => (
     <div
       ref={ref}
       {...props}
+      className={`isolate ${className ?? ""}`}
       style={{
         ...style,
         display: "grid",
