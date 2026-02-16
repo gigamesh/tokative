@@ -26,13 +26,14 @@ export function initSentry(context: string): void {
     (i) => !["BrowserApiErrors", "Breadcrumbs", "GlobalHandlers"].includes(i.name),
   );
 
+  if (!isProduction) return;
+
   client = new BrowserClient({
     dsn,
-    debug: true, // TODO: remove after verifying
     transport: makeFetchTransport,
     stackParser: defaultStackParser,
     integrations,
-    environment: isProduction ? "production" : "development",
+    environment: "production",
     release: `tokative-extension@${version}`,
     beforeSend(event, hint) {
       const error = hint?.originalException;
@@ -55,8 +56,7 @@ export function initSentry(context: string): void {
 
 export function captureException(error: unknown): void {
   if (!client || !scope) return;
-  const eventId = client.captureException(error, undefined, scope);
-  console.log("[Sentry] captureException sent, eventId:", eventId); // TODO: remove debug log
+  client.captureException(error, undefined, scope);
 }
 
 export function captureMessage(message: string, level: SeverityLevel = "error"): void {
