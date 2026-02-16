@@ -201,12 +201,12 @@ export function useVideoData() {
             scrapingState: null,
           };
         });
-        console.error("Failed to scrape comments:", error);
+        console.error("Failed to scrape comments:", error, stats ? `| found: ${stats.found}, new: ${stats.new}, preexisting: ${stats.preexisting}, ignored: ${stats.ignored}` : "");
         const tabClosed = error?.includes("tab was closed");
         if (stats && stats.new > 0) {
-          toast(`Scraping cancelled early. ${stats.new} new comments were saved.`);
+          toast(`Scraping stopped early — ${stats.found} comments found, ${stats.new} new saved.`);
         } else if (stats) {
-          toast("Scraping cancelled. No new comments were collected.");
+          toast(`Scraping stopped — ${stats.found} comments found, none were new.`);
         } else if (tabClosed) {
           toast("Scraping cancelled — TikTok tab was closed.");
         } else {

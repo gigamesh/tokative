@@ -169,7 +169,7 @@ interface ApiConfig {
       fallbackKeyPattern: "bogus|acrawler|signer|frontier",
     },
     cookie: { tokenName: "msToken", tokenPattern: "(?:^|;\\s*)msToken=([^;]+)" },
-    pagination: { pageCount: 20, batchSize: 50, maxRetries: 3, capturedParamsTimeout: 15000 },
+    pagination: { pageCount: 20, batchSize: 50, maxRetries: 5, capturedParamsTimeout: 15000 },
   };
 
   let apiConfig: ApiConfig = DEFAULT_API_CONFIG;
@@ -180,15 +180,42 @@ interface ApiConfig {
 
   let cancelled = false;
   let activeAbortController: AbortController | null = null;
+  let tiktokFetch: typeof fetch = nativeFetch;
+  let isOurRequest = false;
+  let interceptCount = 0;
+  const diagLogs: string[] = [];
+
+  /** Appends a timestamped DIAG entry to the in-memory log buffer (silent — use __DIAG_LOGS or tokative-dump-logs to inspect). */
+  function diag(tag: string, data: Record<string, unknown>): void {
+    diagLogs.push(`[${new Date().toISOString()}][DIAG:${tag}] ${JSON.stringify(data)}`);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).__DIAG_LOGS = diagLogs;
+
+  document.addEventListener("tokative-dump-logs", () => {
+    const blob = new Blob([diagLogs.join("\n")], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `diag-${Date.now()}.log`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
 
   // Monkey-patch fetch to intercept TikTok's comment API calls and capture base params
   window.fetch = function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     try {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+      if (url.includes(apiConfig.interceptPattern)) {
+        diag("intercept", {
+          n: ++interceptCount,
+          source: isOurRequest ? "ours" : "organic",
+          urlParamCount: new URL(url).searchParams.size,
+        });
+      }
       if (
         url.includes(apiConfig.interceptPattern) &&
-        !url.includes(apiConfig.replyPathSegment) &&
-        !capturedCommentParams
+        !url.includes(apiConfig.replyPathSegment)
       ) {
         const perRequest = new Set(apiConfig.perRequestParams);
         const parsed = new URL(url);
@@ -438,22 +465,6 @@ interface ApiConfig {
     return false;
   }
 
-  function getMsToken(): string {
-    const match = document.cookie.match(new RegExp(apiConfig.cookie.tokenPattern));
-    return match ? match[1] : "";
-  }
-
-  /** Signs a URL by calling frontierSign and appending the X-Bogus query param. */
-  async function signAndAppendBogus(url: string): Promise<string> {
-    if (!signingFn) throw new Error("No signing function");
-    const result = await signingFn(url);
-    if (result && typeof result === "object" && "X-Bogus" in result) {
-      return url + "&X-Bogus=" + encodeURIComponent(result["X-Bogus"]);
-    }
-    if (typeof result === "string") return result;
-    return url;
-  }
-
   function getAwemeId(): string | null {
     const match = window.location.href.match(/\/video\/(\d+)/);
     return match ? match[1] : null;
@@ -502,7 +513,6 @@ interface ApiConfig {
     params.set(p.videoId, awemeId);
     params.set(p.cursor, String(cursor));
     params.set(p.count, String(count));
-    params.set(p.msToken, getMsToken());
     return apiConfig.endpoints.commentList + params.toString();
   }
 
@@ -514,13 +524,22 @@ interface ApiConfig {
     params.set(p.commentId, commentId);
     params.set(p.cursor, String(cursor));
     params.set(p.count, String(count));
-    params.set(p.msToken, getMsToken());
     return apiConfig.endpoints.commentReply + params.toString();
   }
 
   async function parseJsonResponse(resp: Response): Promise<CommentListResponse> {
     const text = await resp.text();
-    if (!text) throw new Error(`Empty response body (status ${resp.status})`);
+
+    diag("comment-api", {
+      status: resp.status,
+      bodyLen: text.length,
+      contentType: resp.headers.get("content-type"),
+      bodyPreview: text.slice(0, 200),
+    });
+
+    if (!text) {
+      throw new Error("Empty response body");
+    }
     try {
       const raw = JSON.parse(text) as Record<string, unknown>;
       const statusCode = Number(raw[apiConfig.response.statusCode] ?? -1);
@@ -543,13 +562,12 @@ interface ApiConfig {
     signal?: AbortSignal,
   ): Promise<CommentListResponse> {
     const url = buildCommentUrl(awemeId, cursor, count);
-    const signedUrl = await signAndAppendBogus(url);
 
-    const resp = await nativeFetch(signedUrl, {
-      credentials: "include",
-      headers: { Accept: "application/json" },
-      signal,
-    });
+    diag("fetch", { cursor });
+
+    isOurRequest = true;
+    const resp = await tiktokFetch(url, { credentials: "include", signal });
+    isOurRequest = false;
 
     if (resp.status === 429) {
       const err = new Error("Rate limited by TikTok — try again in a few minutes") as Error & { status: number };
@@ -569,13 +587,12 @@ interface ApiConfig {
     signal?: AbortSignal,
   ): Promise<CommentListResponse> {
     const url = buildReplyUrl(commentId, awemeId, cursor, count);
-    const signedUrl = await signAndAppendBogus(url);
 
-    const resp = await nativeFetch(signedUrl, {
-      credentials: "include",
-      headers: { Accept: "application/json" },
-      signal,
-    });
+    diag("fetch-reply", { commentId, cursor });
+
+    isOurRequest = true;
+    const resp = await tiktokFetch(url, { credentials: "include", signal });
+    isOurRequest = false;
 
     if (resp.status === 429) {
       const err = new Error("Rate limited by TikTok — try again in a few minutes") as Error & { status: number };
@@ -603,12 +620,15 @@ interface ApiConfig {
         if (cancelled) throw err;
         const status = (err as Error & { status?: number }).status;
         const message = err instanceof Error ? err.message : "";
-        const isRetryable = status === 429
-          || message.includes("Empty response body")
-          || message.includes("Invalid JSON");
+
+        diag("retry", { attempt, status, message, backoff });
+
+        const isRateLimited = status === 429;
+        const isEmptyBody = message.includes("Empty response body");
+        const isRetryable = isRateLimited || isEmptyBody || message.includes("Invalid JSON");
         if (isRetryable && attempt < maxRetries) {
-          if (status === 429) onRateLimit?.(backoff);
-          await sleep(status === 429 ? backoff : 2000);
+          if (isRateLimited || isEmptyBody) onRateLimit?.(backoff);
+          await sleep((isRateLimited || isEmptyBody) ? backoff : 2000);
           backoff = Math.min(backoff * 2, backoffMax);
           continue;
         }
@@ -627,6 +647,8 @@ interface ApiConfig {
     const { awemeId, apiPageDelay, apiBackoffInitial, apiBackoffMax } = config;
     const { batchSize, pageCount, maxRetries } = apiConfig.pagination;
     const hasMoreValue = apiConfig.response.hasMoreValue;
+    let pageNumber = 0;
+    let consecutiveEmptyPages = 0;
 
     cancelled = false;
     const abortController = new AbortController();
@@ -675,10 +697,18 @@ interface ApiConfig {
         );
 
         if (cancelled) break;
+        pageNumber++;
+
         if (!page.comments?.length) {
+          if (page.has_more === hasMoreValue && consecutiveEmptyPages < 3) {
+            consecutiveEmptyPages++;
+            await sleep(apiPageDelay + 1000);
+            continue;
+          }
           hasMore = false;
           break;
         }
+        consecutiveEmptyPages = 0;
 
         for (const comment of page.comments) {
           if (cancelled) break;
@@ -724,7 +754,22 @@ interface ApiConfig {
         reportProgress();
         cursor = page.cursor;
         hasMore = page.has_more === hasMoreValue;
-        if (hasMore) await sleep(apiPageDelay);
+
+        diag("pagination", {
+          cursor,
+          hasMore,
+          topLevelCount,
+          replyCount,
+          pageCommentsCount: page.comments?.length,
+        });
+
+        if (hasMore) {
+          const adaptiveDelay = Math.min(
+            apiPageDelay + Math.floor(pageNumber / 10) * 200,
+            3000,
+          );
+          await sleep(adaptiveDelay);
+        }
       }
     } catch (err) {
       if (!cancelled) throw err;
@@ -741,6 +786,12 @@ interface ApiConfig {
 
   document.addEventListener("tokative-api-start", async () => {
     cancelled = false;
+    tiktokFetch = window.fetch.bind(window);
+
+    diag("api-start", {
+      tiktokFetchIsNative: tiktokFetch === nativeFetch,
+      windowFetchStr: window.fetch.toString().slice(0, 100),
+    });
 
     const configStr = document.documentElement.getAttribute("data-tokative-api-config");
     document.documentElement.removeAttribute("data-tokative-api-config");

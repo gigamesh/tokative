@@ -943,6 +943,8 @@ async function scrollToLoadComments(
   // Track last comment ID and count for end detection
   let lastCommentId: string | null = null;
   let lastCommentCount = 0;
+  let staleRounds = 0;
+  const maxStaleRounds = 3;
 
   // Track cumulative stats
   const cumulativeStats: ScrapeStats = {
@@ -1103,22 +1105,20 @@ async function scrollToLoadComments(
       `[Tokative] Iteration ${loopIteration} summary: added=${addedThisIteration}, hasNewContent=${scrollResult.hasNewContent}, skeletons=${scrollResult.skeletonsAppeared}, lastId=${lastCommentId}, count=${lastCommentCount}`,
     );
 
-    // Stop if skeletons appeared but no new content loaded (we've reached the end)
-    if (scrollResult.skeletonsAppeared && !scrollResult.hasNewContent) {
+    // Track consecutive stale rounds (no new content) before deciding we're done.
+    // TikTok's lazy loading can be slow to kick in, so we require multiple stale
+    // rounds to avoid stopping prematurely after the first page of comments.
+    if (!scrollResult.hasNewContent && addedThisIteration === 0) {
+      staleRounds++;
       logger.log(
-        "[Tokative] Skeletons appeared but no new content - reached end of comments",
+        `[Tokative] Stale round ${staleRounds}/${maxStaleRounds} (skeletons=${scrollResult.skeletonsAppeared})`,
       );
-      exitReason = "end of content (no new data after skeletons)";
-      break;
-    }
-
-    // Also stop if no skeletons and no new content (fallback for edge cases)
-    if (!scrollResult.skeletonsAppeared && !scrollResult.hasNewContent && addedThisIteration === 0) {
-      logger.log(
-        "[Tokative] No skeletons, no new content, no new comments - likely at end",
-      );
-      exitReason = "end of content (no activity)";
-      break;
+      if (staleRounds >= maxStaleRounds) {
+        exitReason = `end of content (${staleRounds} stale rounds)`;
+        break;
+      }
+    } else {
+      staleRounds = 0;
     }
 
     // Small delay between iterations to avoid hammering

@@ -991,7 +991,6 @@ async function handleBulkReply(
         }
       }
 
-      // Close tab after finishing all comments for this video
       if (tabId) {
         closingTabsIntentionally.add(tabId);
         chrome.tabs.remove(tabId).catch(() => {});

@@ -1,6 +1,6 @@
 import { captureException, captureMessage } from "./sentry";
 
-const DEBUG = false;
+const DEBUG = true;
 
 export const logger = {
   log: (...args: unknown[]) => { if (DEBUG) console.log(...args); },
