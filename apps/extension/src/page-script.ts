@@ -759,7 +759,6 @@ interface ApiConfig {
           };
         }
       }
-      capturedCommentParams = null;
     }
 
     if (!awemeId) {
