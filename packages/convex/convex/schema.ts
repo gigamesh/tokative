@@ -35,12 +35,14 @@ export default defineSchema({
     monthlyReplyResetAt: v.optional(v.number()),
     referralCode: v.optional(v.string()),
     referredByUserId: v.optional(v.id("users")),
+    affiliatedByAffiliateId: v.optional(v.id("affiliates")),
     trialEndsAt: v.optional(v.number()),
     trialSource: v.optional(v.string()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_stripe_customer_id", ["stripeCustomerId"])
-    .index("by_referral_code", ["referralCode"]),
+    .index("by_referral_code", ["referralCode"])
+    .index("by_affiliate", ["affiliatedByAffiliateId"]),
 
   tiktokProfiles: defineTable({
     userId: v.id("users"),
@@ -137,6 +139,49 @@ export default defineSchema({
     hideOwnReplies: v.optional(v.boolean()),
     deleteMissingComments: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
+
+  affiliates: defineTable({
+    userId: v.id("users"),
+    affiliateCode: v.string(),
+    stripeConnectAccountId: v.optional(v.string()),
+    connectStatus: v.union(
+      v.literal("pending"),
+      v.literal("onboarding"),
+      v.literal("active"),
+      v.literal("restricted"),
+    ),
+    commissionRate: v.number(),
+    isWhitelisted: v.boolean(),
+    agreementAcceptedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_code", ["affiliateCode"])
+    .index("by_connect_account", ["stripeConnectAccountId"]),
+
+  affiliateCommissions: defineTable({
+    affiliateId: v.id("affiliates"),
+    subscriberUserId: v.id("users"),
+    stripeInvoiceId: v.string(),
+    stripeSubscriptionId: v.string(),
+    stripeChargeId: v.string(),
+    invoiceAmountCents: v.number(),
+    commissionCents: v.number(),
+    status: v.union(
+      v.literal("held"),
+      v.literal("available"),
+      v.literal("transferred"),
+      v.literal("reversed"),
+    ),
+    availableAt: v.number(),
+    createdAt: v.number(),
+    transferredAt: v.optional(v.number()),
+    stripeTransferId: v.optional(v.string()),
+  })
+    .index("by_affiliate", ["affiliateId"])
+    .index("by_invoice", ["stripeInvoiceId"])
+    .index("by_charge", ["stripeChargeId"])
+    .index("by_status_and_available", ["status", "availableAt"]),
 
   referrals: defineTable({
     referrerId: v.id("users"),

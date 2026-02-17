@@ -53,6 +53,8 @@ const themeScript =
   "(function(){var s=localStorage.getItem('tokative-theme');var t=s||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.classList.add(t)})();";
 const referralScript =
   "(function(){var p=new URLSearchParams(location.search).get('ref');if(p&&/^tok-[a-z2-9]{8}$/.test(p))localStorage.setItem('tokative_ref',p)})();";
+const affiliateScript =
+  "(function(){var p=new URLSearchParams(location.search).get('aff');if(p&&/^aff-[a-z2-9]{8}$/.test(p))localStorage.setItem('tokative_aff',p)})();";
 
 export default function RootLayout({
   children,
@@ -64,6 +66,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: referralScript }} />
+        <script dangerouslySetInnerHTML={{ __html: affiliateScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

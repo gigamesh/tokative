@@ -456,4 +456,28 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/api/stripe/connect-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const signature = request.headers.get("stripe-signature");
+    if (!signature) {
+      return new Response("Missing stripe-signature header", { status: 400 });
+    }
+
+    try {
+      const payload = await request.text();
+      await ctx.runAction(api.affiliateStripe.handleConnectWebhook, {
+        payload,
+        signature,
+      });
+      return new Response("ok", { status: 200 });
+    } catch (error) {
+      console.error("Stripe Connect webhook error:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return new Response(message, { status: 400 });
+    }
+  }),
+});
+
 export default http;

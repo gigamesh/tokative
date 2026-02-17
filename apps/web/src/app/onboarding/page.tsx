@@ -8,7 +8,7 @@ import {
   MessageType,
 } from "@/utils/constants";
 import { useUser } from "@clerk/nextjs";
-import { api, BILLING_ENABLED } from "@tokative/convex";
+import { api, BILLING_ENABLED, AFFILIATE_CODE_RE } from "@tokative/convex";
 import { useMutation, useQuery } from "convex/react";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -44,6 +44,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const getOrCreate = useMutation(api.users.getOrCreate);
   const applyReferral = useMutation(api.referrals.applyReferralCode);
+  const applyAffiliate = useMutation(api.affiliates.applyAffiliateCode);
   const markComplete = useMutation(api.users.markOnboardingComplete);
   const accessStatus = useQuery(
     api.users.getAccessStatus,
@@ -84,6 +85,14 @@ export default function OnboardingPage() {
         if (refCode) {
           await applyReferral({ referredClerkId: userId, referralCode: refCode }).catch(() => {});
           localStorage.removeItem("tokative_ref");
+        }
+
+        const affCode = localStorage.getItem("tokative_aff");
+        if (affCode && AFFILIATE_CODE_RE.test(affCode)) {
+          if (!refCode) {
+            await applyAffiliate({ referredClerkId: userId, affiliateCode: affCode }).catch(() => {});
+          }
+          localStorage.removeItem("tokative_aff");
         }
       }
 
@@ -136,6 +145,7 @@ export default function OnboardingPage() {
     router,
     getOrCreate,
     applyReferral,
+    applyAffiliate,
     completeAndRedirect,
   ]);
 

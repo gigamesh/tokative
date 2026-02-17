@@ -220,6 +220,61 @@ export const handleWebhook = action({
         });
         break;
       }
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (!invoice.subscription || (invoice.amount_paid ?? 0) === 0) break;
+
+        const customerId =
+          typeof invoice.customer === "string"
+            ? invoice.customer
+            : invoice.customer?.id;
+        if (!customerId) break;
+
+        const invUser = await ctx.runQuery(
+          internal.stripeHelpers.getUserByStripeCustomerId,
+          { stripeCustomerId: customerId },
+        );
+        if (!invUser?.affiliatedByAffiliateId) break;
+
+        const affiliate = await ctx.runQuery(
+          internal.affiliateHelpers.getAffiliate,
+          { affiliateId: invUser.affiliatedByAffiliateId },
+        );
+        if (!affiliate || !affiliate.isWhitelisted) break;
+
+        const chargeId =
+          typeof invoice.charge === "string"
+            ? invoice.charge
+            : invoice.charge?.id;
+        const subscriptionId =
+          typeof invoice.subscription === "string"
+            ? invoice.subscription
+            : invoice.subscription?.id;
+
+        if (chargeId && subscriptionId) {
+          await ctx.runMutation(internal.affiliateHelpers.handleInvoicePaid, {
+            affiliateId: affiliate._id,
+            subscriberUserId: invUser._id,
+            stripeInvoiceId: invoice.id,
+            stripeSubscriptionId: subscriptionId,
+            stripeChargeId: chargeId,
+            invoiceAmountCents: invoice.amount_paid,
+            commissionRate: affiliate.commissionRate,
+          });
+        }
+        break;
+      }
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        const refundAmount = charge.amount_refunded;
+        if (refundAmount > 0) {
+          await ctx.runMutation(internal.affiliateHelpers.handleChargeRefunded, {
+            stripeChargeId: charge.id,
+            refundAmountCents: refundAmount,
+          });
+        }
+        break;
+      }
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId =
