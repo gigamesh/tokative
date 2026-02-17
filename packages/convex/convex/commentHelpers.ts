@@ -22,6 +22,9 @@ export interface CommentInsertData {
   isReply: boolean;
   replyCount?: number;
   source?: "app" | "scraped";
+  handle?: string;
+  profileUrl?: string;
+  avatarUrl?: string;
 }
 
 /**
