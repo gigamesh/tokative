@@ -7,9 +7,23 @@ import { api } from "@tokative/convex";
 import { useQuery } from "convex/react";
 import { CheckCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 export default function AffiliateOnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-content bg-surface flex items-center justify-center">
+          <Spinner size="md" />
+        </div>
+      }
+    >
+      <AffiliateOnboardingContent />
+    </Suspense>
+  );
+}
+
+function AffiliateOnboardingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { userId, isLoaded } = useAuth();
