@@ -372,17 +372,13 @@ export const addBatch = mutation({
     }
 
     if (avatarsToStore.length > 0) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.imageStorage.storeAvatarBatch,
-        {
-          avatars: avatarsToStore.map((a) => ({
-            profileId: a.profileId,
-            tiktokUserId: a.tiktokUserId,
-            tiktokUrl: a.tiktokAvatarUrl,
-          })),
-        },
-      );
+      await ctx.scheduler.runAfter(0, internal.imageStorage.storeAvatarBatch, {
+        avatars: avatarsToStore.map((a) => ({
+          profileId: a.profileId,
+          tiktokUserId: a.tiktokUserId,
+          tiktokUrl: a.tiktokAvatarUrl,
+        })),
+      });
     }
 
     if (newCount > 0) {
@@ -618,44 +614,6 @@ export const migrateReplySentToRepliedTo = mutation({
         await ctx.db.patch(doc._id, {
           replySent: undefined,
         } as never);
-        migrated++;
-      }
-    }
-
-    return {
-      migrated,
-      processed: result.page.length,
-      isDone: result.isDone,
-      continueCursor: result.isDone ? null : result.continueCursor,
-    };
-  },
-});
-
-/** Migration: backfill denormalized profile fields (handle, profileUrl, avatarUrl) onto comment docs. */
-export const migrateProfileDataToComments = mutation({
-  args: {
-    cursor: v.optional(v.string()),
-    batchSize: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const BATCH_SIZE = args.batchSize ?? 100;
-
-    const result = await ctx.db.query("comments").paginate({
-      numItems: BATCH_SIZE,
-      cursor: args.cursor ?? null,
-    });
-
-    let migrated = 0;
-    for (const doc of result.page) {
-      if (doc.handle !== undefined) continue;
-
-      const profile = await ctx.db.get(doc.tiktokProfileId);
-      if (profile) {
-        await ctx.db.patch(doc._id, {
-          handle: profile.handle,
-          profileUrl: profile.profileUrl,
-          avatarUrl: profile.avatarUrl,
-        });
         migrated++;
       }
     }
