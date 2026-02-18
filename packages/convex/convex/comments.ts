@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import {
   CommentInsertData,
@@ -37,79 +37,18 @@ export const list = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    const profileIds = Array.from(
-      new Set(comments.map((c) => c.tiktokProfileId)),
-    );
-    const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
-    const profileMap = new Map(
-      profiles.filter(Boolean).map((p) => [p!._id, p!]),
-    );
-
-    return comments.map((c) => {
-      const profile = profileMap.get(c.tiktokProfileId);
-      return {
-        id: c.commentId,
-        handle: profile?.handle ?? "",
-        comment: c.comment,
-        scrapedAt: new Date(c.scrapedAt).toISOString(),
-        profileUrl: profile?.profileUrl ?? "",
-        avatarUrl: profile?.avatarUrl,
-        videoUrl: c.videoUrl,
-        repliedTo: c.repliedTo,
-        repliedAt: c.repliedAt
-          ? new Date(c.repliedAt).toISOString()
-          : undefined,
-        replyError: c.replyError,
-        replyContent: c.replyContent,
-        commentTimestamp: c.commentTimestamp,
-        commentId: c.commentId,
-        videoId: c.videoId,
-        parentCommentId: c.parentCommentId,
-        isReply: c.isReply,
-        replyCount: c.replyCount,
-        source: c.source,
-        detectedLanguage: c.detectedLanguage,
-        translatedText: c.translatedText,
-        replyOriginalContent: c.replyOriginalContent,
-        _convexId: c._id,
-      };
-    });
+    return comments.map(formatComment);
   },
 });
 
-function formatComment(
-  c: {
-    commentId: string;
-    comment: string;
-    scrapedAt: number;
-    videoUrl?: string;
-    repliedTo?: boolean;
-    repliedAt?: number;
-    replyError?: string;
-    replyContent?: string;
-    commentTimestamp?: string;
-    videoId?: string;
-    parentCommentId?: string;
-    isReply: boolean;
-    replyCount?: number;
-    source?: "app" | "scraped";
-    detectedLanguage?: string;
-    translatedText?: string;
-    replyOriginalContent?: string;
-    _id: Id<"comments">;
-    tiktokProfileId: Id<"tiktokProfiles">;
-  },
-  profile:
-    | { handle: string; profileUrl: string; avatarUrl?: string }
-    | undefined,
-) {
+function formatComment(c: Doc<"comments">) {
   return {
     id: c.commentId,
-    handle: profile?.handle ?? "",
+    handle: c.handle ?? "",
     comment: c.comment,
     scrapedAt: new Date(c.scrapedAt).toISOString(),
-    profileUrl: profile?.profileUrl ?? "",
-    avatarUrl: profile?.avatarUrl,
+    profileUrl: c.profileUrl ?? "",
+    avatarUrl: c.avatarUrl,
     videoUrl: c.videoUrl,
     repliedTo: c.repliedTo,
     repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
@@ -169,19 +108,8 @@ export const listPaginated = query({
             .order(order)
             .collect());
 
-      const profileIds = Array.from(
-        new Set(allComments.map((c) => c.tiktokProfileId)),
-      );
-      const profiles = await Promise.all(
-        profileIds.map((id) => ctx.db.get(id)),
-      );
-      const profileMap = new Map(
-        profiles.filter(Boolean).map((p) => [p!._id, p!]),
-      );
-
       const { results: matching } = buildSearchResults(
         allComments,
-        profileMap,
         searchLower,
       );
 
@@ -204,9 +132,7 @@ export const listPaginated = query({
       const isDone = nextCursor >= matching.length;
 
       return {
-        page: pageComments.map((c) =>
-          formatComment(c, profileMap.get(c.tiktokProfileId) ?? undefined),
-        ),
+        page: pageComments.map(formatComment),
         isDone,
         continueCursor: isDone ? "" : String(nextCursor),
       };
@@ -248,18 +174,8 @@ export const listPaginated = query({
 
     const allComments = [...topLevelResult.page, ...replies];
 
-    const profileIds = Array.from(
-      new Set(allComments.map((c) => c.tiktokProfileId)),
-    );
-    const profiles = await Promise.all(profileIds.map((id) => ctx.db.get(id)));
-    const profileMap = new Map(
-      profiles.filter(Boolean).map((p) => [p!._id, p!]),
-    );
-
     return {
-      page: allComments.map((c) =>
-        formatComment(c, profileMap.get(c.tiktokProfileId) ?? undefined),
-      ),
+      page: allComments.map(formatComment),
       isDone: topLevelResult.isDone,
       continueCursor: topLevelResult.continueCursor,
     };
@@ -413,6 +329,9 @@ export const addBatch = mutation({
           isReply: comment.isReply,
           replyCount: comment.replyCount,
           source: comment.source,
+          handle: comment.handle,
+          profileUrl: comment.profileUrl,
+          avatarUrl: comment.avatarUrl,
         },
       });
     }
@@ -453,17 +372,13 @@ export const addBatch = mutation({
     }
 
     if (avatarsToStore.length > 0) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.imageStorage.storeAvatarBatch,
-        {
-          avatars: avatarsToStore.map((a) => ({
-            profileId: a.profileId,
-            tiktokUserId: a.tiktokUserId,
-            tiktokUrl: a.tiktokAvatarUrl,
-          })),
-        },
-      );
+      await ctx.scheduler.runAfter(0, internal.imageStorage.storeAvatarBatch, {
+        avatars: avatarsToStore.map((a) => ({
+          profileId: a.profileId,
+          tiktokUserId: a.tiktokUserId,
+          tiktokUrl: a.tiktokAvatarUrl,
+        })),
+      });
     }
 
     if (newCount > 0) {

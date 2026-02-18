@@ -74,6 +74,9 @@ export default defineSchema({
     detectedLanguage: v.optional(v.string()),
     translatedText: v.optional(v.string()),
     replyOriginalContent: v.optional(v.string()),
+    handle: v.optional(v.string()),
+    profileUrl: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_video", ["userId", "videoId"])
