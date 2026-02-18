@@ -452,8 +452,10 @@ export const addBatch = mutation({
       }
     }
 
-    for (const avatar of avatarsToStore) {
-      await ctx.scheduler.runAfter(0, internal.imageStorage.storeAvatar, {
+    for (let i = 0; i < avatarsToStore.length; i++) {
+      const avatar = avatarsToStore[i];
+      const delay = i * 1000;
+      await ctx.scheduler.runAfter(delay, internal.imageStorage.storeAvatar, {
         profileId: avatar.profileId,
         tiktokUserId: avatar.tiktokUserId,
         tiktokUrl: avatar.tiktokAvatarUrl,
