@@ -452,12 +452,18 @@ export const addBatch = mutation({
       }
     }
 
-    for (const avatar of avatarsToStore) {
-      await ctx.scheduler.runAfter(0, internal.imageStorage.storeAvatar, {
-        profileId: avatar.profileId,
-        tiktokUserId: avatar.tiktokUserId,
-        tiktokUrl: avatar.tiktokAvatarUrl,
-      });
+    if (avatarsToStore.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.imageStorage.storeAvatarBatch,
+        {
+          avatars: avatarsToStore.map((a) => ({
+            profileId: a.profileId,
+            tiktokUserId: a.tiktokUserId,
+            tiktokUrl: a.tiktokAvatarUrl,
+          })),
+        },
+      );
     }
 
     if (newCount > 0) {

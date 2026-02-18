@@ -1,7 +1,61 @@
 import { v } from "convex/values";
-import { internalAction, internalMutation } from "./_generated/server";
+import { ActionCtx, internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 import { uploadToR2, getR2Url, hashArrayBuffer } from "./lib/r2";
+
+/** Fetch, upload, and persist a single avatar with retry and exponential backoff. */
+async function storeAvatarWithRetry(
+  ctx: ActionCtx,
+  avatar: { profileId: Id<"tiktokProfiles">; tiktokUserId: string; tiktokUrl: string },
+) {
+  const MAX_ATTEMPTS = 3;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(avatar.tiktokUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          Referer: "https://www.tiktok.com/",
+        },
+      });
+
+      if (response.ok) {
+        const contentType =
+          response.headers.get("content-type") || "image/jpeg";
+        const data = await response.arrayBuffer();
+
+        const hash = await hashArrayBuffer(data);
+        const extension = contentType.includes("png") ? "png" : "jpg";
+        const key = `avatars/${avatar.tiktokUserId}/${hash}.${extension}`;
+
+        await uploadToR2(key, data, contentType);
+
+        const avatarUrl = getR2Url(key);
+        await ctx.runMutation(internal.imageStorage.updateProfileAvatarUrl, {
+          profileId: avatar.profileId,
+          avatarUrl,
+        });
+        return;
+      }
+
+      if (response.status === 429) {
+        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+        continue;
+      }
+
+      console.error(`Failed to fetch avatar: ${response.status}`);
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+    }
+  }
+
+  console.error("Failed to store avatar after retries:", lastError);
+}
 
 export const storeAvatar = internalAction({
   args: {
@@ -10,36 +64,23 @@ export const storeAvatar = internalAction({
     tiktokUrl: v.string(),
   },
   handler: async (ctx, args) => {
-    try {
-      const response = await fetch(args.tiktokUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-          Referer: "https://www.tiktok.com/",
-        },
-      });
+    await storeAvatarWithRetry(ctx, args);
+  },
+});
 
-      if (!response.ok) {
-        console.error(`Failed to fetch avatar: ${response.status}`);
-        return;
-      }
-
-      const contentType = response.headers.get("content-type") || "image/jpeg";
-      const data = await response.arrayBuffer();
-
-      const hash = await hashArrayBuffer(data);
-      const extension = contentType.includes("png") ? "png" : "jpg";
-      const key = `avatars/${args.tiktokUserId}/${hash}.${extension}`;
-
-      await uploadToR2(key, data, contentType);
-
-      const avatarUrl = getR2Url(key);
-      await ctx.runMutation(internal.imageStorage.updateProfileAvatarUrl, {
-        profileId: args.profileId,
-        avatarUrl,
-      });
-    } catch (error) {
-      console.error("Failed to store avatar:", error);
+export const storeAvatarBatch = internalAction({
+  args: {
+    avatars: v.array(
+      v.object({
+        profileId: v.id("tiktokProfiles"),
+        tiktokUserId: v.string(),
+        tiktokUrl: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const avatar of args.avatars) {
+      await storeAvatarWithRetry(ctx, avatar);
     }
   },
 });
