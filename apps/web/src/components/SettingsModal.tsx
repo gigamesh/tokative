@@ -148,6 +148,7 @@ export function SettingsModal({
             </div>
           )}
         </div>
+
       </div>
     </Modal>
   );

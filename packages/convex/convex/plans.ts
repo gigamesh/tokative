@@ -1,6 +1,6 @@
 import { isPremiumWhitelisted } from "./constants";
 
-export const BILLING_ENABLED = false;
+export const BILLING_ENABLED = true;
 
 export type PlanName = "free" | "pro" | "premium";
 
@@ -63,14 +63,13 @@ export function priceIdToPlanName(priceId: string): PlanName {
   return "free";
 }
 
-/** Resolves a user's effective plan, accounting for email whitelisting. */
+/** Resolves a user's effective plan: whitelist > Stripe subscription > free. */
 export function getEffectivePlan(user: {
   email?: string;
   subscriptionPlan?: PlanName;
 }): PlanName {
-  return isPremiumWhitelisted(user.email ?? "")
-    ? "premium"
-    : (user.subscriptionPlan ?? "free");
+  if (isPremiumWhitelisted(user.email ?? "")) return "premium";
+  return user.subscriptionPlan ?? "free";
 }
 
 export function getMonthlyLimit(plan: PlanName): number {

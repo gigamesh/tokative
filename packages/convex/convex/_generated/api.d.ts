@@ -9,6 +9,10 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as affiliateConstants from "../affiliateConstants.js";
+import type * as affiliateHelpers from "../affiliateHelpers.js";
+import type * as affiliateStripe from "../affiliateStripe.js";
+import type * as affiliates from "../affiliates.js";
 import type * as commentHelpers from "../commentHelpers.js";
 import type * as commenters from "../commenters.js";
 import type * as comments from "../comments.js";
@@ -20,6 +24,8 @@ import type * as lib_detectLanguage from "../lib/detectLanguage.js";
 import type * as lib_r2 from "../lib/r2.js";
 import type * as lib_translate from "../lib/translate.js";
 import type * as plans from "../plans.js";
+import type * as referralHelpers from "../referralHelpers.js";
+import type * as referrals from "../referrals.js";
 import type * as searchHelpers from "../searchHelpers.js";
 import type * as settings from "../settings.js";
 import type * as stripe from "../stripe.js";
@@ -38,6 +44,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  affiliateConstants: typeof affiliateConstants;
+  affiliateHelpers: typeof affiliateHelpers;
+  affiliateStripe: typeof affiliateStripe;
+  affiliates: typeof affiliates;
   commentHelpers: typeof commentHelpers;
   commenters: typeof commenters;
   comments: typeof comments;
@@ -49,6 +59,8 @@ declare const fullApi: ApiFromModules<{
   "lib/r2": typeof lib_r2;
   "lib/translate": typeof lib_translate;
   plans: typeof plans;
+  referralHelpers: typeof referralHelpers;
+  referrals: typeof referrals;
   searchHelpers: typeof searchHelpers;
   settings: typeof settings;
   stripe: typeof stripe;

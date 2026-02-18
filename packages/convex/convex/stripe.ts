@@ -3,8 +3,9 @@
 import { v } from "convex/values";
 import Stripe from "stripe";
 import { internal } from "./_generated/api";
-import { action } from "./_generated/server";
-import { getStripePriceIds, priceIdToPlanName, type PlanName } from "./plans";
+import { action, internalAction } from "./_generated/server";
+import { getStripePriceIds, priceIdToPlanName } from "./plans";
+import { REFERRAL_CREDIT } from "./referrals";
 
 function getStripeKey(): string {
   return process.env.STRIPE_SECRET_KEY!;
@@ -37,6 +38,7 @@ export const createCheckoutSession = action({
     clerkId: v.string(),
     plan: v.union(v.literal("pro"), v.literal("premium")),
     interval: v.union(v.literal("month"), v.literal("year")),
+    trialDays: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<{ url: string | null }> => {
     const user = await ctx.runQuery(internal.stripeHelpers.getUserByClerkId, {
@@ -91,6 +93,9 @@ export const createCheckoutSession = action({
       success_url: `${tokativeEndpoint}/dashboard?checkout=success`,
       cancel_url: `${tokativeEndpoint}/pricing`,
       allow_promotion_codes: true,
+      ...(args.trialDays
+        ? { subscription_data: { trial_period_days: args.trialDays } }
+        : {}),
     });
 
     return { url: session.url };
@@ -170,6 +175,24 @@ export const handleWebhook = action({
           currentPeriodEnd: periodEnd * 1000,
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
         });
+
+        if (
+          mapStripeStatus(subscription.status) === "active" &&
+          plan !== "free"
+        ) {
+          const referral = await ctx.runQuery(
+            internal.referralHelpers.getReferralByReferred,
+            { referredId: user._id },
+          );
+          if (referral && referral.status === "pending") {
+            const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+            await ctx.scheduler.runAfter(
+              SEVEN_DAYS,
+              internal.referrals.qualifyReferral,
+              { referralId: referral._id },
+            );
+          }
+        }
         break;
       }
       case "customer.subscription.deleted": {
@@ -195,6 +218,61 @@ export const handleWebhook = action({
           currentPeriodEnd: 0,
           cancelAtPeriodEnd: false,
         });
+        break;
+      }
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (!invoice.subscription || (invoice.amount_paid ?? 0) === 0) break;
+
+        const customerId =
+          typeof invoice.customer === "string"
+            ? invoice.customer
+            : invoice.customer?.id;
+        if (!customerId) break;
+
+        const invUser = await ctx.runQuery(
+          internal.stripeHelpers.getUserByStripeCustomerId,
+          { stripeCustomerId: customerId },
+        );
+        if (!invUser?.affiliatedByAffiliateId) break;
+
+        const affiliate = await ctx.runQuery(
+          internal.affiliateHelpers.getAffiliate,
+          { affiliateId: invUser.affiliatedByAffiliateId },
+        );
+        if (!affiliate || !affiliate.isWhitelisted) break;
+
+        const chargeId =
+          typeof invoice.charge === "string"
+            ? invoice.charge
+            : invoice.charge?.id;
+        const subscriptionId =
+          typeof invoice.subscription === "string"
+            ? invoice.subscription
+            : invoice.subscription?.id;
+
+        if (chargeId && subscriptionId) {
+          await ctx.runMutation(internal.affiliateHelpers.handleInvoicePaid, {
+            affiliateId: affiliate._id,
+            subscriberUserId: invUser._id,
+            stripeInvoiceId: invoice.id,
+            stripeSubscriptionId: subscriptionId,
+            stripeChargeId: chargeId,
+            invoiceAmountCents: invoice.amount_paid,
+            commissionRate: affiliate.commissionRate,
+          });
+        }
+        break;
+      }
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        const refundAmount = charge.amount_refunded;
+        if (refundAmount > 0) {
+          await ctx.runMutation(internal.affiliateHelpers.handleChargeRefunded, {
+            stripeChargeId: charge.id,
+            refundAmountCents: refundAmount,
+          });
+        }
         break;
       }
       case "invoice.payment_failed": {
@@ -224,5 +302,39 @@ export const handleWebhook = action({
         break;
       }
     }
+  },
+});
+
+/** Creates a one-time 100% discount coupon and applies it to the referrer's subscription. */
+export const applyReferralCredit = internalAction({
+  args: {
+    referralId: v.id("referrals"),
+    referrerUserId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const user = await ctx.runQuery(internal.referralHelpers.getUserById, {
+      userId: args.referrerUserId,
+    });
+    if (!user?.stripeSubscriptionId || user.subscriptionStatus !== "active") {
+      return;
+    }
+
+    const stripe = getStripe();
+    const coupon = await stripe.coupons.create({
+      amount_off: REFERRAL_CREDIT,
+      currency: "usd",
+      duration: "once",
+      name: `Referral account credit — $${REFERRAL_CREDIT / 100}`,
+    });
+
+    await stripe.subscriptions.update(user.stripeSubscriptionId, {
+      discounts: [{ coupon: coupon.id }],
+    });
+
+    await ctx.runMutation(internal.referralHelpers.updateReferralStatus, {
+      referralId: args.referralId,
+      status: "qualified",
+      stripeCouponId: coupon.id,
+    });
   },
 });

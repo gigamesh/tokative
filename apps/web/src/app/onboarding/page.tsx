@@ -8,7 +8,7 @@ import {
   MessageType,
 } from "@/utils/constants";
 import { useUser } from "@clerk/nextjs";
-import { api } from "@tokative/convex";
+import { api, BILLING_ENABLED, AFFILIATE_CODE_RE } from "@tokative/convex";
 import { useMutation, useQuery } from "convex/react";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -43,6 +43,8 @@ export default function OnboardingPage() {
   const { user } = useUser();
   const router = useRouter();
   const getOrCreate = useMutation(api.users.getOrCreate);
+  const applyReferral = useMutation(api.referrals.applyReferralCode);
+  const applyAffiliate = useMutation(api.affiliates.applyAffiliateCode);
   const markComplete = useMutation(api.users.markOnboardingComplete);
   const accessStatus = useQuery(
     api.users.getAccessStatus,
@@ -77,6 +79,22 @@ export default function OnboardingPage() {
 
       // Always call getOrCreate to ensure email is stored/updated
       await getOrCreate({ clerkId: userId, email });
+
+      if (BILLING_ENABLED) {
+        const refCode = localStorage.getItem("tokative_ref");
+        if (refCode) {
+          await applyReferral({ referredClerkId: userId, referralCode: refCode }).catch(() => {});
+          localStorage.removeItem("tokative_ref");
+        }
+
+        const affCode = localStorage.getItem("tokative_aff");
+        if (affCode && AFFILIATE_CODE_RE.test(affCode)) {
+          if (!refCode) {
+            await applyAffiliate({ referredClerkId: userId, affiliateCode: affCode }).catch(() => {});
+          }
+          localStorage.removeItem("tokative_aff");
+        }
+      }
 
       // If user was just created, wait for accessStatus to update
       if (accessStatus === null) {
@@ -126,6 +144,8 @@ export default function OnboardingPage() {
     accessStatus,
     router,
     getOrCreate,
+    applyReferral,
+    applyAffiliate,
     completeAndRedirect,
   ]);
 
