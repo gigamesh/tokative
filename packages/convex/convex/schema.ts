@@ -33,6 +33,7 @@ export default defineSchema({
     monthlyCommentResetAt: v.optional(v.number()),
     monthlyReplyCount: v.optional(v.number()),
     monthlyReplyResetAt: v.optional(v.number()),
+    referralCode: v.optional(v.string()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_stripe_customer_id", ["stripeCustomerId"]),
