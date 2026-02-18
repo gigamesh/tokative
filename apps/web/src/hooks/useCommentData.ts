@@ -251,6 +251,18 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     [userId, convex]
   );
 
+  useEffect(() => {
+    if (
+      paginatedComments &&
+      paginatedComments.length < PAGE_SIZE &&
+      paginationStatus === "CanLoadMore" &&
+      !loadingRef.current
+    ) {
+      loadingRef.current = true;
+      loadMore(PAGE_SIZE);
+    }
+  }, [paginatedComments, paginationStatus, loadMore]);
+
   const isInitialLoading = state.loading ||
     paginationStatus === "LoadingFirstPage" ||
     (!hasLoadedInitial && paginatedComments === undefined);

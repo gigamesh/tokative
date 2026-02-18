@@ -4,10 +4,11 @@ import { Trash2 } from "lucide-react";
 interface DangerButtonProps {
   onClick: () => void;
   disabled?: boolean;
+  className?: string;
   children: React.ReactNode;
 }
 
-export function DangerButton({ onClick, disabled, children }: DangerButtonProps) {
+export function DangerButton({ onClick, disabled, className, children }: DangerButtonProps) {
   return (
     <Button
       variant="soft-danger"
@@ -15,6 +16,7 @@ export function DangerButton({ onClick, disabled, children }: DangerButtonProps)
       icon={<Trash2 />}
       onClick={onClick}
       disabled={disabled}
+      className={className}
     >
       {children}
     </Button>

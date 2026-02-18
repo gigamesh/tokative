@@ -9,7 +9,7 @@
  */
 
 import { MutationCtx } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 
 export interface CommentInsertData {
   commentId: string;
@@ -153,6 +153,54 @@ export async function deleteCommentsBatch(
     if (!comment) continue;
 
     await ctx.db.delete(docId);
+
+    const profileIdStr = comment.tiktokProfileId.toString();
+    profileDecrements.set(
+      profileIdStr,
+      (profileDecrements.get(profileIdStr) ?? 0) + 1
+    );
+
+    const userIdStr = comment.userId.toString();
+    userDecrements.set(
+      userIdStr,
+      (userDecrements.get(userIdStr) ?? 0) + 1
+    );
+  }
+
+  for (const [profileIdStr, decrement] of Array.from(profileDecrements.entries())) {
+    const profileId = profileIdStr as Id<"tiktokProfiles">;
+    const profile = await ctx.db.get(profileId);
+    if (profile) {
+      await ctx.db.patch(profileId, {
+        commentCount: Math.max(0, (profile.commentCount ?? decrement) - decrement),
+      });
+    }
+  }
+
+  for (const [userIdStr, decrement] of Array.from(userDecrements.entries())) {
+    const userId = userIdStr as Id<"users">;
+    const user = await ctx.db.get(userId);
+    if (user) {
+      await ctx.db.patch(userId, {
+        commentCount: Math.max(0, (user.commentCount ?? decrement) - decrement),
+      });
+    }
+  }
+}
+
+/**
+ * Delete comments from already-fetched docs, skipping the redundant db.get per comment.
+ * Use this when the caller already has the full comment documents.
+ */
+export async function deleteCommentsBatchDirect(
+  ctx: MutationCtx,
+  comments: Doc<"comments">[]
+): Promise<void> {
+  const profileDecrements = new Map<string, number>();
+  const userDecrements = new Map<string, number>();
+
+  for (const comment of comments) {
+    await ctx.db.delete(comment._id);
 
     const profileIdStr = comment.tiktokProfileId.toString();
     profileDecrements.set(
