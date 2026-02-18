@@ -94,10 +94,21 @@ export function DashboardContent() {
     sortOrder: commentSort === "newest" ? "desc" : "asc",
   });
 
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false);
+  const [optimisticDeletedIds, setOptimisticDeletedIds] = useState<Set<string>>(
+    new Set(),
+  );
+
   const comments = useMemo(() => {
-    if (!hideOwnReplies) return allComments;
-    return allComments.filter((c) => c.source !== "app");
-  }, [allComments, hideOwnReplies]);
+    let filtered = allComments;
+    if (hideOwnReplies) {
+      filtered = filtered.filter((c) => c.source !== "app");
+    }
+    if (optimisticDeletedIds.size > 0) {
+      filtered = filtered.filter((c) => !optimisticDeletedIds.has(c.id));
+    }
+    return filtered;
+  }, [allComments, hideOwnReplies, optimisticDeletedIds]);
 
   const handleReplyComplete = useCallback(
     (commentId: string) => {
@@ -221,6 +232,17 @@ export function DashboardContent() {
   const hideToast = useCallback(() => {
     setToast({ isVisible: false, message: "" });
   }, []);
+
+  useEffect(() => {
+    if (optimisticDeletedIds.size === 0) return;
+    const allIds = new Set(allComments.map((c) => c.id));
+    const stillPresent = new Set(
+      [...optimisticDeletedIds].filter((id) => allIds.has(id)),
+    );
+    if (stillPresent.size < optimisticDeletedIds.size) {
+      setOptimisticDeletedIds(stillPresent);
+    }
+  }, [allComments, optimisticDeletedIds]);
 
   useScrollRestore("dashboard-scroll", !loading && !videosLoading);
 
@@ -366,12 +388,22 @@ export function DashboardContent() {
     [],
   );
 
-  const handleRemoveSelected = useCallback(() => {
+  const handleRemoveSelected = useCallback(async () => {
     if (selectedCommentIds.size === 0) return;
-    const count = selectedCommentIds.size;
-    removeComments(Array.from(selectedCommentIds));
+    const idsToDelete = Array.from(selectedCommentIds);
+    const count = idsToDelete.length;
+
+    setIsDeletingSelected(true);
+    setOptimisticDeletedIds((prev) => new Set([...prev, ...idsToDelete]));
     setSelectedCommentIds(new Set());
-    showToast(`Deleted ${count} comment${count > 1 ? "s" : ""}`);
+    window.scrollTo({ top: 0 });
+
+    try {
+      await removeComments(idsToDelete);
+      showToast(`Deleted ${count} comment${count > 1 ? "s" : ""}`);
+    } finally {
+      setIsDeletingSelected(false);
+    }
   }, [selectedCommentIds, removeComments, showToast]);
 
   const handleRemoveComment = useCallback(
@@ -853,6 +885,7 @@ export function DashboardContent() {
                   translatingIds={translatingIds}
                   onTranslateComment={handleTranslateComment}
                   targetLanguage={targetLanguage}
+                  isDeletingSelected={isDeletingSelected}
                   headerContent={
                     <>
                       <div className="flex items-center justify-between">

@@ -2,11 +2,11 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import {
   CommentInsertData,
   deleteComment,
-  deleteCommentsBatch,
+  deleteCommentsBatchDirect,
   insertCommentsBatch,
 } from "./commentHelpers";
 import { detectLanguages } from "./lib/detectLanguage";
@@ -498,6 +498,8 @@ export const remove = mutation({
   },
 });
 
+const REMOVE_BATCH_CHUNK_SIZE = 400;
+
 export const removeBatch = mutation({
   args: {
     clerkId: v.string(),
@@ -513,8 +515,11 @@ export const removeBatch = mutation({
       throw new Error("User not found");
     }
 
-    const commentDocIds: Id<"comments">[] = [];
-    for (const commentId of args.commentIds) {
+    const chunk = args.commentIds.slice(0, REMOVE_BATCH_CHUNK_SIZE);
+    const overflow = args.commentIds.slice(REMOVE_BATCH_CHUNK_SIZE);
+
+    const commentDocs: Doc<"comments">[] = [];
+    for (const commentId of chunk) {
       const comment = await ctx.db
         .query("comments")
         .withIndex("by_user_and_comment_id", (q) =>
@@ -523,12 +528,54 @@ export const removeBatch = mutation({
         .unique();
 
       if (comment) {
-        commentDocIds.push(comment._id);
+        commentDocs.push(comment);
       }
     }
 
-    // Use helper to delete comments and update profile counts
-    await deleteCommentsBatch(ctx, commentDocIds);
+    await deleteCommentsBatchDirect(ctx, commentDocs);
+
+    if (overflow.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.comments.removeBatchContinuation,
+        { userId: user._id, commentIds: overflow },
+      );
+    }
+  },
+});
+
+export const removeBatchContinuation = internalMutation({
+  args: {
+    userId: v.id("users"),
+    commentIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const chunk = args.commentIds.slice(0, REMOVE_BATCH_CHUNK_SIZE);
+    const overflow = args.commentIds.slice(REMOVE_BATCH_CHUNK_SIZE);
+
+    const commentDocs: Doc<"comments">[] = [];
+    for (const commentId of chunk) {
+      const comment = await ctx.db
+        .query("comments")
+        .withIndex("by_user_and_comment_id", (q) =>
+          q.eq("userId", args.userId).eq("commentId", commentId),
+        )
+        .unique();
+
+      if (comment) {
+        commentDocs.push(comment);
+      }
+    }
+
+    await deleteCommentsBatchDirect(ctx, commentDocs);
+
+    if (overflow.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.comments.removeBatchContinuation,
+        { userId: args.userId, commentIds: overflow },
+      );
+    }
   },
 });
 

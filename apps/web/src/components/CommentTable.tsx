@@ -6,6 +6,7 @@ import { ConfirmationModal } from "./ConfirmationModal";
 import { DangerButton } from "./DangerButton";
 import { ExpanderRow } from "./ExpanderRow";
 import { SearchInput } from "./SearchInput";
+import { Spinner } from "./Spinner";
 
 export function CommentSkeleton({ depth = 0 }: { depth?: number }) {
   return (
@@ -96,6 +97,7 @@ interface CommentTableProps {
   translatingIds?: Set<string>;
   onTranslateComment?: (commentId: string) => void;
   targetLanguage?: string;
+  isDeletingSelected?: boolean;
 }
 
 export function CommentTable({
@@ -125,6 +127,7 @@ export function CommentTable({
   translatingIds,
   onTranslateComment,
   targetLanguage,
+  isDeletingSelected,
 }: CommentTableProps) {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -343,9 +346,17 @@ export function CommentTable({
 
           <DangerButton
             onClick={() => setShowBulkDeleteConfirm(true)}
-            disabled={selectedIds.size === 0}
+            disabled={selectedIds.size === 0 && !isDeletingSelected}
+            className={isDeletingSelected ? "pointer-events-none !opacity-100 !text-red-400 !border-red-400/50 !bg-red-500/10" : ""}
           >
-            Remove{selectedIds.size > 0 && ` (${selectedIds.size})`}
+            {isDeletingSelected ? (
+              <>
+                <Spinner size="sm" className="!border-red-400 !border-t-transparent" />
+                Deleting…
+              </>
+            ) : (
+              <>Remove{selectedIds.size > 0 && ` (${selectedIds.size})`}</>
+            )}
           </DangerButton>
         </div>
       </div>
