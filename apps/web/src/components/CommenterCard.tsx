@@ -59,7 +59,7 @@ export function CommenterCard({
   const selectedCount = commenter.comments.filter((c) =>
     selectedCommentIds.has(c.id)
   ).length;
-  const allSelected = selectedCount === commenter.comments.length;
+  const allSelected = commenter.comments.length > 0 && selectedCount === commenter.comments.length;
   const someSelected = selectedCount > 0 && selectedCount < commenter.comments.length;
 
   const handleSelectAll = (checked: boolean) => {

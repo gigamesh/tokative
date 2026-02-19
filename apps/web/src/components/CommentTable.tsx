@@ -6,7 +6,7 @@ import { ConfirmationModal } from "./ConfirmationModal";
 import { DangerButton } from "./DangerButton";
 import { ExpanderRow } from "./ExpanderRow";
 import { SearchInput } from "./SearchInput";
-import { Spinner } from "./Spinner";
+
 
 export function CommentSkeleton({ depth = 0 }: { depth?: number }) {
   return (
@@ -346,17 +346,11 @@ export function CommentTable({
 
           <DangerButton
             onClick={() => setShowBulkDeleteConfirm(true)}
-            disabled={selectedIds.size === 0 && !isDeletingSelected}
-            className={isDeletingSelected ? "pointer-events-none !opacity-100 !text-red-400 !border-red-400/50 !bg-red-500/10" : ""}
+            disabled={selectedIds.size === 0}
+            loading={isDeletingSelected}
+            loadingText="Removing"
           >
-            {isDeletingSelected ? (
-              <>
-                <Spinner size="sm" className="!border-red-400 !border-t-transparent" />
-                Deleting…
-              </>
-            ) : (
-              <>Remove{selectedIds.size > 0 && ` (${selectedIds.size})`}</>
-            )}
+            Remove{selectedIds.size > 0 && ` (${selectedIds.size})`}
           </DangerButton>
         </div>
       </div>

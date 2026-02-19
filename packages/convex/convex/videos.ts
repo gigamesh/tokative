@@ -1,7 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, MutationCtx, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { deleteCommentsBatchDirect } from "./commentHelpers";
 
 export const list = query({
   args: { clerkId: v.string() },
@@ -183,6 +184,8 @@ export const remove = mutation({
   },
 });
 
+const REMOVE_VIDEO_CHUNK_SIZE = 5;
+
 export const removeBatch = mutation({
   args: {
     clerkId: v.string(),
@@ -198,43 +201,79 @@ export const removeBatch = mutation({
       throw new Error("User not found");
     }
 
-    let deletedVideos = 0;
-    let deletedComments = 0;
+    const chunk = args.videoIds.slice(0, REMOVE_VIDEO_CHUNK_SIZE);
+    const overflow = args.videoIds.slice(REMOVE_VIDEO_CHUNK_SIZE);
 
-    for (const videoId of args.videoIds) {
-      const comments = await ctx.db
-        .query("comments")
-        .withIndex("by_user_and_video", (q) =>
-          q.eq("userId", user._id).eq("videoId", videoId)
-        )
-        .collect();
+    await removeVideosChunk(ctx, user._id, chunk);
 
-      for (const comment of comments) {
-        await ctx.db.delete(comment._id);
-      }
-      deletedComments += comments.length;
-
-      const video = await ctx.db
-        .query("videos")
-        .withIndex("by_user_and_video_id", (q) =>
-          q.eq("userId", user._id).eq("videoId", videoId)
-        )
-        .unique();
-
-      if (video) {
-        await ctx.db.delete(video._id);
-        deletedVideos++;
-      }
-    }
-
-    if (deletedVideos > 0 || deletedComments > 0) {
-      const freshUser = await ctx.db.get(user._id);
-      if (freshUser) {
-        await ctx.db.patch(user._id, {
-          videoCount: Math.max(0, (freshUser.videoCount ?? deletedVideos) - deletedVideos),
-          commentCount: Math.max(0, (freshUser.commentCount ?? deletedComments) - deletedComments),
-        });
-      }
+    if (overflow.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.videos.removeBatchContinuation,
+        { userId: user._id, videoIds: overflow },
+      );
     }
   },
 });
+
+export const removeBatchContinuation = internalMutation({
+  args: {
+    userId: v.id("users"),
+    videoIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const chunk = args.videoIds.slice(0, REMOVE_VIDEO_CHUNK_SIZE);
+    const overflow = args.videoIds.slice(REMOVE_VIDEO_CHUNK_SIZE);
+
+    await removeVideosChunk(ctx, args.userId, chunk);
+
+    if (overflow.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.videos.removeBatchContinuation,
+        { userId: args.userId, videoIds: overflow },
+      );
+    }
+  },
+});
+
+/** Deletes a chunk of videos and their comments, updating all counters. */
+async function removeVideosChunk(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  videoIds: string[],
+) {
+  let deletedVideos = 0;
+
+  for (const videoId of videoIds) {
+    const comments = await ctx.db
+      .query("comments")
+      .withIndex("by_user_and_video", (q) =>
+        q.eq("userId", userId).eq("videoId", videoId)
+      )
+      .collect();
+
+    await deleteCommentsBatchDirect(ctx, comments);
+
+    const video = await ctx.db
+      .query("videos")
+      .withIndex("by_user_and_video_id", (q) =>
+        q.eq("userId", userId).eq("videoId", videoId)
+      )
+      .unique();
+
+    if (video) {
+      await ctx.db.delete(video._id);
+      deletedVideos++;
+    }
+  }
+
+  if (deletedVideos > 0) {
+    const freshUser = await ctx.db.get(userId);
+    if (freshUser) {
+      await ctx.db.patch(userId, {
+        videoCount: Math.max(0, (freshUser.videoCount ?? deletedVideos) - deletedVideos),
+      });
+    }
+  }
+}

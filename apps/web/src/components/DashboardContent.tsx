@@ -628,10 +628,24 @@ export function DashboardContent() {
     [setSelectedPost],
   );
 
+  const [pendingRemovalVideoIds, setPendingRemovalVideoIds] = useState<Set<string>>(new Set());
+  const isRemovingVideos = pendingRemovalVideoIds.size > 0;
+
+  useEffect(() => {
+    if (pendingRemovalVideoIds.size === 0) return;
+    const currentVideoIds = new Set(videos.map((v) => v.videoId));
+    const stillPending = new Set(
+      [...pendingRemovalVideoIds].filter((id) => currentVideoIds.has(id)),
+    );
+    if (stillPending.size < pendingRemovalVideoIds.size) {
+      setPendingRemovalVideoIds(stillPending);
+    }
+  }, [videos, pendingRemovalVideoIds]);
+
   const handleRemoveVideosWithComments = useCallback(
-    (videoIds: string[]) => {
+    async (videoIds: string[]) => {
       const commentIds = getCommentIdsByVideoIds(videoIds);
-      removeVideosList(videoIds);
+      setPendingRemovalVideoIds(new Set(videoIds));
       setSelectedCommentIds((prev) => {
         const next = new Set(prev);
         commentIds.forEach((id) => next.delete(id));
@@ -642,6 +656,7 @@ export function DashboardContent() {
         videoIds.forEach((id) => next.delete(id));
         return next;
       });
+      await removeVideosList(videoIds);
     },
     [getCommentIdsByVideoIds, removeVideosList],
   );
@@ -845,6 +860,7 @@ export function DashboardContent() {
                 onSelectedVideoIdsChange={setSelectedVideoIds}
                 onGetComments={getCommentsForVideos}
                 onRemoveVideos={handleRemoveVideosWithComments}
+                isRemovingVideos={isRemovingVideos}
                 onViewPostComments={handleViewPostComments}
                 onPostSelectionChange={handlePostSelectionChange}
                 isScraping={isScraping}

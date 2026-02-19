@@ -1,5 +1,6 @@
 interface SpinnerProps {
   size?: "sm" | "md";
+  variant?: "default" | "danger";
   className?: string;
 }
 
@@ -8,10 +9,15 @@ const sizeClasses = {
   md: "w-5 h-5",
 };
 
-export function Spinner({ size = "md", className }: SpinnerProps) {
+const variantClasses = {
+  default: "border-accent-cyan-text border-t-transparent",
+  danger: "border-red-400 border-t-transparent",
+};
+
+export function Spinner({ size = "md", variant = "default", className }: SpinnerProps) {
   return (
     <div
-      className={`border-2 border-accent-cyan-text border-t-transparent rounded-full animate-spin flex-shrink-0 ${sizeClasses[size]} ${className ?? ""}`}
+      className={`border-2 ${variantClasses[variant]} rounded-full animate-spin flex-shrink-0 ${sizeClasses[size]} ${className ?? ""}`}
     />
   );
 }

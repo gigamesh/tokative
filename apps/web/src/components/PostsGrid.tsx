@@ -37,6 +37,7 @@ interface PostsGridProps {
   onSelectedVideoIdsChange: (ids: Set<string>) => void;
   onGetComments: (videoIds: string[]) => void;
   onRemoveVideos: (videoIds: string[]) => void;
+  isRemovingVideos?: boolean;
   onViewPostComments?: (videoId: string) => void;
   onPostSelectionChange?: (videoIds: string[], selected: boolean) => void;
   isScraping?: boolean;
@@ -81,6 +82,7 @@ export function PostsGrid({
   onSelectedVideoIdsChange,
   onGetComments,
   onRemoveVideos,
+  isRemovingVideos = false,
   onViewPostComments,
   onPostSelectionChange,
   isScraping = false,
@@ -200,6 +202,8 @@ export function PostsGrid({
           <DangerButton
             onClick={handleRemoveSelected}
             disabled={selectedVideoIds.size === 0}
+            loading={isRemovingVideos}
+            loadingText="Removing"
           >
             Remove
           </DangerButton>
