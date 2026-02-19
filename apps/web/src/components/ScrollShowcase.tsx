@@ -33,6 +33,26 @@ const sections = [
 
 function SectionVideo({ src, onOpen }: { src: string; onOpen: () => void }) {
   const [loaded, setLoaded] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.25 },
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <button onClick={onOpen} className="group relative block w-full cursor-pointer">
@@ -40,12 +60,13 @@ function SectionVideo({ src, onOpen }: { src: string; onOpen: () => void }) {
         <div className="absolute inset-0 z-10 rounded-2xl border border-border bg-gradient-to-br from-accent-cyan/10 via-transparent to-accent-pink/10" />
       )}
       <video
+        ref={videoRef}
         className={`aspect-video w-full rounded-2xl bg-elevated border border-border object-cover shadow-lg shadow-black/10 pointer-events-none ${!loaded ? "invisible" : ""}`}
         src={src}
-        autoPlay
         loop
         muted
         playsInline
+        preload="metadata"
         onPlaying={() => setLoaded(true)}
       />
       <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
@@ -64,8 +85,11 @@ function SectionVideo({ src, onOpen }: { src: string; onOpen: () => void }) {
 }
 
 function VideoLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
+    videoRef.current?.play().catch(() => {});
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
@@ -89,9 +113,9 @@ function VideoLightbox({ src, onClose }: { src: string; onClose: () => void }) {
           Close
         </button>
         <video
+          ref={videoRef}
           className="aspect-video w-full rounded-2xl bg-elevated object-cover"
           src={src}
-          autoPlay
           loop
           muted
           playsInline
