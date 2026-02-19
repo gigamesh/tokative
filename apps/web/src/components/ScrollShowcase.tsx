@@ -12,6 +12,7 @@ const sections = [
     accent: "text-accent-cyan-text",
     video: "/videos/collect-compressed.mp4",
     videoHd: "/videos/collect-hd.mp4",
+    poster: "/videos/collect-poster.jpg",
   },
   {
     title: "Analyze",
@@ -29,9 +30,9 @@ const sections = [
     video: "/videos/reply-compressed.mp4",
     videoHd: "/videos/reply-hd.mp4",
   },
-] as const;
+] satisfies readonly { title: string; description: string; accent: string; video: string; videoHd: string; poster?: string }[];
 
-function SectionVideo({ src, onOpen }: { src: string; onOpen: () => void }) {
+function SectionVideo({ src, poster, onOpen }: { src: string; poster?: string; onOpen: () => void }) {
   const [loaded, setLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -55,7 +56,10 @@ function SectionVideo({ src, onOpen }: { src: string; onOpen: () => void }) {
   }, []);
 
   return (
-    <button onClick={onOpen} className="group relative block w-full cursor-pointer">
+    <button
+      onClick={onOpen}
+      className="group relative block w-full cursor-pointer"
+    >
       {!loaded && (
         <div className="absolute inset-0 z-10 rounded-2xl border border-border bg-gradient-to-br from-accent-cyan/10 via-transparent to-accent-pink/10" />
       )}
@@ -63,6 +67,7 @@ function SectionVideo({ src, onOpen }: { src: string; onOpen: () => void }) {
         ref={videoRef}
         className={`aspect-video w-full rounded-2xl bg-elevated border border-border object-cover shadow-lg shadow-black/10 pointer-events-none transition-opacity duration-300 ${!loaded ? "opacity-0" : "opacity-100"}`}
         src={src}
+        poster={poster}
         loop
         muted
         playsInline
@@ -77,7 +82,11 @@ function SectionVideo({ src, onOpen }: { src: string; onOpen: () => void }) {
           strokeWidth={1.5}
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m-11.25 11.25v-4.5m0 4.5h4.5m-4.5 0L9 15m11.25 5.25v-4.5m0 4.5h-4.5m4.5 0L15 15" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m-11.25 11.25v-4.5m0 4.5h4.5m-4.5 0L9 15m11.25 5.25v-4.5m0 4.5h-4.5m4.5 0L15 15"
+          />
         </svg>
       </div>
     </button>
@@ -105,7 +114,10 @@ function VideoLightbox({ src, onClose }: { src: string; onClose: () => void }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xl"
       onClick={onClose}
     >
-      <div className="relative w-full max-w-7xl mx-4" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="relative w-full max-w-7xl mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           onClick={onClose}
           className="absolute -top-10 right-0 text-white/70 hover:text-white transition-colors text-sm"
@@ -184,7 +196,11 @@ export function ScrollShowcase() {
               {section.description}
             </p>
             <div className="mt-6">
-              <SectionVideo src={section.video} onOpen={() => setLightboxSrc(section.videoHd)} />
+              <SectionVideo
+                src={section.video}
+                poster={section.poster}
+                onOpen={() => setLightboxSrc(section.videoHd)}
+              />
             </div>
           </div>
         ))}
@@ -221,11 +237,15 @@ export function ScrollShowcase() {
               <div
                 key={i}
                 ref={setVideoRef(i)}
-                className={i < sections.length - 1 ? "mb-16" : ""}
+                className={i < sections.length - 1 ? "mb-32" : ""}
                 style={{ minHeight: 1500 }}
               >
                 <div className="md:sticky md:top-1/3">
-                  <SectionVideo src={sections[i].video} onOpen={() => setLightboxSrc(sections[i].videoHd)} />
+                  <SectionVideo
+                    src={sections[i].video}
+                    poster={sections[i].poster}
+                    onOpen={() => setLightboxSrc(sections[i].videoHd)}
+                  />
                 </div>
               </div>
             ))}
