@@ -131,6 +131,8 @@ input[type="checkbox"] {
     display: inline-block;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
+    padding-bottom: 0.1em;
+    margin-bottom: -0.1em;
   }
 
   .min-h-content {
