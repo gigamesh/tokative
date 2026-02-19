@@ -3,7 +3,7 @@ import { EarlyAccessForm } from "@/components/EarlyAccessForm";
 export function Hero() {
   return (
     <div className="relative text-center px-6 pb-12 mt-16">
-      <h1 className="text-5xl sm:text-6xl text-gradient-brand max-w-xl mx-auto">
+      <h1 className="text-4xl sm:text-6xl text-gradient-brand max-w-xl mx-auto text-balance md:text-wrap">
         Manage TikTok engagement at scale
       </h1>
       <p className="mt-10 text-lg sm:text-xl text-foreground-muted leading-relaxed max-w-xl mx-auto text-balance">

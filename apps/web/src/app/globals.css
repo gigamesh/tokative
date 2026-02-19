@@ -114,6 +114,7 @@ input[type="checkbox"] {
 }
 
 @layer utilities {
+
   .bg-gradient-brand {
     background: linear-gradient(
       to right,
