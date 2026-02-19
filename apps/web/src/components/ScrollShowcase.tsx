@@ -13,6 +13,7 @@ const sections = [
     video: "/videos/collect-compressed.mp4",
     videoHd: "/videos/collect-hd.mp4",
     poster: "/videos/collect-poster.jpg",
+    posterSm: "/videos/collect-poster-sm.jpg",
   },
   {
     title: "Analyze",
@@ -21,6 +22,8 @@ const sections = [
     accent: "text-accent-pink",
     video: "/videos/analyze-compressed.mp4",
     videoHd: "/videos/analyze-hd.mp4",
+    poster: "/videos/analyze-poster.jpg",
+    posterSm: "/videos/analyze-poster-sm.jpg",
   },
   {
     title: "Reply",
@@ -29,12 +32,28 @@ const sections = [
     accent: "text-accent-cyan-text",
     video: "/videos/reply-compressed.mp4",
     videoHd: "/videos/reply-hd.mp4",
+    poster: "/videos/reply-poster.jpg",
+    posterSm: "/videos/reply-poster-sm.jpg",
   },
-] satisfies readonly { title: string; description: string; accent: string; video: string; videoHd: string; poster?: string }[];
+] satisfies readonly { title: string; description: string; accent: string; video: string; videoHd: string; poster?: string; posterSm?: string }[];
 
-function SectionVideo({ src, poster, onOpen }: { src: string; poster?: string; onOpen: () => void }) {
+function useMobileCheck() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
+
+function SectionVideo({ src, poster, posterSm, onOpen }: { src: string; poster?: string; posterSm?: string; onOpen: () => void }) {
   const [loaded, setLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isMobile = useMobileCheck();
+  const activePoster = (isMobile ? posterSm : poster) ?? poster;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -67,7 +86,7 @@ function SectionVideo({ src, poster, onOpen }: { src: string; poster?: string; o
         ref={videoRef}
         className={`aspect-video w-full rounded-2xl bg-elevated border border-border object-cover shadow-lg shadow-black/10 pointer-events-none transition-opacity duration-300 ${!loaded ? "opacity-0" : "opacity-100"}`}
         src={src}
-        poster={poster}
+        poster={activePoster}
         loop
         muted
         playsInline
@@ -199,6 +218,7 @@ export function ScrollShowcase() {
               <SectionVideo
                 src={section.video}
                 poster={section.poster}
+                posterSm={section.posterSm}
                 onOpen={() => setLightboxSrc(section.videoHd)}
               />
             </div>
@@ -244,6 +264,7 @@ export function ScrollShowcase() {
                   <SectionVideo
                     src={sections[i].video}
                     poster={sections[i].poster}
+                    posterSm={sections[i].posterSm}
                     onOpen={() => setLightboxSrc(sections[i].videoHd)}
                   />
                 </div>
