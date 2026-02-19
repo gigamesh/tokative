@@ -61,12 +61,12 @@ function SectionVideo({ src, onOpen }: { src: string; onOpen: () => void }) {
       )}
       <video
         ref={videoRef}
-        className={`aspect-video w-full rounded-2xl bg-elevated border border-border object-cover shadow-lg shadow-black/10 pointer-events-none ${!loaded ? "invisible" : ""}`}
+        className={`aspect-video w-full rounded-2xl bg-elevated border border-border object-cover shadow-lg shadow-black/10 pointer-events-none transition-opacity duration-300 ${!loaded ? "opacity-0" : "opacity-100"}`}
         src={src}
         loop
         muted
         playsInline
-        preload="metadata"
+        preload="auto"
         onPlaying={() => setLoaded(true)}
       />
       <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
@@ -119,6 +119,7 @@ function VideoLightbox({ src, onClose }: { src: string; onClose: () => void }) {
           loop
           muted
           playsInline
+          preload="auto"
           controls
         />
       </div>
