@@ -1,8 +1,7 @@
 import { GetVideoCommentsProgress, ScrapedVideo } from "@/utils/constants";
-import { Image, X } from "lucide-react";
+import { Image } from "lucide-react";
 import { forwardRef, useCallback, useRef, useState } from "react";
 import { GridComponents, VirtuosoGrid } from "react-virtuoso";
-import { Button } from "./Button";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { DangerButton } from "./DangerButton";
 import { FetchCommentsButton } from "./FetchCommentsButton";
@@ -41,8 +40,6 @@ interface PostsGridProps {
   onViewPostComments?: (videoId: string) => void;
   onPostSelectionChange?: (videoIds: string[], selected: boolean) => void;
   isScraping?: boolean;
-  isCancelling?: boolean;
-  onCancelScraping?: () => void;
   postLimitInput: string;
   onPostLimitChange: (value: string) => void;
   onPostLimitBlur: () => void;
@@ -86,8 +83,6 @@ export function PostsGrid({
   onViewPostComments,
   onPostSelectionChange,
   isScraping = false,
-  isCancelling = false,
-  onCancelScraping,
   postLimitInput,
   onPostLimitChange,
   onPostLimitBlur,
@@ -207,26 +202,7 @@ export function PostsGrid({
           >
             Remove
           </DangerButton>
-          {isScraping ? (
-            isCancelling ? (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-              >
-                Cancelling...
-              </Button>
-            ) : (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={onCancelScraping}
-                icon={<X />}
-              >
-                Cancel
-              </Button>
-            )
-          ) : (
+          {!isScraping && (
             <span title={commentLimitReached ? "Monthly comment limit reached" : undefined}>
               <FetchCommentsButton
                 onClick={handleGetCommentsSelected}

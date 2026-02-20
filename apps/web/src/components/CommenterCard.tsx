@@ -84,7 +84,7 @@ export function CommenterCard({
     <div
       className={`rounded-lg border transition-colors ${
         someSelected || allSelected
-          ? "border-accent-cyan-muted-half bg-accent-cyan-muted/5"
+          ? "border-accent-cyan-muted-half bg-accent-cyan-muted-5"
           : "border-border bg-surface-elevated"
       }`}
     >
@@ -132,7 +132,7 @@ export function CommenterCard({
               >
                 @{commenter.handle}
               </ExternalLink>
-              <span className="px-2 py-0.5 bg-accent-cyan-muted/20 text-accent-cyan-text text-xs rounded-full">
+              <span className="px-2 py-0.5 bg-accent-cyan-muted-20 text-accent-cyan-text text-xs rounded-full">
                 {commenter.commentCount} comment{commenter.commentCount !== 1 ? "s" : ""}
               </span>
               <span className="text-xs text-foreground-muted">

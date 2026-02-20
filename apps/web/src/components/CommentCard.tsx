@@ -76,7 +76,7 @@ export function CommentCard({
     <div
       className={`px-3 py-2 rounded-lg border transition-colors ${
         selected
-          ? "border-accent-cyan-muted-half bg-accent-cyan-muted/10"
+          ? "border-accent-cyan-muted-half bg-accent-cyan-muted-10"
           : transparent
             ? "border-border bg-transparent hover:border-foreground-muted"
             : "border-border bg-surface-elevated hover:border-foreground-muted"

@@ -22,7 +22,7 @@ export const list = query({
       .collect();
 
     return videos
-      .sort((a, b) => a.order - b.order)
+      .sort((a, b) => b.videoId.localeCompare(a.videoId))
       .map((v) => ({
         id: `${v.profileHandle}-${v.videoId}`,
         videoId: v.videoId,

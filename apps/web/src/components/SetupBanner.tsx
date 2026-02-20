@@ -84,7 +84,7 @@ export function SetupBanner() {
 
   if (setupState === "needs_connection") {
     return (
-      <div className="mb-6 p-4 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg">
+      <div className="mb-6 p-4 bg-accent-cyan-muted-20 border border-accent-cyan-muted-half rounded-lg">
         <div className="flex items-start gap-3">
           <Zap className="w-5 h-5 text-accent-cyan-text flex-shrink-0 mt-0.5" />
           <div className="flex-1">

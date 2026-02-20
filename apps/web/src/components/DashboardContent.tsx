@@ -799,40 +799,69 @@ export function DashboardContent() {
           })()}
 
         <div className="sticky top-[60px] z-10 bg-surface -mx-4 px-4 pt-4 pb-4 -mt-1">
-          {isCancelling && (
-            <div className="mb-3 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
-              <Spinner size="md" />
-              <span className="text-yellow-400 font-medium">Cancelling...</span>
-            </div>
-          )}
-
-          {batchProgress && !isCancelling && (
-            <div className="mb-3 p-3 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
-              <Spinner size="md" />
-              <div>
-                <span className="text-accent-cyan-text font-medium">
-                  Post {batchProgress.currentVideoIndex}/
-                  {batchProgress.totalVideos}
-                </span>
-                <span className="text-accent-cyan-text/80 ml-2">
-                  ({batchProgress.totalComments} comments)
-                </span>
-              </div>
-            </div>
-          )}
-
-          {!batchProgress &&
-            !isCancelling &&
-            getCommentsProgress.size > 0 &&
+          {(isCancelling || batchProgress || (!batchProgress && getCommentsProgress.size > 0)) &&
             (() => {
+              if (isCancelling) {
+                return (
+                  <div className="mb-3 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+                    <h3 className="text-yellow-400 font-semibold mb-2">Collecting comments</h3>
+                    <div className="flex items-center gap-3">
+                      <Spinner size="md" />
+                      <span className="text-yellow-400 font-medium">Cancelling...</span>
+                    </div>
+                  </div>
+                );
+              }
+              if (batchProgress) {
+                return (
+                  <div className="mb-3 p-3 bg-accent-cyan-muted-20 border border-accent-cyan-muted-half rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-accent-cyan-text font-semibold">Collecting comments</h3>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={handleCancelScraping}
+                        icon={<X />}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Spinner size="md" />
+                      <div>
+                        <span className="text-accent-cyan-text font-medium">
+                          Post {batchProgress.currentVideoIndex}/
+                          {batchProgress.totalVideos}
+                        </span>
+                        <span className="text-accent-cyan-text/80 ml-2">
+                          ({batchProgress.totalComments} comments)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               const progress = Array.from(getCommentsProgress.values())[0];
               if (!progress || progress.status === "complete") return null;
               return (
-                <div className="mb-3 p-3 bg-accent-cyan-muted/20 border border-accent-cyan-muted/50 rounded-lg flex items-center gap-3">
-                  <Spinner size="md" />
-                  <span className="text-accent-cyan-text font-medium">
-                    {progress.message || "Collecting comments..."}
-                  </span>
+                <div className="mb-3 p-3 bg-accent-cyan-muted-20 border border-accent-cyan-muted-half rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-accent-cyan-text font-semibold">Collecting comments</h3>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={handleCancelScraping}
+                      icon={<X />}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Spinner size="md" />
+                    <span className="text-accent-cyan-text font-medium">
+                      {progress.message || "Collecting comments..."}
+                    </span>
+                  </div>
                 </div>
               );
             })()}
@@ -864,8 +893,6 @@ export function DashboardContent() {
                 onViewPostComments={handleViewPostComments}
                 onPostSelectionChange={handlePostSelectionChange}
                 isScraping={isScraping}
-                isCancelling={isCancelling}
-                onCancelScraping={handleCancelScraping}
                 postLimitInput={postLimitInput}
                 onPostLimitChange={setPostLimitInput}
                 onPostLimitBlur={handlePostLimitBlur}

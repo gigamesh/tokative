@@ -169,7 +169,7 @@ export function ReplyComposer({
       <div className="flex items-center justify-between">
         <h3 className="font-medium text-foreground">Reply Composer</h3>
         {selectedCount > 0 && (
-          <span className="text-sm bg-accent-cyan-muted/20 text-accent-cyan-text px-2 py-0.5 rounded-full">
+          <span className="text-sm bg-accent-cyan-muted-20 text-accent-cyan-text px-2 py-0.5 rounded-full">
             {selectedCount} selected
           </span>
         )}
