@@ -31,7 +31,10 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
       mentionButton: ['[data-e2e="comment-at-icon"]'],
       mentionDropdown: ['[data-e2e="comment-at-user"]'],
       mentionItem: ['[data-e2e="comment-at-list"]'],
-      mentionItemHandle: ['p.TUXText--truncate', '[class*="DivMentionUserInfo"] p:last-child'],
+      mentionItemHandle: [
+        "p.TUXText--truncate",
+        '[class*="DivMentionUserInfo"] p:last-child',
+      ],
       mentionTag: ['[class*="StyledMentionUsernameText"]'],
     },
 
@@ -191,8 +194,14 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
       msToken: "msToken",
     },
     perRequestParams: [
-      "cursor", "count", "aweme_id", "item_id", "comment_id",
-      "X-Bogus", "X-Gnarly", "msToken",
+      "cursor",
+      "count",
+      "aweme_id",
+      "item_id",
+      "comment_id",
+      "X-Bogus",
+      "X-Gnarly",
+      "msToken",
     ],
 
     response: {

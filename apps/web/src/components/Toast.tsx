@@ -10,18 +10,21 @@ interface ToastProps {
   variant?: "success" | "error";
 }
 
-export function Toast({ message, children, isVisible, onClose, duration = 3000, variant = "success" }: ToastProps) {
+export function Toast({ message, children, isVisible, onClose, duration, variant = "success" }: ToastProps) {
+  const effectiveDuration = duration ?? (variant === "error" ? Infinity : 5000);
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     if (isVisible) {
       setIsAnimating(true);
-      const timer = setTimeout(onClose, duration);
-      return () => clearTimeout(timer);
+      if (effectiveDuration !== Infinity) {
+        const timer = setTimeout(onClose, effectiveDuration);
+        return () => clearTimeout(timer);
+      }
     } else {
       setIsAnimating(false);
     }
-  }, [isVisible, duration, onClose]);
+  }, [isVisible, effectiveDuration, onClose]);
 
   if (!isVisible) return null;
 

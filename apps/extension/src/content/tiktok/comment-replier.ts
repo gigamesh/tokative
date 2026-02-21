@@ -32,6 +32,21 @@ const tick = () => new Promise<void>((r) => setTimeout(r, getLoadedConfig().dela
 
 export interface ReplyResult {
   postedReplyId?: string;
+  postedReply?: ScrapedComment;
+  detectionFailed?: boolean;
+}
+
+function checkLoggedIn(commentId: string): void {
+  const loginButton = document.querySelector(
+    '[data-e2e="nav-login-button"], [data-e2e="top-login-button"]'
+  );
+  if (loginButton) {
+    throw new CommentReplyError(
+      "USER_NOT_LOGGED_IN",
+      "You must be logged into TikTok to reply to comments",
+      { commentId }
+    );
+  }
 }
 
 export async function replyToComment(
@@ -81,6 +96,8 @@ export async function replyToComment(
   replyButton.click();
   await tick();
 
+  checkLoggedIn(user.id);
+
   sendProgress(user.id, "replying", "Waiting for reply input...");
 
   const config = getLoadedConfig();
@@ -89,6 +106,7 @@ export async function replyToComment(
   });
 
   if (!commentInput) {
+    checkLoggedIn(user.id);
     throw new CommentReplyError("COMMENT_INPUT_NOT_FOUND", "Could not find comment input field", { commentId: user.id });
   }
 
@@ -149,22 +167,45 @@ export async function replyToComment(
     try {
       await new Promise((resolve) => setTimeout(resolve, config.delays.postReply));
 
+      const videoAuthor = window.location.pathname.match(/^\/@([^/?]+)/)?.[1];
+      const topLevelCommentId = user.isReply ? (user.parentCommentId ?? undefined) : undefined;
+      logger.log("[CommentReplier] Reply detection context:", {
+        userId: user.id,
+        userIsReply: user.isReply,
+        userParentCommentId: user.parentCommentId,
+        topLevelCommentId,
+        videoAuthor,
+        replyText: replyMessage.substring(0, 30),
+      });
       const postedReply = await findRecentlyPostedReplyWithRetry({
         parentCommentId: user.id,
+        topLevelCommentId,
         replyText: replyMessage,
+        ourHandle: videoAuthor || "",
         maxAgeSeconds: config.timeouts.replyTimeout / 1000,
       });
 
       if (postedReply) {
-        logger.log("[CommentReplier] Found posted reply:", postedReply.id);
+        logger.log("[CommentReplier] Found posted reply:", JSON.stringify({
+          id: postedReply.id,
+          parentCommentId: postedReply.parentCommentId,
+          replyToReplyId: postedReply.replyToReplyId,
+          isReply: postedReply.isReply,
+          handle: postedReply.handle,
+          comment: postedReply.comment?.substring(0, 40),
+        }));
         result.postedReplyId = postedReply.id;
+        result.postedReply = postedReply;
 
-        await addScrapedComments([postedReply]);
+        const storeResult = await addScrapedComments([postedReply]);
+        logger.log("[CommentReplier] Stored posted reply:", JSON.stringify(storeResult));
       } else {
-        logger.warn("[CommentReplier] Could not find posted reply in DOM");
+        logger.error("[CommentReplier] Could not find posted reply via React fiber (retries exhausted)");
+        result.detectionFailed = true;
       }
     } catch (error) {
-      logger.warn("[CommentReplier] Failed to extract/store posted reply:", error);
+      logger.error("[CommentReplier] Failed to extract/store posted reply:", error);
+      result.detectionFailed = true;
     }
   }
 

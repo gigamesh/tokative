@@ -40,9 +40,10 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       }),
 
       bridge.on(MessageType.REPLY_COMMENT_COMPLETE, (payload) => {
-        const { commentId, postedReply } = payload as {
+        const { commentId, postedReply, detectionFailed } = payload as {
           commentId: string;
           postedReply?: ScrapedComment;
+          detectionFailed?: boolean;
         };
         let wasStopped = false;
         setState((prev) => {
@@ -55,7 +56,12 @@ export function useMessaging(options: UseMessagingOptions = {}) {
             ...prev,
             isReplying: false,
             replyStatusMessage: null,
-            bulkReplyProgress: { ...prev.bulkReplyProgress, completed: 1, status: "complete" },
+            bulkReplyProgress: {
+              ...prev.bulkReplyProgress,
+              completed: detectionFailed ? 0 : 1,
+              detectionFailed: detectionFailed ? 1 : 0,
+              status: "complete",
+            },
           };
         });
         if (!wasStopped) {
@@ -89,7 +95,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
           replyStatusMessage: null,
           bulkReplyProgress: progress,
         }));
-        if (progress.commentNotFound === 0 && progress.mentionFailed === 0 && progress.failed === 0) {
+        if (progress.commentNotFound === 0 && progress.mentionFailed === 0 && progress.failed === 0 && progress.detectionFailed === 0) {
           setTimeout(() => {
             setState((prev) => ({
               ...prev,
@@ -117,6 +123,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
         failed: 0,
         commentNotFound: 0,
         mentionFailed: 0,
+        detectionFailed: 0,
         status: "running",
       },
     }));
@@ -127,6 +134,8 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       comment: c.comment,
       videoUrl: c.videoUrl,
       videoId: c.videoId,
+      isReply: c.isReply,
+      parentCommentId: c.parentCommentId,
       ...(c.messageToSend && { messageToSend: c.messageToSend }),
     }));
 
@@ -142,6 +151,8 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       comment: c.comment,
       videoUrl: c.videoUrl,
       videoId: c.videoId,
+      isReply: c.isReply,
+      parentCommentId: c.parentCommentId,
       ...(c.messageToSend && { messageToSend: c.messageToSend }),
     }));
 

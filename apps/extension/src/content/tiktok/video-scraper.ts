@@ -283,6 +283,41 @@ function extractCommentFromDOM(
   return { handle, displayName, comment, commentId };
 }
 
+/** Extracts comment data from a DOM element, checking both top-level and reply selectors. */
+function extractAvatarFromDOM(el: Element): string | undefined {
+  const img = el.querySelector('a[href*="/@"] img[src]') as HTMLImageElement;
+  return img?.src || undefined;
+}
+
+function extractReplyFromDOM(
+  el: Element,
+): Partial<RawCommentData> | null {
+  const result = extractCommentFromDOM(el);
+  if (result?.handle) {
+    result.avatarUrl = result.avatarUrl || extractAvatarFromDOM(el);
+    return result;
+  }
+
+  // Reply comments use level-2 selectors that extractCommentFromDOM doesn't check
+  const usernameEl = el.querySelector('[data-e2e="comment-username-2"] a') as HTMLAnchorElement
+    || el.querySelector('[data-e2e="comment-username-1"] a') as HTMLAnchorElement;
+  if (!usernameEl?.href) return null;
+
+  const handle = extractHandleFromHref(usernameEl.href);
+  if (!handle) return null;
+
+  const displayName = usernameEl.textContent?.trim() || handle;
+
+  const textEl = el.querySelector('[data-e2e="comment-level-2"]')
+    || el.querySelector('[data-e2e="comment-level-1"]');
+  const comment = textEl?.textContent?.trim() || "";
+
+  const commentId = el.id || "";
+  const avatarUrl = extractAvatarFromDOM(el);
+
+  return { handle, displayName, comment, commentId, avatarUrl };
+}
+
 /**
  * Extracts all comments (top-level and replies) from the current video's comment section.
  *
@@ -460,8 +495,9 @@ export function rawCommentToScrapedComment(
 
 export interface FindReplyOptions {
   parentCommentId: string;
+  topLevelCommentId?: string;
   replyText: string;
-  ourHandle?: string;
+  ourHandle: string;
   maxAgeSeconds?: number;
 }
 
@@ -486,47 +522,72 @@ function textsMatch(expected: string, found: string): boolean {
 export async function findRecentlyPostedReply(
   options: FindReplyOptions,
 ): Promise<ScrapedComment | null> {
-  const { parentCommentId, replyText, ourHandle, maxAgeSeconds = 60 } = options;
-  const ourHandleLower = ourHandle?.toLowerCase();
+  const { parentCommentId, topLevelCommentId, replyText, ourHandle, maxAgeSeconds = 60 } = options;
+  const storageParentId = topLevelCommentId || parentCommentId;
+  const replyToReplyId = topLevelCommentId ? parentCommentId : null;
+  const ourHandleLower = ourHandle.toLowerCase();
   const nowSeconds = Math.floor(Date.now() / 1000);
 
-  logger.log(`[Tokative] findRecentlyPostedReply: looking for reply${ourHandle ? ` by @${ourHandle}` : ""} to comment ${parentCommentId}`);
+  logger.log(`[Tokative] findRecentlyPostedReply: looking for reply by @${ourHandle} to comment ${parentCommentId}, storageParentId=${storageParentId}, replyToReplyId=${replyToReplyId}`);
 
   const reactDataMap = await extractAllReactData();
   logger.log(`[Tokative] findRecentlyPostedReply: extracted ${reactDataMap.size} comments from React`);
 
   const videoId = getVideoId();
 
+  // Collect all comments including nested reply_comment arrays
+  type Candidate = {
+    cid: string;
+    create_time: number;
+    text?: string;
+    user: { uid: string; unique_id: string; nickname?: string; avatar_thumb?: string };
+    reply_id?: string;
+    reply_to_reply_id?: string;
+    aweme_id?: string;
+  };
+  const candidates: Candidate[] = [];
+
   for (const [, data] of reactDataMap) {
-    if (!data.cid || !data.user) continue;
-
-    const handleMatches = ourHandleLower ? data.user.unique_id?.toLowerCase() === ourHandleLower : true;
-    const isReplyToParent = data.reply_id === parentCommentId;
-    const ageSeconds = nowSeconds - (data.create_time || 0);
-    const isRecent = ageSeconds <= maxAgeSeconds && ageSeconds >= 0;
-    const textMatches = textsMatch(replyText, data.text || "");
-
-    if (handleMatches && isReplyToParent && isRecent && textMatches) {
-      logger.log(`[Tokative] findRecentlyPostedReply: found match - cid=${data.cid}, age=${ageSeconds}s`);
-
-      const rawComment: RawCommentData = {
-        commentId: data.cid,
-        tiktokUserId: data.user.uid || "",
-        handle: data.user.unique_id || "",
-        displayName: data.user.nickname || "",
-        comment: data.text || "",
-        createTime: data.create_time || nowSeconds,
-        videoId: videoId || data.aweme_id || "",
-        avatarUrl: data.user.avatar_thumb,
-        parentCommentId,
-        replyToReplyId: data.reply_to_reply_id !== "0" ? data.reply_to_reply_id : null,
-      };
-
-      return rawCommentToScrapedComment(rawComment, "app");
+    if (data.cid && data.user) candidates.push(data as Candidate);
+    if (data.reply_comment) {
+      for (const reply of data.reply_comment) {
+        if (reply.cid && reply.user) candidates.push({ ...reply, user: reply.user, aweme_id: data.aweme_id } as Candidate);
+      }
     }
   }
 
-  logger.log(`[Tokative] findRecentlyPostedReply: no matching reply found`);
+  // Match by handle + thread membership + recency (text match optional tiebreaker)
+  for (const data of candidates) {
+    if (data.user.unique_id?.toLowerCase() !== ourHandleLower) continue;
+    const isReplyToParent =
+      data.reply_id === parentCommentId ||
+      data.reply_to_reply_id === parentCommentId ||
+      (replyToReplyId && data.reply_id === storageParentId);
+    if (!isReplyToParent) continue;
+    const ageSeconds = nowSeconds - (data.create_time || 0);
+    if (ageSeconds > maxAgeSeconds || ageSeconds < 0) continue;
+
+    logger.log(`[Tokative] findRecentlyPostedReply: found match via React - cid=${data.cid}, age=${ageSeconds}s`);
+
+    const rawComment: RawCommentData = {
+      commentId: data.cid,
+      tiktokUserId: data.user.uid || "",
+      handle: data.user.unique_id || "",
+      displayName: data.user.nickname || "",
+      comment: data.text || "",
+      createTime: data.create_time || nowSeconds,
+      videoId: videoId || data.aweme_id || "",
+      avatarUrl: data.user.avatar_thumb,
+      parentCommentId: storageParentId,
+      replyToReplyId: replyToReplyId || (data.reply_to_reply_id !== "0" ? data.reply_to_reply_id : null),
+    };
+
+    return rawCommentToScrapedComment(rawComment, "app");
+  }
+
+  // DOM fallback disabled — synthetic IDs cause downstream issues.
+  // Relying on React path only; retries should allow React state to catch up.
+  logger.log(`[Tokative] findRecentlyPostedReply: no React match found`);
   return null;
 }
 
@@ -537,8 +598,8 @@ export async function findRecentlyPostedReplyWithRetry(
 ): Promise<ScrapedComment | null> {
   let delayMs = initialDelayMs;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    logger.log(`[Tokative] findRecentlyPostedReplyWithRetry: attempt ${attempt}/${maxRetries}`);
     const result = await findRecentlyPostedReply(options);
+    logger.log(`[Tokative] findRecentlyPostedReplyWithRetry: attempt ${attempt}/${maxRetries}, found ${result ? 'match' : 'no match'}, delayMs=${delayMs}`);
     if (result) {
       return result;
     }

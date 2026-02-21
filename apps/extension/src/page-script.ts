@@ -250,9 +250,7 @@ interface ElementWithFiber extends Element {
     comments.forEach((el, index) => {
       const keys = Object.getOwnPropertyNames(el);
       const fiberKey = keys.find((k) => k.startsWith("__reactFiber$"));
-      if (!fiberKey) {
-        return;
-      }
+      if (!fiberKey) return;
 
       const fiber = (el as ElementWithFiber)[fiberKey] as ReactFiber;
       const comment = findCommentData(fiber);

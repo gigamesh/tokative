@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import type { ExtensionConfig } from "@tokative/shared";
+import { NextResponse } from "next/server";
 
 const config: ExtensionConfig = {
   minExtensionVersion: "1.0.0",
@@ -32,7 +32,10 @@ const config: ExtensionConfig = {
       mentionButton: ['[data-e2e="comment-at-icon"]'],
       mentionDropdown: ['[data-e2e="comment-at-user"]'],
       mentionItem: ['[data-e2e="comment-at-list"]'],
-      mentionItemHandle: ['p.TUXText--truncate', '[class*="DivMentionUserInfo"] p:last-child'],
+      mentionItemHandle: [
+        "p.TUXText--truncate",
+        '[class*="DivMentionUserInfo"] p:last-child',
+      ],
       mentionTag: ['[class*="StyledMentionUsernameText"]'],
     },
 
@@ -173,7 +176,7 @@ const config: ExtensionConfig = {
     enableRateLimitAutoResume: true,
     enableApiFetching: true,
     enableMention: true,
-    keepReplyTabOpen: true,
+    keepReplyTabOpen: false,
   },
 
   api: {
@@ -193,8 +196,14 @@ const config: ExtensionConfig = {
       msToken: "msToken",
     },
     perRequestParams: [
-      "cursor", "count", "aweme_id", "item_id", "comment_id",
-      "X-Bogus", "X-Gnarly", "msToken",
+      "cursor",
+      "count",
+      "aweme_id",
+      "item_id",
+      "comment_id",
+      "X-Bogus",
+      "X-Gnarly",
+      "msToken",
     ],
 
     response: {

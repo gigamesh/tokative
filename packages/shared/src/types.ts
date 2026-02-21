@@ -150,7 +150,7 @@ export interface ReplyProgress {
   message?: string;
 }
 
-export type CommentReplyStatus = "pending" | "replying" | "sent" | "commentNotFound" | "mentionFailed" | "failed";
+export type CommentReplyStatus = "pending" | "replying" | "sent" | "detectionFailed" | "commentNotFound" | "mentionFailed" | "failed";
 
 export interface BulkReplyProgress {
   total: number;
@@ -158,9 +158,11 @@ export interface BulkReplyProgress {
   failed: number;
   commentNotFound: number;
   mentionFailed: number;
+  detectionFailed: number;
   current?: string;
   status: "running" | "complete" | "stopped" | "error";
   commentStatuses?: Record<string, CommentReplyStatus>;
+  abortReason?: string;
 }
 
 export interface ScrapedVideo {

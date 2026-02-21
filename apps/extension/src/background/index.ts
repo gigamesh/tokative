@@ -1,7 +1,7 @@
 import { initSentry } from "../utils/sentry";
 initSentry("background");
 
-import { colors, ScrapeStats } from "@tokative/shared";
+import { colors, ScrapeStats, CommentReplyStatus } from "@tokative/shared";
 import { getLoadedConfig, loadConfig, refreshConfig } from "../config/loader";
 import {
   BulkReplyProgress,
@@ -795,6 +795,7 @@ async function broadcastToDashboard(message: ExtensionMessage): Promise<void> {
 
 interface ReplyToCommentResult {
   success: boolean;
+  detectionFailed?: boolean;
   error?: string;
   errorCode?: string;
   tabId?: number;
@@ -869,12 +870,13 @@ async function handleReplyToComment(
 
       const responseHandler = (msg: ExtensionMessage) => {
         if (msg.type === MessageType.REPLY_COMMENT_COMPLETE) {
-          const payload = msg.payload as { commentId?: string };
+          const payload = msg.payload as { commentId?: string; detectionFailed?: boolean };
           if (payload.commentId === comment.id) {
             clearTimeout(timeout);
             chrome.runtime.onMessage.removeListener(responseHandler);
             resolve({
               success: true,
+              detectionFailed: payload.detectionFailed,
               tabId: existingTabId ? tabId : undefined,
             });
           }
@@ -935,7 +937,7 @@ async function handleBulkReply(
   bulkReplyMessages = replyMessages;
   bulkReplyPort = port;
 
-  const initialStatuses: Record<string, "pending" | "replying" | "sent" | "commentNotFound" | "mentionFailed" | "failed"> = {};
+  const initialStatuses: Record<string, CommentReplyStatus> = {};
   for (const c of bulkReplyPending) {
     initialStatuses[c.id] = "pending";
   }
@@ -946,6 +948,7 @@ async function handleBulkReply(
     failed: 0,
     commentNotFound: 0,
     mentionFailed: 0,
+    detectionFailed: 0,
     status: "running",
     commentStatuses: initialStatuses,
   };
@@ -998,10 +1001,25 @@ async function handleBulkReply(
       bulkReplyProcessedIds.add(comment.id);
       bulkReplyCurrentId = null;
 
-      if (result.success) {
-        bulkReplyProgress.completed++;
+      if (result.errorCode === "USER_NOT_LOGGED_IN") {
+        bulkReplyProgress.abortReason = "USER_NOT_LOGGED_IN";
         if (bulkReplyProgress.commentStatuses) {
-          bulkReplyProgress.commentStatuses[comment.id] = "sent";
+          delete bulkReplyProgress.commentStatuses[comment.id];
+        }
+        break;
+      }
+
+      if (result.success) {
+        if (result.detectionFailed) {
+          bulkReplyProgress.detectionFailed++;
+          if (bulkReplyProgress.commentStatuses) {
+            bulkReplyProgress.commentStatuses[comment.id] = "detectionFailed";
+          }
+        } else {
+          bulkReplyProgress.completed++;
+          if (bulkReplyProgress.commentStatuses) {
+            bulkReplyProgress.commentStatuses[comment.id] = "sent";
+          }
         }
         await updateScrapedComment(comment.id, {
           repliedTo: true,
@@ -1059,7 +1077,8 @@ async function handleBulkReply(
         bulkReplyProgress.completed -
         bulkReplyProgress.failed -
         bulkReplyProgress.commentNotFound -
-        bulkReplyProgress.mentionFailed,
+        bulkReplyProgress.mentionFailed -
+        bulkReplyProgress.detectionFailed,
     );
   } finally {
     const config = getLoadedConfig();

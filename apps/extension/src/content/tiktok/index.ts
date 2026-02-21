@@ -93,6 +93,8 @@ function handleMessage(
             payload: {
               commentId: comment.id,
               postedReplyId: result.postedReplyId,
+              postedReply: result.postedReply,
+              detectionFailed: result.detectionFailed,
             },
           });
           sendResponse({ success: true, postedReplyId: result.postedReplyId });

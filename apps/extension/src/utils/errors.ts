@@ -45,6 +45,7 @@ export class ScrapeSetupError extends TokativeError {
 }
 
 export type CommentReplyErrorCode =
+  | "USER_NOT_LOGGED_IN"
   | "NO_COMMENTS_ON_VIDEO"
   | "COMMENT_NOT_FOUND"
   | "REPLY_BUTTON_NOT_FOUND"

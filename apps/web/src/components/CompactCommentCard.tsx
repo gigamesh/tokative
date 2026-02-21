@@ -32,6 +32,11 @@ const STATUS_CONFIG: Record<
     tooltip:
       "Skipped — comment was not found on the video. It may have been deleted.",
   },
+  detectionFailed: {
+    icon: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
+    tooltip:
+      "Reply was sent but could not be verified. It may not appear in your comments.",
+  },
   mentionFailed: {
     icon: <AlertTriangle className="w-4 h-4 text-orange-400" />,
     tooltip:

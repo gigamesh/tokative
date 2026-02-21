@@ -202,7 +202,7 @@ export function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [toast, setToast] = useState({ isVisible: false, message: "" });
+  const [toast, setToast] = useState<{ isVisible: boolean; message: string; variant?: "success" | "error"; duration?: number }>({ isVisible: false, message: "" });
   const [missingCommentChoiceModal, setMissingCommentChoiceModal] = useState<{
     isOpen: boolean;
     pendingMessages: string[];
@@ -216,16 +216,18 @@ export function DashboardContent() {
     failed: number;
     commentNotFound: number;
     mentionFailed: number;
+    detectionFailed: number;
   } | null>(null);
   const [replyLimitModal, setReplyLimitModal] = useState<{
     completed: number;
     failed: number;
     commentNotFound: number;
     mentionFailed: number;
+    detectionFailed: number;
   } | null>(null);
 
-  const showToast = useCallback((message: string) => {
-    setToast({ isVisible: true, message });
+  const showToast = useCallback((message: string, variant?: "success" | "error", duration?: number) => {
+    setToast({ isVisible: true, message, variant, duration });
   }, []);
 
   const hideToast = useCallback(() => {
@@ -274,11 +276,19 @@ export function DashboardContent() {
 
   useEffect(() => {
     if (bulkReplyProgress?.status === "complete") {
+      if (bulkReplyProgress.abortReason === "USER_NOT_LOGGED_IN") {
+        showToast(
+          "You must be logged into TikTok to reply to comments. Please log in and try again.",
+          "error",
+        );
+        return;
+      }
       const stats = {
         completed: bulkReplyProgress.completed,
         failed: bulkReplyProgress.failed,
         commentNotFound: bulkReplyProgress.commentNotFound,
         mentionFailed: bulkReplyProgress.mentionFailed,
+        detectionFailed: bulkReplyProgress.detectionFailed,
       };
       if (replyLimitReached) {
         setReplyLimitModal(stats);
@@ -286,7 +296,7 @@ export function DashboardContent() {
         setReplyReport(stats);
       }
     }
-  }, [bulkReplyProgress, replyLimitReached]);
+  }, [bulkReplyProgress, replyLimitReached, showToast]);
 
   const handlePostLimitBlur = useCallback(() => {
     const parsed = parseInt(postLimitInput);
@@ -1112,6 +1122,8 @@ export function DashboardContent() {
         message={toast.message}
         isVisible={toast.isVisible}
         onClose={hideToast}
+        variant={toast.variant}
+        {...(toast.duration !== undefined && { duration: toast.duration })}
       />
 
       <Toast
@@ -1129,6 +1141,11 @@ export function DashboardContent() {
             <span className="font-medium">Reply complete</span>
             <span className="text-foreground-muted"> — </span>
             <span className="text-green-400">{replyReport.completed} sent</span>
+            {replyReport.detectionFailed > 0 && (
+              <span className="text-yellow-400">
+                , {replyReport.detectionFailed} sent but not verified
+              </span>
+            )}
             {replyReport.failed > 0 && (
               <span className="text-red-400">
                 , {replyReport.failed} failed
