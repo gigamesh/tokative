@@ -48,7 +48,13 @@ export type CommentReplyErrorCode =
   | "NO_COMMENTS_ON_VIDEO"
   | "COMMENT_NOT_FOUND"
   | "REPLY_BUTTON_NOT_FOUND"
-  | "COMMENT_INPUT_NOT_FOUND";
+  | "COMMENT_INPUT_NOT_FOUND"
+  | "REPLY_TEXT_NOT_ENTERED"
+  | "POST_BUTTON_NOT_FOUND"
+  | "MENTION_BUTTON_NOT_FOUND"
+  | "MENTION_DROPDOWN_NOT_FOUND"
+  | "MENTION_NOT_INSERTED"
+  | "MENTION_USER_NOT_FOUND";
 
 export class CommentReplyError extends TokativeError {
   readonly commentId: string;

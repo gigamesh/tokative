@@ -20,6 +20,7 @@ export interface ExtensionConfig {
     apiPageDelay: number;
     apiBackoffInitial: number;
     apiBackoffMax: number;
+    mentionDropdownWait: number;
   };
 
   delays: {
@@ -42,6 +43,7 @@ export interface ExtensionConfig {
     enableReplyDetection?: boolean;
     enableRateLimitAutoResume?: boolean;
     enableApiFetching?: boolean;
+    enableMention?: boolean;
   };
 
   api: {

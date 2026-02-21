@@ -60,15 +60,40 @@ export async function replyToComment(
     throw new CommentReplyError("COMMENT_INPUT_NOT_FOUND", "Could not find comment input field", { commentId: user.id });
   }
 
-  // Find the editable area and click it directly (skip clicking parent container)
-  const editableInput = commentInput.querySelector('[contenteditable="true"]') as HTMLElement || commentInput;
+  let editableInput = commentInput.querySelector('[contenteditable="true"]') as HTMLElement || commentInput;
 
   await humanClick(editableInput);
 
+  let mentioned = false;
+
+  if (config.features?.enableMention !== false) {
+    try {
+      sendProgress(user.id, "replying", "Mentioning @" + user.handle + "...");
+      await mentionUser(editableInput, user.handle, user.id);
+      mentioned = true;
+    } catch (error) {
+      logger.error("[CommentReplier] Mention failed, proceeding without:", error);
+      const freshInput = await waitForSelector<HTMLElement>(SELECTORS.commentInput, {
+        timeout: config.timeouts.selectorWait,
+      });
+      if (!freshInput) {
+        throw new CommentReplyError("COMMENT_INPUT_NOT_FOUND", "Lost comment input after failed mention attempt", { commentId: user.id });
+      }
+      editableInput = freshInput.querySelector('[contenteditable="true"]') as HTMLElement || freshInput;
+      await humanClick(editableInput);
+    }
+  }
+
   sendProgress(user.id, "replying", "Typing reply...");
 
-  // Use clipboard paste for Draft.js compatibility
-  await typeViaPaste(editableInput, replyMessage);
+  await typeViaPaste(editableInput, (mentioned ? " " : "") + replyMessage);
+
+  // Verify the reply text actually made it into the input
+  await humanDelay("short");
+  const inputContent = editableInput.textContent || "";
+  if (!inputContent.includes(replyMessage.substring(0, 10))) {
+    throw new CommentReplyError("REPLY_TEXT_NOT_ENTERED", "Reply text was not entered into the input field", { commentId: user.id });
+  }
 
   sendProgress(user.id, "replying", "Posting reply...");
 
@@ -77,17 +102,10 @@ export async function replyToComment(
   });
 
   if (!postButton) {
-    editableInput.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "Enter",
-      code: "Enter",
-      keyCode: 13,
-      which: 13,
-      bubbles: true,
-      cancelable: true,
-    }));
-  } else {
-    await humanClick(postButton);
+    throw new CommentReplyError("POST_BUTTON_NOT_FOUND", "Could not find post button", { commentId: user.id });
   }
+
+  await humanClick(postButton);
 
   sendProgress(user.id, "complete", "Reply posted!");
 
@@ -117,6 +135,75 @@ export async function replyToComment(
   }
 
   return result;
+}
+
+/** Clicks the @ button, finds the user in the mention dropdown, and clicks them to insert a mention. */
+async function mentionUser(editableInput: HTMLElement, handle: string, commentId: string): Promise<void> {
+  const config = getLoadedConfig();
+
+  const mentionButton = querySelector<HTMLElement>(SELECTORS.mentionButton);
+  if (!mentionButton) {
+    throw new CommentReplyError("MENTION_BUTTON_NOT_FOUND", "Could not find @ mention button", { commentId });
+  }
+
+  await humanClick(mentionButton);
+
+  const dropdown = await waitForSelector<HTMLElement>(SELECTORS.mentionDropdown, {
+    timeout: config.timeouts.mentionDropdownWait,
+  });
+
+  if (!dropdown) {
+    throw new CommentReplyError("MENTION_DROPDOWN_NOT_FOUND", "Mention dropdown did not appear after clicking @ button", { commentId });
+  }
+
+  await humanDelay("short");
+
+  editableInput.focus();
+  document.execCommand("insertText", false, handle);
+
+  const targetHandle = handle.toLowerCase();
+  const pollInterval = 300;
+  const maxAttempts = Math.ceil(config.timeouts.mentionDropdownWait / pollInterval);
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise((r) => setTimeout(r, pollInterval));
+
+    const items = querySelectorAll<HTMLElement>(SELECTORS.mentionItem);
+    for (const item of items) {
+      const handleEl = querySelector<HTMLElement>(SELECTORS.mentionItemHandle, item);
+      const itemHandle = (handleEl?.textContent || "").trim().toLowerCase();
+      if (itemHandle === targetHandle) {
+        const itemIndex = parseInt(item.getAttribute("data-index") || "0", 10);
+
+        const container = item.closest('[class*="DivMentionSuggestionContainer"]') as HTMLElement;
+        if (container) {
+          container.focus();
+          await humanDelay("micro");
+        }
+
+        const target = container || item;
+        for (let i = 0; i <= itemIndex; i++) {
+          target.dispatchEvent(new KeyboardEvent("keydown", {
+            key: "ArrowDown", code: "ArrowDown", keyCode: 40, bubbles: true, cancelable: true,
+          }));
+          await humanDelay("micro");
+        }
+        await humanDelay("short");
+        target.dispatchEvent(new KeyboardEvent("keydown", {
+          key: "Enter", code: "Enter", keyCode: 13, bubbles: true, cancelable: true,
+        }));
+        await humanDelay("medium");
+
+        const mentionTag = querySelector(SELECTORS.mentionTag, editableInput);
+        if (!mentionTag) {
+          throw new CommentReplyError("MENTION_NOT_INSERTED", `Clicked @${handle} but mention tag was not inserted into input`, { commentId });
+        }
+        return;
+      }
+    }
+  }
+
+  throw new CommentReplyError("MENTION_USER_NOT_FOUND", `Could not find @${handle} in mention dropdown after ${maxAttempts} attempts`, { commentId });
 }
 
 async function waitForFirstComment(): Promise<Element | null> {
