@@ -98,6 +98,7 @@ function handleMessage(
           sendResponse({ success: true, postedReplyId: result.postedReplyId });
         })
         .catch((error) => {
+          logger.error("[CommentReplier] Reply failed:", error);
           chrome.runtime.sendMessage({
             type: MessageType.REPLY_COMMENT_ERROR,
             payload: {

@@ -126,7 +126,6 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       comment: c.comment,
       videoUrl: c.videoUrl,
       videoId: c.videoId,
-      repliedTo: c.repliedTo,
       ...(c.messageToSend && { messageToSend: c.messageToSend }),
     }));
 
@@ -142,7 +141,6 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       comment: c.comment,
       videoUrl: c.videoUrl,
       videoId: c.videoId,
-      repliedTo: c.repliedTo,
       ...(c.messageToSend && { messageToSend: c.messageToSend }),
     }));
 

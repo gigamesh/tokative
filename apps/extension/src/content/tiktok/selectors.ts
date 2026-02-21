@@ -24,6 +24,11 @@ export const SELECTORS = {
   get commentReplyButton() { return getInboxSelectors().commentReplyButton; },
   get commentInput() { return getInboxSelectors().commentInput; },
   get commentPostButton() { return getInboxSelectors().commentPostButton; },
+  get mentionButton() { return getInboxSelectors().mentionButton; },
+  get mentionDropdown() { return getInboxSelectors().mentionDropdown; },
+  get mentionItem() { return getInboxSelectors().mentionItem; },
+  get mentionItemHandle() { return getInboxSelectors().mentionItemHandle; },
+  get mentionTag() { return getInboxSelectors().mentionTag; },
 };
 
 /** Traverses UP the DOM via `.closest()`, trying each selector in order. */

@@ -52,6 +52,11 @@ let batchVideoQueue: Array<{ videoId: string; videoUrl: string }> = [];
 let currentBatchIndex = 0;
 const closingTabsIntentionally = new Set<number>();
 
+function closeTabIntentionally(tabId: number): void {
+  closingTabsIntentionally.add(tabId);
+  chrome.tabs.remove(tabId).catch(() => {});
+}
+
 // Bulk reply state (module-level so the queue can be replaced mid-run)
 let bulkReplyPending: ScrapedComment[] = [];
 let bulkReplyProcessedIds = new Set<string>();
@@ -845,7 +850,7 @@ async function handleReplyToComment(
     }
 
     const config = getLoadedConfig();
-    return new Promise((resolve) => {
+    return await new Promise<ReplyToCommentResult>((resolve) => {
       const timeout = setTimeout(() => {
         chrome.runtime.onMessage.removeListener(responseHandler);
         port.postMessage({
@@ -855,10 +860,6 @@ async function handleReplyToComment(
             error: `Reply timed out after ${config.timeouts.replyTimeout / 1000} seconds`,
           },
         });
-        if (tabCreatedHere && tabId) {
-          closingTabsIntentionally.add(tabId);
-          chrome.tabs.remove(tabId).catch(() => {});
-        }
         resolve({
           success: false,
           error: "Timeout",
@@ -872,10 +873,6 @@ async function handleReplyToComment(
           if (payload.commentId === comment.id) {
             clearTimeout(timeout);
             chrome.runtime.onMessage.removeListener(responseHandler);
-            if (tabCreatedHere && tabId) {
-              closingTabsIntentionally.add(tabId);
-              chrome.tabs.remove(tabId).catch(() => {});
-            }
             resolve({
               success: true,
               tabId: existingTabId ? tabId : undefined,
@@ -886,10 +883,6 @@ async function handleReplyToComment(
           if (payload.commentId === comment.id) {
             clearTimeout(timeout);
             chrome.runtime.onMessage.removeListener(responseHandler);
-            if (tabCreatedHere && tabId) {
-              closingTabsIntentionally.add(tabId);
-              chrome.tabs.remove(tabId).catch(() => {});
-            }
             resolve({
               success: false,
               error: payload.error,
@@ -915,11 +908,11 @@ async function handleReplyToComment(
         error: errorMessage,
       },
     });
-    if (tabCreatedHere && tabId) {
-      closingTabsIntentionally.add(tabId);
-      chrome.tabs.remove(tabId).catch(() => {});
-    }
     return { success: false, error: errorMessage };
+  } finally {
+    if (tabCreatedHere && tabId) {
+      closeTabIntentionally(tabId);
+    }
   }
 }
 
@@ -979,8 +972,7 @@ async function handleBulkReply(
 
       const needsNewTab = videoId !== currentVideoId && currentVideoId !== null;
       if (needsNewTab && currentTabId) {
-        closingTabsIntentionally.add(currentTabId);
-        chrome.tabs.remove(currentTabId).catch(() => {});
+        closeTabIntentionally(currentTabId);
         currentTabId = undefined;
         await new Promise((resolve) => setTimeout(resolve, messageDelay));
       }
@@ -1058,8 +1050,7 @@ async function handleBulkReply(
     );
   } finally {
     if (currentTabId) {
-      closingTabsIntentionally.add(currentTabId);
-      chrome.tabs.remove(currentTabId).catch(() => {});
+      closeTabIntentionally(currentTabId);
     }
 
     bulkReplyProgress.status = bulkReplyAborted ? "stopped" : "complete";
@@ -1264,8 +1255,7 @@ async function handleGetBatchComments(
     }
 
     if (tab?.id) {
-      closingTabsIntentionally.add(tab.id);
-      chrome.tabs.remove(tab.id);
+      closeTabIntentionally(tab.id);
     }
     await focusDashboardTab();
   } catch (error) {
@@ -1283,8 +1273,7 @@ async function handleGetBatchComments(
     });
 
     if (tab?.id) {
-      closingTabsIntentionally.add(tab.id);
-      chrome.tabs.remove(tab.id).catch(() => {});
+      closeTabIntentionally(tab.id);
     }
     await focusDashboardTab();
   }

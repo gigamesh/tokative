@@ -28,6 +28,11 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
         '[data-e2e="comment-input"] [contenteditable="true"]',
       ],
       commentPostButton: ['[data-e2e="comment-post"]'],
+      mentionButton: ['[data-e2e="comment-at-icon"]'],
+      mentionDropdown: ['[data-e2e="comment-at-user"]'],
+      mentionItem: ['[data-e2e="comment-at-list"]'],
+      mentionItemHandle: ['p.TUXText--truncate', '[class*="DivMentionUserInfo"] p:last-child'],
+      mentionTag: ['[class*="StyledMentionUsernameText"]'],
     },
 
     video: {
@@ -128,6 +133,7 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
     rateLimitPause: 60000,
     tabLoad: 60000,
     replyTimeout: 60000,
+    mentionDropdownWait: 3000,
     commentLoadWait: 10000,
     firstCommentWait: 15000,
     apiPageDelay: 500,
@@ -161,6 +167,7 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
     enableReplyDetection: true,
     enableRateLimitAutoResume: true,
     enableApiFetching: true,
+    enableMention: true,
   },
   api: {
     endpoints: {
