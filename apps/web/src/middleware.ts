@@ -15,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   "/verified",
   "/privacy",
   "/terms",
+  "/api/config",
 ]);
 
 function proxyClerkRequests(req: NextRequest) {

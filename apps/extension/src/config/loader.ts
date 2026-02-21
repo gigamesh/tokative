@@ -3,7 +3,8 @@ import { isVersionCompatible } from "./types";
 import { DEFAULT_CONFIG } from "./defaults";
 import { logger } from "../utils/logger";
 
-const CONFIG_URL = "https://gigamesh.github.io/tokative/config.json";
+declare const TOKATIVE_ENDPOINT_PLACEHOLDER: string;
+const CONFIG_URL = `${TOKATIVE_ENDPOINT_PLACEHOLDER}/api/config`;
 const CACHE_KEY = "tokative_remote_config";
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const FETCH_TIMEOUT_MS = 5000;

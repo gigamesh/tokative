@@ -6,8 +6,7 @@
   "permissions": ["storage", "tabs", "scripting", "webRequest"],
   "host_permissions": [
     "https://www.tiktok.com/*",
-    "http://localhost:3000/*",
-    "https://gigamesh.github.io/*"
+    "http://localhost:3000/*"
   ],
   "background": {
     "service_worker": "background.js",

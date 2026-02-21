@@ -15,6 +15,7 @@
  * - reply_comment_total: actual total reply count
  */
 
+import type { ExtensionConfig } from "@tokative/shared";
 import { getAllCommentElements } from "./content/tiktok/video-selectors";
 
 // TikTok's avatar structure from React fiber
@@ -96,45 +97,12 @@ interface ElementWithFiber extends Element {
   [key: string]: ReactFiber | unknown;
 }
 
-/** Mirrors ExtensionConfig['api'] — can't import since this runs in page context. */
-interface ApiConfig {
-  endpoints: { commentList: string; commentReply: string };
-  interceptPattern: string;
-  replyPathSegment: string;
-  params: {
-    videoId: string; itemId: string; commentId: string;
-    cursor: string; count: string; msToken: string;
-  };
-  perRequestParams: string[];
-  response: {
-    comments: string; cursor: string; hasMore: string; total: string;
-    statusCode: string; successValue: number; hasMoreValue: number;
-  };
-  commentFields: {
-    id: string; createTime: string; videoId: string; text: string;
-    user: string; replyId: string; replyToReplyId: string;
-    replyCount: string; replies: string;
-  };
-  userFields: {
-    id: string; uniqueId: string; nickname: string;
-    avatarThumb: string; avatarUrlList: string;
-  };
-  signing: {
-    primaryPath: string; fallbackMethod: string;
-    fallbackSign: string; fallbackKeyPattern: string;
-  };
-  cookie: { tokenName: string; tokenPattern: string };
-  pagination: {
-    pageCount: number; batchSize: number;
-    maxRetries: number; capturedParamsTimeout: number;
-  };
-}
 
 (function () {
   // Store native fetch before patching — must be first thing in IIFE
   const nativeFetch = window.fetch.bind(window);
 
-  const DEFAULT_API_CONFIG: ApiConfig = {
+  const DEFAULT_API_CONFIG: ExtensionConfig['api'] = {
     endpoints: {
       commentList: "https://www.tiktok.com/api/comment/list/?",
       commentReply: "https://www.tiktok.com/api/comment/list/reply/?",
@@ -169,10 +137,10 @@ interface ApiConfig {
       fallbackKeyPattern: "bogus|acrawler|signer|frontier",
     },
     cookie: { tokenName: "msToken", tokenPattern: "(?:^|;\\s*)msToken=([^;]+)" },
-    pagination: { pageCount: 20, batchSize: 50, maxRetries: 5, capturedParamsTimeout: 15000 },
+    pagination: { pageCount: 20, batchSize: 50, maxRetries: 3, capturedParamsTimeout: 15000 },
   };
 
-  let apiConfig: ApiConfig = DEFAULT_API_CONFIG;
+  let apiConfig: ExtensionConfig['api'] = DEFAULT_API_CONFIG;
 
   // Captured fingerprinting params from TikTok's own comment API requests.
   // The fetch interceptor below captures these from TikTok's first /api/comment/list/ call.
@@ -812,7 +780,7 @@ interface ApiConfig {
 
     if (config.api) {
       apiConfig = { ...DEFAULT_API_CONFIG, ...config.api };
-      for (const key of Object.keys(DEFAULT_API_CONFIG) as (keyof ApiConfig)[]) {
+      for (const key of Object.keys(DEFAULT_API_CONFIG) as (keyof ExtensionConfig['api'])[]) {
         const defaultVal = DEFAULT_API_CONFIG[key];
         if (typeof defaultVal === "object" && defaultVal !== null && !Array.isArray(defaultVal)) {
           (apiConfig as unknown as Record<string, unknown>)[key] = {
