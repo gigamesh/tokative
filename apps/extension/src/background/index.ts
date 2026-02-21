@@ -1333,8 +1333,13 @@ async function scrapeVideoInTab(
 
     chrome.runtime.onMessage.addListener(responseHandler);
 
+    const scrapeConfig = getLoadedConfig();
+    const scrapeMessageType = scrapeConfig.features?.enableApiFetching !== false
+      ? MessageType.SCRAPE_VIDEO_COMMENTS_API_START
+      : MessageType.SCRAPE_VIDEO_COMMENTS_START;
+
     chrome.tabs.sendMessage(tabId, {
-      type: MessageType.SCRAPE_VIDEO_COMMENTS_API_START,
+      type: scrapeMessageType,
     });
   });
 }
@@ -1427,20 +1432,22 @@ chrome.webRequest.onCompleted.addListener(
           clearTimeout(rateLimitResumeTimeout);
         }
 
-        // Auto-resume after 60 seconds
-        rateLimitResumeTimeout = setTimeout(async () => {
-          logger.log(`[Background] 60 seconds elapsed - resuming scraping`);
-          if (activeScrapingTabId) {
-            chrome.tabs.sendMessage(activeScrapingTabId, {
-              type: MessageType.SCRAPE_RESUME,
-            });
-          }
-          await clearRateLimitState();
-          updateRateLimitBadge(false);
-          broadcastToDashboard({ type: MessageType.RATE_LIMIT_CLEARED });
-          broadcastToPopup({ type: MessageType.RATE_LIMIT_CLEARED });
-          rateLimitResumeTimeout = null;
-        }, 60000);
+        const config = getLoadedConfig();
+        if (config.features?.enableRateLimitAutoResume !== false) {
+          rateLimitResumeTimeout = setTimeout(async () => {
+            logger.log(`[Background] 60 seconds elapsed - resuming scraping`);
+            if (activeScrapingTabId) {
+              chrome.tabs.sendMessage(activeScrapingTabId, {
+                type: MessageType.SCRAPE_RESUME,
+              });
+            }
+            await clearRateLimitState();
+            updateRateLimitBadge(false);
+            broadcastToDashboard({ type: MessageType.RATE_LIMIT_CLEARED });
+            broadcastToPopup({ type: MessageType.RATE_LIMIT_CLEARED });
+            rateLimitResumeTimeout = null;
+          }, 60000);
+        }
       }
     }
   },

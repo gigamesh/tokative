@@ -109,29 +109,29 @@ export async function replyToComment(
 
   sendProgress(user.id, "complete", "Reply posted!");
 
-  // Try to extract and store the posted reply
   const result: ReplyResult = {};
 
-  try {
-    // Wait a moment for TikTok to add the reply to DOM/React state
-    await new Promise((resolve) => setTimeout(resolve, config.delays.postReply));
+  if (config.features?.enableReplyDetection !== false) {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, config.delays.postReply));
 
-    const postedReply = await findRecentlyPostedReplyWithRetry({
-      parentCommentId: user.id,
-      replyText: replyMessage,
-      maxAgeSeconds: config.timeouts.replyTimeout / 1000,
-    });
+      const postedReply = await findRecentlyPostedReplyWithRetry({
+        parentCommentId: user.id,
+        replyText: replyMessage,
+        maxAgeSeconds: config.timeouts.replyTimeout / 1000,
+      });
 
-    if (postedReply) {
-      logger.log("[CommentReplier] Found posted reply:", postedReply.id);
-      result.postedReplyId = postedReply.id;
+      if (postedReply) {
+        logger.log("[CommentReplier] Found posted reply:", postedReply.id);
+        result.postedReplyId = postedReply.id;
 
-      await addScrapedComments([postedReply]);
-    } else {
-      logger.warn("[CommentReplier] Could not find posted reply in DOM");
+        await addScrapedComments([postedReply]);
+      } else {
+        logger.warn("[CommentReplier] Could not find posted reply in DOM");
+      }
+    } catch (error) {
+      logger.warn("[CommentReplier] Failed to extract/store posted reply:", error);
     }
-  } catch (error) {
-    logger.warn("[CommentReplier] Failed to extract/store posted reply:", error);
   }
 
   return result;
