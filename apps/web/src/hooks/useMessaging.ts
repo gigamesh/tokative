@@ -32,7 +32,10 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       bridge.on(MessageType.REPLY_COMMENT_PROGRESS, (payload) => {
         const { message } = payload as { message?: string };
         if (message) {
-          setState((prev) => ({ ...prev, replyStatusMessage: message }));
+          setState((prev) => {
+            if (prev.bulkReplyProgress?.status === "stopped") return prev;
+            return { ...prev, replyStatusMessage: message };
+          });
         }
       }),
 
@@ -41,13 +44,12 @@ export function useMessaging(options: UseMessagingOptions = {}) {
           commentId: string;
           postedReply?: ScrapedComment;
         };
-        if (commentId && onReplyComplete) {
-          onReplyComplete(commentId);
-        }
-        if (postedReply && onPostedReply) {
-          onPostedReply(postedReply);
-        }
+        let wasStopped = false;
         setState((prev) => {
+          if (prev.bulkReplyProgress?.status === "stopped") {
+            wasStopped = true;
+            return prev;
+          }
           if (!prev.bulkReplyProgress || prev.bulkReplyProgress.total > 1) return prev;
           return {
             ...prev,
@@ -56,6 +58,14 @@ export function useMessaging(options: UseMessagingOptions = {}) {
             bulkReplyProgress: { ...prev.bulkReplyProgress, completed: 1, status: "complete" },
           };
         });
+        if (!wasStopped) {
+          if (commentId && onReplyComplete) {
+            onReplyComplete(commentId);
+          }
+          if (postedReply && onPostedReply) {
+            onPostedReply(postedReply);
+          }
+        }
         setTimeout(() => {
           setState((prev) => {
             if (!prev.bulkReplyProgress || prev.bulkReplyProgress.total > 1) return prev;
@@ -65,10 +75,10 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       }),
 
       bridge.on(MessageType.BULK_REPLY_PROGRESS, (payload) => {
-        setState((prev) => ({
-          ...prev,
-          bulkReplyProgress: payload as BulkReplyProgress,
-        }));
+        setState((prev) => {
+          if (prev.bulkReplyProgress?.status === "stopped") return prev;
+          return { ...prev, bulkReplyProgress: payload as BulkReplyProgress };
+        });
       }),
 
       bridge.on(MessageType.BULK_REPLY_COMPLETE, (payload) => {
