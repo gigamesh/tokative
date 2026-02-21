@@ -4,6 +4,7 @@ import { BulkReplyProgress } from "@tokative/shared";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { AlertTriangle, Globe, Smile, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
 import { Spinner } from "./Spinner";
@@ -54,7 +55,9 @@ export function ReplyComposer({
   const [hasOverflow, setHasOverflow] = useState(false);
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const emojiButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [emojiPickerPos, setEmojiPickerPos] = useState<{ top: number; left: number } | null>(null);
   const { theme } = useTheme();
 
   const langDisplayNames = useMemo(
@@ -335,30 +338,32 @@ export function ReplyComposer({
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    setActiveEmojiPicker(
-                      activeEmojiPicker === index ? null : index,
-                    )
-                  }
+                  ref={(el) => {
+                    emojiButtonRefs.current[index] = el;
+                  }}
+                  onClick={() => {
+                    if (activeEmojiPicker === index) {
+                      setActiveEmojiPicker(null);
+                      setEmojiPickerPos(null);
+                    } else {
+                      const btn = emojiButtonRefs.current[index];
+                      if (btn) {
+                        const rect = btn.getBoundingClientRect();
+                        const pickerHeight = 400;
+                        const spaceBelow = window.innerHeight - rect.bottom;
+                        const top = spaceBelow >= pickerHeight + 80
+                          ? rect.bottom + 8
+                          : rect.top - pickerHeight - 8;
+                        setEmojiPickerPos({ top, left: rect.right - 296 });
+                      }
+                      setActiveEmojiPicker(index);
+                    }
+                  }}
                   className="absolute right-2.5 bottom-2.5 text-foreground-muted hover:text-foreground transition-colors"
                   title="Add emoji"
                 >
                   <Smile className="w-4 h-4" />
                 </button>
-                {activeEmojiPicker === index && (
-                  <div
-                    ref={emojiPickerRef}
-                    className="absolute right-0 top-full mt-2 z-10"
-                  >
-                    <EmojiPicker
-                      theme={theme === "dark" ? Theme.DARK : Theme.LIGHT}
-                      onEmojiClick={handleEmojiClick}
-                      width={280}
-                      height={320}
-                      previewConfig={{ showPreview: false }}
-                    />
-                  </div>
-                )}
               </div>
               {messages.length > 1 && (
                 <button
@@ -473,6 +478,28 @@ export function ReplyComposer({
           {isTranslatingReplies ? "Translating..." : disabled ? "Replying..." : "Reply"}
         </Button>
       </div>
+
+      {activeEmojiPicker !== null && emojiPickerPos &&
+        createPortal(
+          <div
+            ref={emojiPickerRef}
+            className="fixed z-50"
+            style={{ top: emojiPickerPos.top, left: emojiPickerPos.left }}
+          >
+            <EmojiPicker
+              theme={theme === "dark" ? Theme.DARK : Theme.LIGHT}
+              onEmojiClick={handleEmojiClick}
+              width={296}
+              height={400}
+              previewConfig={{ showPreview: false }}
+              style={{
+                "--epr-emoji-size": "20px",
+                "--epr-emoji-padding": "3px",
+              } as React.CSSProperties}
+            />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
