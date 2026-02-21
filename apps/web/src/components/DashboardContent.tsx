@@ -683,7 +683,7 @@ export function DashboardContent() {
     <div className="min-h-content bg-surface">
       <main className="max-w-7xl mx-auto px-4 py-6">
         {error && error !== dismissedError && (
-          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 flex items-start justify-between gap-3">
+          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 flex items-start justify-between gap-3 w-fit ml-auto">
             <span>{error}</span>
             <button
               onClick={() => setDismissedError(error)}
@@ -703,9 +703,9 @@ export function DashboardContent() {
             const pct = Math.round((monthlyUsed / monthlyLimit) * 100);
             if (monthlyUsed >= monthlyLimit) {
               return (
-                <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3">
+                <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3 w-fit ml-auto">
                   <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <div className="flex-1">
+                  <div>
                     <span className="text-red-400 font-medium">
                       Monthly comment limit reached
                     </span>
@@ -725,9 +725,9 @@ export function DashboardContent() {
             }
             if (pct >= 80) {
               return (
-                <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+                <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3 w-fit ml-auto">
                   <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-                  <div className="flex-1">
+                  <div>
                     <span className="text-yellow-400 font-medium">
                       {pct}% of monthly comment limit used
                     </span>
@@ -755,9 +755,9 @@ export function DashboardContent() {
             const pct = Math.round((repliesUsed / replyLimit) * 100);
             if (repliesUsed >= replyLimit) {
               return (
-                <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3">
+                <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-3 w-fit ml-auto">
                   <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <div className="flex-1">
+                  <div>
                     <span className="text-red-400 font-medium">
                       Monthly reply limit reached
                     </span>
@@ -777,9 +777,9 @@ export function DashboardContent() {
             }
             if (pct >= 80) {
               return (
-                <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3">
+                <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex items-center gap-3 w-fit ml-auto">
                   <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-                  <div className="flex-1">
+                  <div>
                     <span className="text-yellow-400 font-medium">
                       {pct}% of monthly reply limit used
                     </span>
@@ -805,7 +805,7 @@ export function DashboardContent() {
             (() => {
               if (isCancelling) {
                 return (
-                  <div className="mb-3 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+                  <div className="mb-3 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg w-fit ml-auto">
                     <h3 className="text-yellow-400 font-semibold mb-2">Collecting comments</h3>
                     <div className="flex items-center gap-3">
                       <Spinner size="md" />
@@ -816,18 +816,8 @@ export function DashboardContent() {
               }
               if (batchProgress) {
                 return (
-                  <div className="mb-3 p-3 bg-accent-cyan-muted-20 border border-accent-cyan-muted-half rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-accent-cyan-text font-semibold">Collecting comments</h3>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={handleCancelScraping}
-                        icon={<X />}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
+                  <div className="mb-3 p-3 bg-accent-cyan-muted-20 border border-accent-cyan-muted-half rounded-lg w-fit ml-auto">
+                    <h3 className="text-accent-cyan-text font-semibold mb-2">Collecting comments</h3>
                     <div className="flex items-center gap-3">
                       <Spinner size="md" />
                       <div>
@@ -839,6 +829,12 @@ export function DashboardContent() {
                           ({batchProgress.totalComments} comments)
                         </span>
                       </div>
+                      <button
+                        onClick={handleCancelScraping}
+                        className="text-accent-cyan-text/60 hover:text-accent-cyan-text border border-accent-cyan-text/30 hover:border-accent-cyan-text/60 rounded px-2.5 py-0.5 text-sm cursor-pointer transition-colors"
+                      >
+                        Cancel
+                      </button>
                     </div>
                   </div>
                 );
@@ -846,23 +842,19 @@ export function DashboardContent() {
               const progress = Array.from(getCommentsProgress.values())[0];
               if (!progress || progress.status === "complete") return null;
               return (
-                <div className="mb-3 p-3 bg-accent-cyan-muted-20 border border-accent-cyan-muted-half rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-accent-cyan-text font-semibold">Collecting comments</h3>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={handleCancelScraping}
-                      icon={<X />}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
+                <div className="mb-3 p-3 bg-accent-cyan-muted-20 border border-accent-cyan-muted-half rounded-lg w-fit ml-auto">
+                  <h3 className="text-accent-cyan-text font-semibold mb-2">Collecting comments</h3>
                   <div className="flex items-center gap-3">
                     <Spinner size="md" />
                     <span className="text-accent-cyan-text font-medium">
                       {progress.message || "Collecting comments..."}
                     </span>
+                    <button
+                      onClick={handleCancelScraping}
+                      className="text-accent-cyan-text/60 hover:text-accent-cyan-text border border-accent-cyan-text/30 hover:border-accent-cyan-text/60 rounded px-2.5 py-0.5 text-sm cursor-pointer transition-colors"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
               );
