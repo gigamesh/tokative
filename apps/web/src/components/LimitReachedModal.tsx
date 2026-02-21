@@ -10,7 +10,7 @@ interface LimitReachedModalProps {
   limit: number;
   plan: string;
   scrapeStats?: { found: number; new: number; preexisting: number; ignored: number };
-  replyStats?: { completed: number; failed: number; skipped: number };
+  replyStats?: { completed: number; failed: number; commentNotFound: number; mentionFailed: number };
 }
 
 export function LimitReachedModal({
@@ -76,10 +76,16 @@ export function LimitReachedModal({
               <span className="text-red-400 font-medium text-sm">{replyStats.failed}</span>
             </div>
           )}
-          {replyStats.skipped > 0 && (
+          {replyStats.commentNotFound > 0 && (
             <div className="flex justify-between items-center py-1.5 border-b border-border">
-              <span className="text-foreground-muted text-sm">Skipped</span>
-              <span className="text-yellow-400 font-medium text-sm">{replyStats.skipped}</span>
+              <span className="text-foreground-muted text-sm">Not found</span>
+              <span className="text-yellow-400 font-medium text-sm">{replyStats.commentNotFound}</span>
+            </div>
+          )}
+          {replyStats.mentionFailed > 0 && (
+            <div className="flex justify-between items-center py-1.5 border-b border-border">
+              <span className="text-foreground-muted text-sm">Mention failed</span>
+              <span className="text-orange-400 font-medium text-sm">{replyStats.mentionFailed}</span>
             </div>
           )}
         </div>

@@ -1,12 +1,34 @@
+/**
+ * Comment Reply Logic
+ *
+ * IMPORTANT — @mention is mandatory, not optional:
+ *
+ * The @mention inserted via TikTok's mention dropdown is the ONLY mechanism
+ * that triggers a notification to the recipient. Without it, the reply is
+ * posted into the void — the user will never see it.
+ *
+ * If the mention fails for ANY reason (user not found in dropdown, dropdown
+ * didn't appear, mention tag not inserted), the entire reply MUST be aborted.
+ * Never fall back to posting without a mention. A reply without a mention is
+ * worse than no reply at all — it wastes a reply and the recipient gets nothing.
+ *
+ * TikTok's mention search is unreliable. Some handles simply don't appear in
+ * the dropdown results. When this happens, the correct behavior is to throw
+ * MENTION_USER_NOT_FOUND and let the caller mark the reply as failed/skipped.
+ */
 import { ScrapedComment, MessageType, ReplyProgress } from "../../types";
-import { humanDelay, humanClick } from "../../utils/dom";
 import { addScrapedComments } from "../../utils/storage";
 import { CommentReplyError } from "../../utils/errors";
+import { isVisible } from "../../utils/dom";
 import { SELECTORS, closestMatch, querySelector, querySelectorAll, waitForSelector } from "./selectors";
-import { VIDEO_SELECTORS } from "./video-selectors";
+import { VIDEO_SELECTORS, getAllCommentElements } from "./video-selectors";
 import { findRecentlyPostedReplyWithRetry } from "./video-scraper";
+import { expandRepliesForParent } from "./comment-utils";
 import { getLoadedConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
+
+/** Minimal delay to let React reconcile DOM changes between synthetic events. */
+const tick = () => new Promise<void>((r) => setTimeout(r, getLoadedConfig().delays.tick));
 
 export interface ReplyResult {
   postedReplyId?: string;
@@ -16,7 +38,7 @@ export async function replyToComment(
   user: ScrapedComment,
   replyMessage: string
 ): Promise<ReplyResult> {
-  logger.log("[CommentReplier] Starting reply process for @" + user.handle);
+  logger.log("[CommentReplier] Starting reply process for @" + user.handle + (user.isReply ? " (reply comment)" : ""));
 
   sendProgress(user.id, "finding", "Waiting for comments to load...");
 
@@ -27,27 +49,37 @@ export async function replyToComment(
 
   sendProgress(user.id, "finding", "Verifying comment...");
 
-  const verification = verifyComment(firstComment, user);
-  if (!verification.isMatch) {
-    logger.warn(
-      `[CommentReplier] Comment mismatch. Expected @${user.handle} but found @${verification.foundHandle}. ` +
-      `Expected "${user.comment.substring(0, 30)}..." but found "${verification.foundComment.substring(0, 30)}..."`
-    );
-    throw new CommentReplyError("COMMENT_NOT_FOUND", "Comment not found", { commentId: user.id });
+  let targetComment = findTargetComment(user);
+
+  if (!targetComment) {
+    sendProgress(user.id, "finding", "Expanding reply threads...");
+    const parentComments = querySelectorAll(VIDEO_SELECTORS.commentItem).filter(el => isVisible(el));
+
+    for (const parent of parentComments) {
+      await expandRepliesForParent(parent, () => {
+        targetComment = findTargetComment(user);
+        return targetComment !== null;
+      });
+      if (targetComment) break;
+    }
+  }
+
+  if (!targetComment) {
+    logger.warn(`[CommentReplier] Comment not found after expanding threads for @${user.handle}`);
+    throw new CommentReplyError("COMMENT_NOT_FOUND", "Comment not found after expanding threads", { commentId: user.id });
   }
 
   sendProgress(user.id, "replying", "Comment verified, clicking reply...");
 
-  // Get the comment wrapper to find the reply button
-  const commentWrapper = closestMatch(VIDEO_SELECTORS.commentItem, firstComment)
-    || firstComment.parentElement?.parentElement?.parentElement;
-
-  const replyButton = querySelector<HTMLElement>(SELECTORS.commentReplyButton, commentWrapper || firstComment);
+  const replyButton = findReplyButton(targetComment);
   if (!replyButton) {
     throw new CommentReplyError("REPLY_BUTTON_NOT_FOUND", "Could not find reply button on comment", { commentId: user.id });
   }
 
-  await humanClick(replyButton);
+  replyButton.scrollIntoView({ behavior: "smooth", block: "center" });
+  await tick();
+  replyButton.click();
+  await tick();
 
   sendProgress(user.id, "replying", "Waiting for reply input...");
 
@@ -62,34 +94,33 @@ export async function replyToComment(
 
   let editableInput = commentInput.querySelector('[contenteditable="true"]') as HTMLElement || commentInput;
 
-  await humanClick(editableInput);
+  editableInput.scrollIntoView({ behavior: "smooth", block: "center" });
+  await tick();
+  editableInput.click();
+  await tick();
 
   let mentioned = false;
 
   if (config.features?.enableMention !== false) {
-    try {
-      sendProgress(user.id, "replying", "Mentioning @" + user.handle + "...");
-      await mentionUser(editableInput, user.handle, user.id);
-      mentioned = true;
-    } catch (error) {
-      logger.error("[CommentReplier] Mention failed, proceeding without:", error);
-      const freshInput = await waitForSelector<HTMLElement>(SELECTORS.commentInput, {
-        timeout: config.timeouts.selectorWait,
-      });
-      if (!freshInput) {
-        throw new CommentReplyError("COMMENT_INPUT_NOT_FOUND", "Lost comment input after failed mention attempt", { commentId: user.id });
-      }
-      editableInput = freshInput.querySelector('[contenteditable="true"]') as HTMLElement || freshInput;
-      await humanClick(editableInput);
-    }
+    sendProgress(user.id, "replying", "Mentioning @" + user.handle + "...");
+    await mentionUser(editableInput, user.handle, user.id);
+    mentioned = true;
+    moveCursorToEnd(editableInput);
   }
 
   sendProgress(user.id, "replying", "Typing reply...");
 
-  await typeViaPaste(editableInput, (mentioned ? " " : "") + replyMessage);
+  if (mentioned) {
+    moveCursorToEnd(editableInput);
+    await tick();
+  }
 
-  // Verify the reply text actually made it into the input
-  await humanDelay("short");
+  const existingText = editableInput.textContent || "";
+  const needsSpace = existingText.length > 0
+    && !existingText.endsWith(" ")
+    && !existingText.endsWith("\u00A0");
+  await typeViaPaste(editableInput, (needsSpace ? " " : "") + replyMessage);
+
   const inputContent = editableInput.textContent || "";
   if (!inputContent.includes(replyMessage.substring(0, 10))) {
     throw new CommentReplyError("REPLY_TEXT_NOT_ENTERED", "Reply text was not entered into the input field", { commentId: user.id });
@@ -105,7 +136,10 @@ export async function replyToComment(
     throw new CommentReplyError("POST_BUTTON_NOT_FOUND", "Could not find post button", { commentId: user.id });
   }
 
-  await humanClick(postButton);
+  postButton.scrollIntoView({ behavior: "smooth", block: "center" });
+  await tick();
+  postButton.click();
+  await tick();
 
   sendProgress(user.id, "complete", "Reply posted!");
 
@@ -146,24 +180,25 @@ async function mentionUser(editableInput: HTMLElement, handle: string, commentId
     throw new CommentReplyError("MENTION_BUTTON_NOT_FOUND", "Could not find @ mention button", { commentId });
   }
 
-  await humanClick(mentionButton);
+  mentionButton.scrollIntoView({ behavior: "smooth", block: "center" });
+  await tick();
+  mentionButton.click();
+  await tick();
 
   const dropdown = await waitForSelector<HTMLElement>(SELECTORS.mentionDropdown, {
-    timeout: config.timeouts.mentionDropdownWait,
+    timeout: config.timeouts.mentionDropdownAppear,
   });
 
   if (!dropdown) {
     throw new CommentReplyError("MENTION_DROPDOWN_NOT_FOUND", "Mention dropdown did not appear after clicking @ button", { commentId });
   }
 
-  await humanDelay("short");
-
   editableInput.focus();
   document.execCommand("insertText", false, handle);
 
   const targetHandle = handle.toLowerCase();
-  const pollInterval = 300;
-  const maxAttempts = Math.ceil(config.timeouts.mentionDropdownWait / pollInterval);
+  const pollInterval = 150;
+  const maxAttempts = Math.ceil(config.timeouts.mentionUserSearch / pollInterval);
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((r) => setTimeout(r, pollInterval));
@@ -178,7 +213,6 @@ async function mentionUser(editableInput: HTMLElement, handle: string, commentId
         const container = item.closest('[class*="DivMentionSuggestionContainer"]') as HTMLElement;
         if (container) {
           container.focus();
-          await humanDelay("micro");
         }
 
         const target = container || item;
@@ -186,13 +220,12 @@ async function mentionUser(editableInput: HTMLElement, handle: string, commentId
           target.dispatchEvent(new KeyboardEvent("keydown", {
             key: "ArrowDown", code: "ArrowDown", keyCode: 40, bubbles: true, cancelable: true,
           }));
-          await humanDelay("micro");
+          await tick();
         }
-        await humanDelay("short");
         target.dispatchEvent(new KeyboardEvent("keydown", {
           key: "Enter", code: "Enter", keyCode: 13, bubbles: true, cancelable: true,
         }));
-        await humanDelay("medium");
+        await tick();
 
         const mentionTag = querySelector(SELECTORS.mentionTag, editableInput);
         if (!mentionTag) {
@@ -204,6 +237,45 @@ async function mentionUser(editableInput: HTMLElement, handle: string, commentId
   }
 
   throw new CommentReplyError("MENTION_USER_NOT_FOUND", `Could not find @${handle} in mention dropdown after ${maxAttempts} attempts`, { commentId });
+}
+
+/**
+ * Finds the reply button for a comment element. For top-level comments,
+ * looks for [data-e2e="comment-reply-1"] directly. For reply comments
+ * (inside DivReplyContainer), traverses up to the parent DivCommentObjectWrapper
+ * and uses ITS reply button — this is TikTok's standard mechanism for replying
+ * within a thread, and the @mention flow handles targeting the specific user.
+ */
+function findReplyButton(commentElement: Element): HTMLElement | null {
+  const direct = querySelector<HTMLElement>(SELECTORS.commentReplyButton, commentElement);
+  if (direct) return direct;
+
+  const parentWrapper = closestMatch(VIDEO_SELECTORS.commentItem, commentElement);
+  if (parentWrapper) {
+    return querySelector<HTMLElement>(SELECTORS.commentReplyButton, parentWrapper);
+  }
+  return null;
+}
+
+/** Searches all visible comment elements (top-level + replies) for one matching the target. */
+function findTargetComment(user: ScrapedComment): Element | null {
+  const elements = getAllCommentElements();
+  logger.log(`[CommentReplier] findTargetComment: searching ${elements.length} elements for @${user.handle} "${user.comment.substring(0, 30)}"`);
+  for (const el of elements) {
+    const verification = verifyComment(el, user);
+    if (!verification.isMatch && verification.foundHandle === user.handle.toLowerCase()) {
+      logger.log(`[CommentReplier] Handle matched @${verification.foundHandle} but text mismatched: "${verification.foundComment}" vs "${normalizeText(user.comment)}"`);
+    }
+    if (verification.isMatch) return el;
+  }
+  if (elements.length > 0) {
+    const sample = elements.slice(0, 3).map(el => {
+      const v = verifyComment(el, user);
+      return `@${v.foundHandle}:"${v.foundComment.substring(0, 20)}"`;
+    });
+    logger.log(`[CommentReplier] No match. First 3 elements: ${sample.join(", ")}`);
+  }
+  return null;
 }
 
 async function waitForFirstComment(): Promise<Element | null> {
@@ -255,22 +327,12 @@ export function verifyComment(commentElement: Element, user: ScrapedComment): Ve
   const targetHandle = user.handle.toLowerCase();
   const targetComment = normalizeText(user.comment);
 
-  // The commentElement is the inner span[data-e2e="comment-level-1"]
-  // We need to go up to the parent wrapper to find the username
-  const commentWrapper = closestMatch(VIDEO_SELECTORS.commentItem, commentElement)
-    || commentElement.parentElement?.parentElement?.parentElement;
-
-  // Find the username link in the wrapper
-  const handleLink = commentWrapper?.querySelector('a[href*="/@"]') as HTMLAnchorElement;
-
+  const handleLink = commentElement.querySelector('a[href*="/@"]') as HTMLAnchorElement;
   const href = handleLink?.href || "";
-
   const handleMatch = href.match(/\/@([^/?]+)/);
   const foundHandle = handleMatch ? handleMatch[1].toLowerCase() : "";
 
-  // Extract comment text from the wrapper to get full text in visual order
-  // TikTok renders @mentions as separate links which can mess up textContent order
-  const commentTextEl = commentWrapper ? querySelector(VIDEO_SELECTORS.commentTextInWrapper, commentWrapper) : null;
+  const commentTextEl = querySelector(VIDEO_SELECTORS.commentTextInWrapper, commentElement);
   const foundComment = normalizeText((commentTextEl || commentElement).textContent || "");
 
   // Check if handle matches
@@ -332,11 +394,20 @@ export function checkCommentTextMatch(expected: string, found: string): boolean 
   return false;
 }
 
+function moveCursorToEnd(el: HTMLElement): void {
+  el.focus();
+  const selection = window.getSelection();
+  if (selection) {
+    selection.selectAllChildren(el);
+    selection.collapseToEnd();
+  }
+}
+
 async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
   element.focus();
-  await humanDelay("micro");
+  moveCursorToEnd(element);
+  await tick();
 
-  // Try using clipboard API to paste (works better with Draft.js)
   try {
     // Create a DataTransfer object to simulate paste
     const dataTransfer = new DataTransfer();
@@ -349,17 +420,14 @@ async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
     });
 
     element.dispatchEvent(pasteEvent);
+    await tick();
 
-    await humanDelay("micro");
-
-    // Check if paste worked
     if (element.textContent?.includes(text.substring(0, 5))) {
       return;
     }
   } catch (e) {
     // Paste failed, fall through to character-by-character input
   }
-
   // Fallback: try input events character by character
   for (const char of text) {
     const inputEvent = new InputEvent('beforeinput', {
@@ -377,8 +445,6 @@ async function typeViaPaste(element: HTMLElement, text: string): Promise<void> {
       data: char,
     });
     element.dispatchEvent(textInputEvent);
-
-    await humanDelay("typing");
   }
 }
 

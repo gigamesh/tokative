@@ -55,7 +55,10 @@ export const translateAppReplies = internalAction({
         );
         if (!comment) continue;
 
-        const result = await translateText(
+
+        if (comment.detectedLanguage === args.targetLanguage) {
+          continue;
+        }        const result = await translateText(
           comment.comment,
           args.targetLanguage,
           comment.detectedLanguage ?? undefined,

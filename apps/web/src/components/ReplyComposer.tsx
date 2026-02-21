@@ -249,7 +249,8 @@ export function ReplyComposer({
             <span className="text-foreground-muted">
               {bulkReplyProgress.completed +
                 bulkReplyProgress.failed +
-                bulkReplyProgress.skipped}{" "}
+                bulkReplyProgress.commentNotFound +
+                bulkReplyProgress.mentionFailed}{" "}
               / {bulkReplyProgress.total}
             </span>
             {bulkReplyProgress.current && (
@@ -267,7 +268,7 @@ export function ReplyComposer({
             <div
               className="bg-green-500 h-1.5 rounded-full transition-all"
               style={{
-                width: `${((bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.skipped) / bulkReplyProgress.total) * 100}%`,
+                width: `${((bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.commentNotFound + bulkReplyProgress.mentionFailed) / bulkReplyProgress.total) * 100}%`,
               }}
             />
           </div>
@@ -280,9 +281,14 @@ export function ReplyComposer({
                 {bulkReplyProgress.failed} failed
               </span>
             )}
-            {bulkReplyProgress.skipped > 0 && (
+            {bulkReplyProgress.commentNotFound > 0 && (
               <span className="text-yellow-600 dark:text-yellow-400">
-                {bulkReplyProgress.skipped} skipped
+                {bulkReplyProgress.commentNotFound} not found
+              </span>
+            )}
+            {bulkReplyProgress.mentionFailed > 0 && (
+              <span className="text-orange-600 dark:text-orange-400">
+                {bulkReplyProgress.mentionFailed} mention failed
               </span>
             )}
           </div>
@@ -300,9 +306,14 @@ export function ReplyComposer({
                 {bulkReplyProgress.failed} failed
               </span>
             )}
-            {bulkReplyProgress.skipped > 0 && (
+            {bulkReplyProgress.commentNotFound > 0 && (
               <span className="text-yellow-600 dark:text-yellow-400">
-                {bulkReplyProgress.skipped} skipped
+                {bulkReplyProgress.commentNotFound} not found
+              </span>
+            )}
+            {bulkReplyProgress.mentionFailed > 0 && (
+              <span className="text-orange-600 dark:text-orange-400">
+                {bulkReplyProgress.mentionFailed} mention failed
               </span>
             )}
           </div>

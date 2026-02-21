@@ -115,6 +115,7 @@ const config: ExtensionConfig = {
         '[class*="CommentText"]',
         '[class*="DivComment"] > span',
         '[data-e2e="comment-level-1"]',
+        '[data-e2e="comment-level-2"]',
       ],
       videoMetaThumbnail: [
         'meta[property="og:image"]',
@@ -134,7 +135,8 @@ const config: ExtensionConfig = {
     rateLimitPause: 60000,
     tabLoad: 60000,
     replyTimeout: 60000,
-    mentionDropdownWait: 3000,
+    mentionDropdownAppear: 2000,
+    mentionUserSearch: 2000,
     commentLoadWait: 10000,
     firstCommentWait: 15000,
     apiPageDelay: 500,
@@ -151,9 +153,11 @@ const config: ExtensionConfig = {
       typing: { mean: 25, stdDev: 10, min: 10, max: 55 },
     },
     reactSettle: 500,
+    tick: 50,
     scrollUp: 150,
     postReply: 300,
     fallbackContent: 2000,
+    bulkReplyDelay: { max: 3000 },
   },
 
   limits: {
@@ -169,6 +173,7 @@ const config: ExtensionConfig = {
     enableRateLimitAutoResume: true,
     enableApiFetching: true,
     enableMention: true,
+    keepReplyTabOpen: true,
   },
 
   api: {

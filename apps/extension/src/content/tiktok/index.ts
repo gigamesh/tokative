@@ -4,7 +4,7 @@ import { replyToComment } from "./comment-replier";
 import { showOverlay, updateOverlayProgress, updateOverlayComplete, updateOverlayError, updateOverlayLimitReached, hideOverlay } from "./overlay";
 import { scrapeVideoComments, scrapeProfileVideoMetadata, cancelVideoScrape, pauseVideoScrape, resumeVideoScrape, fetchVideoCommentsViaApi, injectReactExtractor } from "./video-scraper";
 import { CommentLimitError } from "../../utils/storage";
-import { ScrapeSetupError } from "../../utils/errors";
+import { ScrapeSetupError, CommentReplyError } from "../../utils/errors";
 import { loadConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
 import { initSentry } from "../../utils/sentry";
@@ -104,6 +104,7 @@ function handleMessage(
             payload: {
               commentId: comment.id,
               error: error instanceof Error ? error.message : "Unknown error",
+              errorCode: error instanceof CommentReplyError ? error.code : undefined,
             },
           });
           sendResponse({ success: false, error: error.message });

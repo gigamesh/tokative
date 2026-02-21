@@ -24,7 +24,6 @@ import {
   getRateLimitState,
   getScrapedComments,
   getScrapingState,
-  getSettings,
   getVideos,
   recordRateLimitError,
   removeFromIgnoreList,
@@ -797,6 +796,7 @@ async function broadcastToDashboard(message: ExtensionMessage): Promise<void> {
 interface ReplyToCommentResult {
   success: boolean;
   error?: string;
+  errorCode?: string;
   tabId?: number;
 }
 
@@ -879,13 +879,14 @@ async function handleReplyToComment(
             });
           }
         } else if (msg.type === MessageType.REPLY_COMMENT_ERROR) {
-          const payload = msg.payload as { commentId?: string; error?: string };
+          const payload = msg.payload as { commentId?: string; error?: string; errorCode?: string };
           if (payload.commentId === comment.id) {
             clearTimeout(timeout);
             chrome.runtime.onMessage.removeListener(responseHandler);
             resolve({
               success: false,
               error: payload.error,
+              errorCode: payload.errorCode,
               tabId: existingTabId ? tabId : undefined,
             });
           }
@@ -910,7 +911,8 @@ async function handleReplyToComment(
     });
     return { success: false, error: errorMessage };
   } finally {
-    if (tabCreatedHere && tabId) {
+    const config = getLoadedConfig();
+    if (tabCreatedHere && tabId && !config.features?.keepReplyTabOpen) {
       closeTabIntentionally(tabId);
     }
   }
@@ -933,7 +935,7 @@ async function handleBulkReply(
   bulkReplyMessages = replyMessages;
   bulkReplyPort = port;
 
-  const initialStatuses: Record<string, "pending" | "replying" | "sent" | "skipped" | "failed"> = {};
+  const initialStatuses: Record<string, "pending" | "replying" | "sent" | "commentNotFound" | "mentionFailed" | "failed"> = {};
   for (const c of bulkReplyPending) {
     initialStatuses[c.id] = "pending";
   }
@@ -942,20 +944,14 @@ async function handleBulkReply(
     total: bulkReplyPending.length,
     completed: 0,
     failed: 0,
-    skipped: 0,
+    commentNotFound: 0,
+    mentionFailed: 0,
     status: "running",
     commentStatuses: initialStatuses,
   };
 
-  let messageDelay = 3000;
-  if (bulkReplyPending.length > 1) {
-    try {
-      const settings = await getSettings();
-      messageDelay = settings.messageDelay;
-    } catch {
-      // Use default delay
-    }
-  }
+  const config = getLoadedConfig();
+  const maxDelay = config.delays.bulkReplyDelay.max;
 
   let currentTabId: number | undefined;
   let currentVideoId: string | null = null;
@@ -974,7 +970,7 @@ async function handleBulkReply(
       if (needsNewTab && currentTabId) {
         closeTabIntentionally(currentTabId);
         currentTabId = undefined;
-        await new Promise((resolve) => setTimeout(resolve, messageDelay));
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * maxDelay));
       }
       currentVideoId = videoId;
 
@@ -1014,18 +1010,34 @@ async function handleBulkReply(
         if (result.tabId) {
           currentTabId = result.tabId;
         }
-      } else if (result.error === "Comment not found") {
-        bulkReplyProgress.skipped++;
+      } else if (
+        result.errorCode === "COMMENT_NOT_FOUND" ||
+        result.errorCode === "NO_COMMENTS_ON_VIDEO"
+      ) {
+        bulkReplyProgress.commentNotFound++;
         if (bulkReplyProgress.commentStatuses) {
-          bulkReplyProgress.commentStatuses[comment.id] = "skipped";
+          bulkReplyProgress.commentStatuses[comment.id] = "commentNotFound";
         }
         if (deleteMissingComments) {
           await removeScrapedComment(comment.id);
         } else {
           await updateScrapedComment(comment.id, {
-            replyError: "Comment not found",
+            replyError: result.error || "Comment not found",
           });
         }
+      } else if (
+        result.errorCode === "MENTION_USER_NOT_FOUND" ||
+        result.errorCode === "MENTION_BUTTON_NOT_FOUND" ||
+        result.errorCode === "MENTION_DROPDOWN_NOT_FOUND" ||
+        result.errorCode === "MENTION_NOT_INSERTED"
+      ) {
+        bulkReplyProgress.mentionFailed++;
+        if (bulkReplyProgress.commentStatuses) {
+          bulkReplyProgress.commentStatuses[comment.id] = "mentionFailed";
+        }
+        await updateScrapedComment(comment.id, {
+          replyError: result.error || "Could not @mention user",
+        });
       } else {
         bulkReplyProgress.failed++;
         if (bulkReplyProgress.commentStatuses) {
@@ -1037,7 +1049,7 @@ async function handleBulkReply(
       }
 
       if (bulkReplyPending.length > 0) {
-        await new Promise((resolve) => setTimeout(resolve, messageDelay));
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * maxDelay));
       }
     }
   } catch (error) {
@@ -1046,10 +1058,12 @@ async function handleBulkReply(
       bulkReplyProgress.total -
         bulkReplyProgress.completed -
         bulkReplyProgress.failed -
-        bulkReplyProgress.skipped,
+        bulkReplyProgress.commentNotFound -
+        bulkReplyProgress.mentionFailed,
     );
   } finally {
-    if (currentTabId) {
+    const config = getLoadedConfig();
+    if (currentTabId && !config.features?.keepReplyTabOpen) {
       closeTabIntentionally(currentTabId);
     }
 

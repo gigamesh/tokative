@@ -11,6 +11,7 @@ import { addScrapedComments, addVideos, CommentLimitError } from "../../utils/st
 import { ScrapeSetupError, fromPageScriptError } from "../../utils/errors";
 import { closestMatch, querySelector, querySelectorAll, waitForSelector } from "./selectors";
 import { getAllCommentElements, VIDEO_SELECTORS } from "./video-selectors";
+import { waitForReplyLoad } from "./comment-utils";
 import { getLoadedConfig } from "../../config/loader";
 import { logger } from "../../utils/logger";
 
@@ -677,63 +678,6 @@ async function expandAndSaveReplies(
   logger.log(
     `[Tokative] >>> expandAndSaveReplies END - expanded ${totalExpanded} buttons`,
   );
-}
-
-async function waitForReplyLoad(clickedButton: HTMLElement): Promise<void> {
-  const config = getLoadedConfig();
-  const initialText = clickedButton.textContent?.toLowerCase() || "";
-  const maxWaitTime = config.timeouts.commentPost;
-  const pollInterval = 200; // Slower polling
-  let waited = 0;
-
-  // Get initial reply count in the parent thread
-  const parentComment = closestMatch(VIDEO_SELECTORS.commentItem, clickedButton);
-  const replyContainer = parentComment
-    ? querySelector(VIDEO_SELECTORS.replyContainer, parentComment)
-    : null;
-  const initialReplyCount = replyContainer
-    ? querySelectorAll(VIDEO_SELECTORS.replyItem, replyContainer).length
-    : 0;
-
-  while (waited < maxWaitTime) {
-    if (isCancelled) return;
-
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
-    waited += pollInterval;
-
-    if (isCancelled) return;
-
-    // Check if button text changed (expanded or showing "more")
-    const currentText = clickedButton.textContent?.toLowerCase() || "";
-    if (currentText !== initialText) {
-      logger.log(
-        `[Tokative] Button text changed: "${initialText}" -> "${currentText}"`,
-      );
-      await humanDelay("medium");
-      return;
-    }
-
-    // Check if new replies appeared
-    const currentReplyCount = replyContainer
-      ? querySelectorAll(VIDEO_SELECTORS.replyItem, replyContainer).length
-      : 0;
-    if (currentReplyCount > initialReplyCount) {
-      logger.log(
-        `[Tokative] Reply count increased: ${initialReplyCount} -> ${currentReplyCount}`,
-      );
-      await humanDelay("medium");
-      return;
-    }
-
-    // Check if button is no longer in DOM (replaced by different structure)
-    if (!document.contains(clickedButton)) {
-      logger.log(`[Tokative] Button removed from DOM`);
-      await humanDelay("medium");
-      return;
-    }
-  }
-
-  logger.log(`[Tokative] Timeout waiting for replies to load (waited ${waited}ms)`);
 }
 
 interface ScrollResult {

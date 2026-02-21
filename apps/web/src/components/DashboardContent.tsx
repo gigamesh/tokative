@@ -214,12 +214,14 @@ export function DashboardContent() {
   const [replyReport, setReplyReport] = useState<{
     completed: number;
     failed: number;
-    skipped: number;
+    commentNotFound: number;
+    mentionFailed: number;
   } | null>(null);
   const [replyLimitModal, setReplyLimitModal] = useState<{
     completed: number;
     failed: number;
-    skipped: number;
+    commentNotFound: number;
+    mentionFailed: number;
   } | null>(null);
 
   const showToast = useCallback((message: string) => {
@@ -275,7 +277,8 @@ export function DashboardContent() {
       const stats = {
         completed: bulkReplyProgress.completed,
         failed: bulkReplyProgress.failed,
-        skipped: bulkReplyProgress.skipped,
+        commentNotFound: bulkReplyProgress.commentNotFound,
+        mentionFailed: bulkReplyProgress.mentionFailed,
       };
       if (replyLimitReached) {
         setReplyLimitModal(stats);
@@ -1131,9 +1134,14 @@ export function DashboardContent() {
                 , {replyReport.failed} failed
               </span>
             )}
-            {replyReport.skipped > 0 && (
+            {replyReport.commentNotFound > 0 && (
               <span className="text-yellow-400">
-                , {replyReport.skipped} skipped
+                , {replyReport.commentNotFound} not found
+              </span>
+            )}
+            {replyReport.mentionFailed > 0 && (
+              <span className="text-orange-400">
+                , {replyReport.mentionFailed} mention failed
               </span>
             )}
           </div>

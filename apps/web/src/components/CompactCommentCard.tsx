@@ -1,8 +1,9 @@
-import { ScrapedComment } from "@/utils/constants";
 import { getAvatarColor } from "@/utils/avatar";
+import { ScrapedComment } from "@/utils/constants";
 import { CommentReplyStatus } from "@tokative/shared";
 import { AlertTriangle, Check, CircleAlert, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Spinner } from "./Spinner";
 
 interface CompactCommentCardProps {
@@ -11,10 +12,13 @@ interface CompactCommentCardProps {
   status?: CommentReplyStatus;
 }
 
-const STATUS_CONFIG: Record<Exclude<CommentReplyStatus, "pending">, {
-  icon: React.ReactNode;
-  tooltip: string;
-}> = {
+const STATUS_CONFIG: Record<
+  Exclude<CommentReplyStatus, "pending">,
+  {
+    icon: React.ReactNode;
+    tooltip: string;
+  }
+> = {
   replying: {
     icon: <Spinner size="xs" />,
     tooltip: "Replying now...",
@@ -23,9 +27,15 @@ const STATUS_CONFIG: Record<Exclude<CommentReplyStatus, "pending">, {
     icon: <Check className="w-4 h-4 text-green-400" />,
     tooltip: "Reply sent successfully",
   },
-  skipped: {
+  commentNotFound: {
     icon: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
-    tooltip: "Skipped — comment not found on TikTok",
+    tooltip:
+      "Skipped — comment was not found on the video. It may have been deleted.",
+  },
+  mentionFailed: {
+    icon: <AlertTriangle className="w-4 h-4 text-orange-400" />,
+    tooltip:
+      "Skipped — could not @mention this user, likely because their account is private, which prevents them from receiving reply notifications.",
   },
   failed: {
     icon: <CircleAlert className="w-4 h-4 text-red-400" />,
@@ -33,13 +43,31 @@ const STATUS_CONFIG: Record<Exclude<CommentReplyStatus, "pending">, {
   },
 };
 
-function StatusIndicator({ status }: { status: Exclude<CommentReplyStatus, "pending"> }) {
+function StatusIndicator({
+  status,
+}: {
+  status: Exclude<CommentReplyStatus, "pending">;
+}) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState<{
+    top: number;
+    right: number;
+  } | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const iconRef = useRef<HTMLSpanElement>(null);
   const config = STATUS_CONFIG[status];
 
   const handleMouseEnter = () => {
-    timeoutRef.current = setTimeout(() => setShowTooltip(true), 200);
+    timeoutRef.current = setTimeout(() => {
+      if (iconRef.current) {
+        const rect = iconRef.current.getBoundingClientRect();
+        setTooltipPos({
+          top: rect.top + rect.height / 2,
+          right: window.innerWidth - rect.left + 6,
+        });
+      }
+      setShowTooltip(true);
+    }, 200);
   };
 
   const handleMouseLeave = () => {
@@ -49,16 +77,23 @@ function StatusIndicator({ status }: { status: Exclude<CommentReplyStatus, "pend
 
   return (
     <span
-      className="flex-shrink-0 flex items-center relative"
+      ref={iconRef}
+      className="flex-shrink-0 flex items-center"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {config.icon}
-      {showTooltip && (
-        <span className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] text-foreground bg-surface-elevated border border-border rounded shadow-lg whitespace-nowrap z-20 pointer-events-none">
-          {config.tooltip}
-        </span>
-      )}
+      {showTooltip &&
+        tooltipPos &&
+        createPortal(
+          <span
+            className="fixed -translate-y-1/2 px-2 py-1 text-[11px] text-foreground bg-surface-elevated border border-border rounded shadow-lg z-50 pointer-events-none max-w-[11rem]"
+            style={{ top: tooltipPos.top, right: tooltipPos.right }}
+          >
+            {config.tooltip}
+          </span>,
+          document.body,
+        )}
     </span>
   );
 }

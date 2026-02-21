@@ -89,7 +89,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
           replyStatusMessage: null,
           bulkReplyProgress: progress,
         }));
-        if (progress.skipped === 0 && progress.failed === 0) {
+        if (progress.commentNotFound === 0 && progress.mentionFailed === 0 && progress.failed === 0) {
           setTimeout(() => {
             setState((prev) => ({
               ...prev,
@@ -115,7 +115,8 @@ export function useMessaging(options: UseMessagingOptions = {}) {
         total: comments.length,
         completed: 0,
         failed: 0,
-        skipped: 0,
+        commentNotFound: 0,
+        mentionFailed: 0,
         status: "running",
       },
     }));

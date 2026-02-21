@@ -150,13 +150,14 @@ export interface ReplyProgress {
   message?: string;
 }
 
-export type CommentReplyStatus = "pending" | "replying" | "sent" | "skipped" | "failed";
+export type CommentReplyStatus = "pending" | "replying" | "sent" | "commentNotFound" | "mentionFailed" | "failed";
 
 export interface BulkReplyProgress {
   total: number;
   completed: number;
   failed: number;
-  skipped: number;
+  commentNotFound: number;
+  mentionFailed: number;
   current?: string;
   status: "running" | "complete" | "stopped" | "error";
   commentStatuses?: Record<string, CommentReplyStatus>;
@@ -274,15 +275,18 @@ export interface ExtensionConfig {
     apiPageDelay: number;
     apiBackoffInitial: number;
     apiBackoffMax: number;
-    mentionDropdownWait: number;
+    mentionDropdownAppear: number;
+    mentionUserSearch: number;
   };
 
   delays: {
     profiles: Record<string, { mean: number; stdDev: number; min: number; max: number }>;
     reactSettle: number;
+    tick: number;
     scrollUp: number;
     postReply: number;
     fallbackContent: number;
+    bulkReplyDelay: { max: number };
   };
 
   limits: {
@@ -298,6 +302,7 @@ export interface ExtensionConfig {
     enableRateLimitAutoResume?: boolean;
     enableApiFetching?: boolean;
     enableMention?: boolean;
+    keepReplyTabOpen?: boolean;
   };
 
   api: {
