@@ -1015,7 +1015,7 @@ export function DashboardContent() {
           </div>
 
           <div
-            className={`space-y-6 sticky top-[130px] self-start ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
+            className={`space-y-6 sticky top-[130px] self-start max-h-[calc(100vh-150px)] overflow-y-auto ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
           >
             <ReplyComposer
               selectedComments={selectedCommentsForDisplay}

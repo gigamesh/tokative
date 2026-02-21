@@ -236,7 +236,7 @@ export function ReplyComposer({
                 variant="ghost"
                 size="sm"
                 onClick={onStopBulkReply}
-                className="text-xs text-red-400 hover:text-red-300"
+                className="text-xs text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300"
               >
                 Stop
               </Button>
@@ -269,16 +269,16 @@ export function ReplyComposer({
             />
           </div>
           <div className="flex gap-3 text-xs">
-            <span className="text-green-400">
+            <span className="text-green-600 dark:text-green-400">
               {bulkReplyProgress.completed} sent
             </span>
             {bulkReplyProgress.failed > 0 && (
-              <span className="text-red-400">
+              <span className="text-red-600 dark:text-red-400">
                 {bulkReplyProgress.failed} failed
               </span>
             )}
             {bulkReplyProgress.skipped > 0 && (
-              <span className="text-yellow-400">
+              <span className="text-yellow-600 dark:text-yellow-400">
                 {bulkReplyProgress.skipped} skipped
               </span>
             )}
@@ -289,16 +289,16 @@ export function ReplyComposer({
       {isBulkReplyFinished && (
         <div className="p-3 bg-surface border border-border rounded-lg space-y-2">
           <div className="flex gap-3 text-xs">
-            <span className="text-green-400">
+            <span className="text-green-600 dark:text-green-400">
               {bulkReplyProgress.completed} sent
             </span>
             {bulkReplyProgress.failed > 0 && (
-              <span className="text-red-400">
+              <span className="text-red-600 dark:text-red-400">
                 {bulkReplyProgress.failed} failed
               </span>
             )}
             {bulkReplyProgress.skipped > 0 && (
-              <span className="text-yellow-400">
+              <span className="text-yellow-600 dark:text-yellow-400">
                 {bulkReplyProgress.skipped} skipped
               </span>
             )}
