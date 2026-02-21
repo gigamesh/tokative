@@ -248,6 +248,7 @@ function isPortMessage(type: MessageType): boolean {
     MessageType.REPLY_COMMENT,
     MessageType.BULK_REPLY_START,
     MessageType.BULK_REPLY_STOP,
+    MessageType.BULK_REPLY_UPDATE_QUEUE,
     MessageType.SCRAPE_VIDEOS_START,
     MessageType.SCRAPE_VIDEOS_STOP,
     MessageType.GET_VIDEO_COMMENTS,

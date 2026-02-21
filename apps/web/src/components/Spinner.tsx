@@ -1,10 +1,11 @@
 interface SpinnerProps {
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md";
   variant?: "default" | "danger";
   className?: string;
 }
 
 const sizeClasses = {
+  xs: "w-3.5 h-3.5",
   sm: "w-4 h-4",
   md: "w-5 h-5",
 };

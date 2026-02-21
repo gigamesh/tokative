@@ -117,11 +117,6 @@ export function DashboardContent() {
         repliedAt: new Date().toISOString(),
       };
       updateComment(commentId, updates);
-      setSelectedCommentIds((prev) => {
-        const next = new Set(prev);
-        next.delete(commentId);
-        return next;
-      });
     },
     [updateComment],
   );
@@ -132,6 +127,8 @@ export function DashboardContent() {
     replyStatusMessage,
     startBulkReply,
     stopBulkReply,
+    updateBulkReplyQueue,
+    clearBulkReplyProgress,
   } = useMessaging({
     onReplyComplete: handleReplyComplete,
     onPostedReply: addOptimisticComment,
@@ -334,6 +331,11 @@ export function DashboardContent() {
     }
     return selected;
   }, [comments, allCommentsFromCommenters, selectedCommentIds, activeTab]);
+
+  useEffect(() => {
+    if (!isReplying) return;
+    updateBulkReplyQueue(selectedCommentsForDisplay);
+  }, [isReplying, selectedCommentsForDisplay, updateBulkReplyQueue]);
 
   const getCommentIdsByVideoIds = useCallback(
     (videoIds: string[]) =>
@@ -1024,6 +1026,7 @@ export function DashboardContent() {
               bulkReplyProgress={bulkReplyProgress}
               replyStatusMessage={replyStatusMessage}
               onStopBulkReply={stopBulkReply}
+              onDismissProgress={clearBulkReplyProgress}
               disabled={isReplying || replyLimitReached || isTranslatingReplies}
               replyBudget={replyBudget}
               replyLimitReached={replyLimitReached}

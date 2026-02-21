@@ -51,6 +51,15 @@ let batchCancelled = false;
 let batchVideoQueue: Array<{ videoId: string; videoUrl: string }> = [];
 let currentBatchIndex = 0;
 const closingTabsIntentionally = new Set<number>();
+
+// Bulk reply state (module-level so the queue can be replaced mid-run)
+let bulkReplyPending: ScrapedComment[] = [];
+let bulkReplyProcessedIds = new Set<string>();
+let bulkReplyCurrentId: string | null = null;
+let bulkReplyAborted = false;
+let bulkReplyMessages: string[] = [];
+let bulkReplyProgress: BulkReplyProgress | null = null;
+let bulkReplyPort: chrome.runtime.Port | null = null;
 let lastBatchProgress: {
   completedVideos: number;
   totalComments: number;
@@ -523,6 +532,31 @@ async function handlePortMessage(
     }
 
     case MessageType.BULK_REPLY_STOP: {
+      bulkReplyAborted = true;
+      break;
+    }
+
+    case MessageType.BULK_REPLY_UPDATE_QUEUE: {
+      const { comments: incoming } = message.payload as {
+        comments: ScrapedComment[];
+      };
+      const newPending = incoming.filter(
+        (c) =>
+          !bulkReplyProcessedIds.has(c.id) &&
+          c.id !== bulkReplyCurrentId &&
+          !c.repliedTo &&
+          c.videoUrl,
+      );
+      bulkReplyPending = newPending;
+      if (bulkReplyProgress) {
+        const inFlight = bulkReplyCurrentId ? 1 : 0;
+        bulkReplyProgress.total =
+          bulkReplyProcessedIds.size + inFlight + newPending.length;
+        bulkReplyPort?.postMessage({
+          type: MessageType.BULK_REPLY_PROGRESS,
+          payload: bulkReplyProgress,
+        });
+      }
       break;
     }
 
@@ -900,128 +934,145 @@ async function handleBulkReply(
   deleteMissingComments: boolean,
   port: chrome.runtime.Port,
 ): Promise<void> {
-  const progress: BulkReplyProgress = {
-    total: 0,
+  bulkReplyPending = comments.filter((c) => !c.repliedTo && c.videoUrl);
+  bulkReplyProcessedIds = new Set();
+  bulkReplyAborted = false;
+  bulkReplyMessages = replyMessages;
+  bulkReplyPort = port;
+
+  const initialStatuses: Record<string, "pending" | "replying" | "sent" | "skipped" | "failed"> = {};
+  for (const c of bulkReplyPending) {
+    initialStatuses[c.id] = "pending";
+  }
+
+  bulkReplyProgress = {
+    total: bulkReplyPending.length,
     completed: 0,
     failed: 0,
     skipped: 0,
     status: "running",
+    commentStatuses: initialStatuses,
   };
 
+  let messageDelay = 3000;
+  if (bulkReplyPending.length > 1) {
+    try {
+      const settings = await getSettings();
+      messageDelay = settings.messageDelay;
+    } catch {
+      // Use default delay
+    }
+  }
+
+  let currentTabId: number | undefined;
+  let currentVideoId: string | null = null;
+  let commentIndex = 0;
+
   try {
-    const targetComments = comments.filter((c) => !c.repliedTo && c.videoUrl);
+    while (bulkReplyPending.length > 0) {
+      if (bulkReplyAborted) break;
 
-    progress.total = targetComments.length;
-
-    // Group comments by videoId for tab reuse
-    const commentsByVideo = new Map<string, ScrapedComment[]>();
-    for (const comment of targetComments) {
+      const comment = bulkReplyPending.shift()!;
+      bulkReplyCurrentId = comment.id;
       const videoId =
         comment.videoId || extractVideoIdFromUrl(comment.videoUrl || "");
-      if (videoId) {
-        const existing = commentsByVideo.get(videoId) || [];
-        existing.push(comment);
-        commentsByVideo.set(videoId, existing);
-      } else {
-        // Fallback for comments without videoId - use videoUrl as key
-        const key = comment.videoUrl || comment.id;
-        const existing = commentsByVideo.get(key) || [];
-        existing.push(comment);
-        commentsByVideo.set(key, existing);
+
+      const needsNewTab = videoId !== currentVideoId && currentVideoId !== null;
+      if (needsNewTab && currentTabId) {
+        closingTabsIntentionally.add(currentTabId);
+        chrome.tabs.remove(currentTabId).catch(() => {});
+        currentTabId = undefined;
+        await new Promise((resolve) => setTimeout(resolve, messageDelay));
       }
-    }
+      currentVideoId = videoId;
 
-    // Fetch settings lazily — only needed for delay between multiple replies
-    let messageDelay = 3000;
-    if (targetComments.length > 1) {
-      try {
-        const settings = await getSettings();
-        messageDelay = settings.messageDelay;
-      } catch {
-        // Use default delay if settings fetch fails
+      const replyMessage =
+        comment.messageToSend ||
+        bulkReplyMessages[commentIndex % bulkReplyMessages.length];
+      commentIndex++;
+
+      bulkReplyProgress.current = comment.handle;
+      if (bulkReplyProgress.commentStatuses) {
+        bulkReplyProgress.commentStatuses[comment.id] = "replying";
       }
-    }
+      port.postMessage({
+        type: MessageType.BULK_REPLY_PROGRESS,
+        payload: bulkReplyProgress,
+      });
 
-    let commentIndex = 0;
+      const result = await handleReplyToComment(
+        comment,
+        replyMessage,
+        port,
+        currentTabId,
+      );
 
-    // Process comments grouped by video
-    for (const [videoKey, videoComments] of commentsByVideo) {
-      let tabId: number | undefined;
+      bulkReplyProcessedIds.add(comment.id);
+      bulkReplyCurrentId = null;
 
-      for (let i = 0; i < videoComments.length; i++) {
-        const comment = videoComments[i];
-        const replyMessage =
-          comment.messageToSend ||
-          replyMessages[commentIndex % replyMessages.length];
-        commentIndex++;
-
-        progress.current = comment.handle;
-        port.postMessage({
-          type: MessageType.BULK_REPLY_PROGRESS,
-          payload: progress,
+      if (result.success) {
+        bulkReplyProgress.completed++;
+        if (bulkReplyProgress.commentStatuses) {
+          bulkReplyProgress.commentStatuses[comment.id] = "sent";
+        }
+        await updateScrapedComment(comment.id, {
+          repliedTo: true,
+          repliedAt: new Date().toISOString(),
         });
-
-        // Reuse tab for same video (pass existing tabId after first reply)
-        const result = await handleReplyToComment(
-          comment,
-          replyMessage,
-          port,
-          tabId,
-        );
-
-        if (result.success) {
-          progress.completed++;
-          await updateScrapedComment(comment.id, {
-            repliedTo: true,
-            repliedAt: new Date().toISOString(),
-          });
-          // Store tabId for reuse on next comment in same video
-          if (result.tabId) {
-            tabId = result.tabId;
-          }
-        } else if (result.error === "Comment not found") {
-          progress.skipped++;
-          if (deleteMissingComments) {
-            await removeScrapedComment(comment.id);
-          } else {
-            await updateScrapedComment(comment.id, {
-              replyError: "Comment not found",
-            });
-          }
+        if (result.tabId) {
+          currentTabId = result.tabId;
+        }
+      } else if (result.error === "Comment not found") {
+        bulkReplyProgress.skipped++;
+        if (bulkReplyProgress.commentStatuses) {
+          bulkReplyProgress.commentStatuses[comment.id] = "skipped";
+        }
+        if (deleteMissingComments) {
+          await removeScrapedComment(comment.id);
         } else {
-          progress.failed++;
           await updateScrapedComment(comment.id, {
-            replyError: result.error || "Failed to post reply",
+            replyError: "Comment not found",
           });
         }
-
-        // Delay between replies
-        if (i < videoComments.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, messageDelay));
+      } else {
+        bulkReplyProgress.failed++;
+        if (bulkReplyProgress.commentStatuses) {
+          bulkReplyProgress.commentStatuses[comment.id] = "failed";
         }
+        await updateScrapedComment(comment.id, {
+          replyError: result.error || "Failed to post reply",
+        });
       }
 
-      if (tabId) {
-        closingTabsIntentionally.add(tabId);
-        chrome.tabs.remove(tabId).catch(() => {});
-      }
-
-      // Delay between videos
-      if (commentsByVideo.size > 1) {
+      if (bulkReplyPending.length > 0) {
         await new Promise((resolve) => setTimeout(resolve, messageDelay));
       }
     }
   } catch (error) {
-    progress.failed += Math.max(
+    bulkReplyProgress.failed += Math.max(
       0,
-      progress.total - progress.completed - progress.failed - progress.skipped,
+      bulkReplyProgress.total -
+        bulkReplyProgress.completed -
+        bulkReplyProgress.failed -
+        bulkReplyProgress.skipped,
     );
   } finally {
-    progress.status = "complete";
+    if (currentTabId) {
+      closingTabsIntentionally.add(currentTabId);
+      chrome.tabs.remove(currentTabId).catch(() => {});
+    }
+
+    bulkReplyProgress.status = bulkReplyAborted ? "stopped" : "complete";
     port.postMessage({
       type: MessageType.BULK_REPLY_COMPLETE,
-      payload: progress,
+      payload: bulkReplyProgress,
     });
+
+    bulkReplyPending = [];
+    bulkReplyProcessedIds = new Set();
+    bulkReplyCurrentId = null;
+    bulkReplyProgress = null;
+    bulkReplyPort = null;
   }
 }
 

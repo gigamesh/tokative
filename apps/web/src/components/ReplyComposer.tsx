@@ -17,6 +17,7 @@ interface ReplyComposerProps {
   bulkReplyProgress: BulkReplyProgress | null;
   replyStatusMessage: string | null;
   onStopBulkReply: () => void;
+  onDismissProgress?: () => void;
   disabled?: boolean;
   replyBudget?: number;
   replyLimitReached?: boolean;
@@ -36,6 +37,7 @@ export function ReplyComposer({
   bulkReplyProgress,
   replyStatusMessage,
   onStopBulkReply,
+  onDismissProgress,
   disabled,
   replyBudget,
   replyLimitReached,
@@ -151,6 +153,11 @@ export function ReplyComposer({
     onSend(validMessages);
   };
 
+  const handleDismiss = () => {
+    onDismissProgress?.();
+    onClearSelection();
+  };
+
   const allMessagesValid =
     messages.length > 1 ? messages.every((m) => m.trim()) : messages[0]?.trim();
 
@@ -161,8 +168,15 @@ export function ReplyComposer({
     (selectedCount > 30 && messages.length < 3) ||
     (selectedCount > 10 && messages.length < 2);
 
-  const showBulkProgress =
+  const isActiveBulkReply =
     bulkReplyProgress && bulkReplyProgress.status === "running";
+
+  const isBulkReplyFinished =
+    bulkReplyProgress &&
+    (bulkReplyProgress.status === "complete" ||
+      bulkReplyProgress.status === "stopped");
+
+  const showBulkProgress = isActiveBulkReply;
 
   return (
     <div className="bg-surface-elevated rounded-lg p-4 space-y-3">
@@ -181,14 +195,16 @@ export function ReplyComposer({
             <span className="text-xs text-foreground-muted">
               Selected comments
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearSelection}
-              className="text-xs"
-            >
-              Clear all
-            </Button>
+            {!isActiveBulkReply && !isBulkReplyFinished && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearSelection}
+                className="text-xs"
+              >
+                Clear all
+              </Button>
+            )}
           </div>
           <div
             ref={scrollContainerRef}
@@ -199,6 +215,7 @@ export function ReplyComposer({
                 key={comment.id}
                 comment={comment}
                 onRemove={() => onToggleComment(comment.id, false)}
+                status={bulkReplyProgress?.commentStatuses?.[comment.id]}
               />
             ))}
           </div>
@@ -266,6 +283,34 @@ export function ReplyComposer({
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {isBulkReplyFinished && (
+        <div className="p-3 bg-surface border border-border rounded-lg space-y-2">
+          <div className="flex gap-3 text-xs">
+            <span className="text-green-400">
+              {bulkReplyProgress.completed} sent
+            </span>
+            {bulkReplyProgress.failed > 0 && (
+              <span className="text-red-400">
+                {bulkReplyProgress.failed} failed
+              </span>
+            )}
+            {bulkReplyProgress.skipped > 0 && (
+              <span className="text-yellow-400">
+                {bulkReplyProgress.skipped} skipped
+              </span>
+            )}
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            fullWidth
+            onClick={handleDismiss}
+          >
+            Done
+          </Button>
         </div>
       )}
 
@@ -341,13 +386,24 @@ export function ReplyComposer({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={addMessage}
-        className="w-full py-1.5 text-sm text-foreground-muted hover:text-foreground border border-dashed border-border hover:border-foreground-muted rounded-lg transition-colors"
-      >
-        + Add Reply Variation
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={addMessage}
+          className="flex-1 py-1.5 text-sm text-foreground-muted hover:text-foreground border border-dashed border-border hover:border-foreground-muted rounded-lg transition-colors"
+        >
+          + Add Reply Variation
+        </button>
+        {messages.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setMessages([""])}
+            className="py-1.5 px-3 text-sm text-red-400/70 hover:text-red-400 border border-dashed border-border hover:border-red-400/50 rounded-lg transition-colors"
+          >
+            Clear variations
+          </button>
+        )}
+      </div>
 
       {translationEnabled && hasTranslatableComments && (
         <div className="space-y-1.5">

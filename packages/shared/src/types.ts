@@ -42,6 +42,7 @@ export const MessageType = {
   BULK_REPLY_PROGRESS: "BULK_REPLY_PROGRESS",
   BULK_REPLY_COMPLETE: "BULK_REPLY_COMPLETE",
   BULK_REPLY_STOP: "BULK_REPLY_STOP",
+  BULK_REPLY_UPDATE_QUEUE: "BULK_REPLY_UPDATE_QUEUE",
 
   // Video comment scraping (single video)
   SCRAPE_VIDEO_COMMENTS_API_START: "SCRAPE_VIDEO_COMMENTS_API_START",
@@ -149,6 +150,8 @@ export interface ReplyProgress {
   message?: string;
 }
 
+export type CommentReplyStatus = "pending" | "replying" | "sent" | "skipped" | "failed";
+
 export interface BulkReplyProgress {
   total: number;
   completed: number;
@@ -156,6 +159,7 @@ export interface BulkReplyProgress {
   skipped: number;
   current?: string;
   status: "running" | "complete" | "stopped" | "error";
+  commentStatuses?: Record<string, CommentReplyStatus>;
 }
 
 export interface ScrapedVideo {

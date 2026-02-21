@@ -72,18 +72,21 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       }),
 
       bridge.on(MessageType.BULK_REPLY_COMPLETE, (payload) => {
+        const progress = payload as BulkReplyProgress;
         setState((prev) => ({
           ...prev,
           isReplying: false,
           replyStatusMessage: null,
-          bulkReplyProgress: payload as BulkReplyProgress,
+          bulkReplyProgress: progress,
         }));
-        setTimeout(() => {
-          setState((prev) => ({
-            ...prev,
-            bulkReplyProgress: null,
-          }));
-        }, 1500);
+        if (progress.skipped === 0 && progress.failed === 0) {
+          setTimeout(() => {
+            setState((prev) => ({
+              ...prev,
+              bulkReplyProgress: null,
+            }));
+          }, 1500);
+        }
       }),
     ];
 
@@ -120,6 +123,22 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     bridge.send(MessageType.BULK_REPLY_START, { comments: trimmedComments, messages, deleteMissingComments });
   }, []);
 
+  const updateBulkReplyQueue = useCallback((comments: ScrapedComment[]) => {
+    if (!bridge) return;
+
+    const trimmed = comments.map((c) => ({
+      id: c.id,
+      handle: c.handle,
+      comment: c.comment,
+      videoUrl: c.videoUrl,
+      videoId: c.videoId,
+      repliedTo: c.repliedTo,
+      ...(c.messageToSend && { messageToSend: c.messageToSend }),
+    }));
+
+    bridge.send(MessageType.BULK_REPLY_UPDATE_QUEUE, { comments: trimmed });
+  }, []);
+
   const stopBulkReply = useCallback(() => {
     if (!bridge) return;
 
@@ -137,10 +156,16 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     setState((prev) => ({ ...prev, error: null }));
   }, []);
 
+  const clearBulkReplyProgress = useCallback(() => {
+    setState((prev) => ({ ...prev, bulkReplyProgress: null }));
+  }, []);
+
   return {
     ...state,
     startBulkReply,
     stopBulkReply,
+    updateBulkReplyQueue,
     clearError,
+    clearBulkReplyProgress,
   };
 }
