@@ -18,7 +18,7 @@ describe("videos", () => {
       expect(videos).toEqual([]);
     });
 
-    it("returns videos sorted by order", async () => {
+    it("returns videos sorted by videoId descending", async () => {
       await t.mutation(api.videos.addBatch, {
         clerkId,
         videos: [
@@ -30,7 +30,7 @@ describe("videos", () => {
 
       const videos = await t.query(api.videos.list, { clerkId });
       expect(videos).toHaveLength(3);
-      expect(videos.map((v) => v.order)).toEqual([1, 2, 3]);
+      expect(videos.map((v) => v.order)).toEqual([3, 2, 1]);
     });
   });
 
