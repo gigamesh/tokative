@@ -91,9 +91,21 @@ export const updateProfileAvatarUrl = internalMutation({
     avatarUrl: v.string(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.profileId, {
-      avatarUrl: args.avatarUrl,
-    });
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile) return;
+
+    await ctx.db.patch(args.profileId, { avatarUrl: args.avatarUrl });
+
+    const comments = await ctx.db
+      .query("comments")
+      .withIndex("by_user_and_profile", (q) =>
+        q.eq("userId", profile.userId).eq("tiktokProfileId", args.profileId),
+      )
+      .collect();
+
+    for (const comment of comments) {
+      await ctx.db.patch(comment._id, { avatarUrl: args.avatarUrl });
+    }
   },
 });
 

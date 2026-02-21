@@ -331,7 +331,7 @@ export const addBatch = mutation({
           source: comment.source,
           handle: comment.handle,
           profileUrl: comment.profileUrl,
-          avatarUrl: comment.avatarUrl,
+          avatarUrl: profileResult.r2AvatarUrl,
         },
       });
     }

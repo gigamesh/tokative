@@ -7,7 +7,7 @@ export async function getOrCreate(
   ctx: MutationCtx,
   userId: Id<"users">,
   data: { tiktokUserId: string; handle: string; profileUrl: string; avatarUrl?: string }
-): Promise<{ profileId: Id<"tiktokProfiles">; shouldStoreAvatar: boolean; tiktokUserId: string; tiktokAvatarUrl?: string }> {
+): Promise<{ profileId: Id<"tiktokProfiles">; shouldStoreAvatar: boolean; tiktokUserId: string; tiktokAvatarUrl?: string; r2AvatarUrl?: string }> {
   const existing = await ctx.db
     .query("tiktokProfiles")
     .withIndex("by_user_and_tiktok_id", (q) =>
@@ -26,6 +26,7 @@ export async function getOrCreate(
       shouldStoreAvatar,
       tiktokUserId: data.tiktokUserId,
       tiktokAvatarUrl: data.avatarUrl,
+      r2AvatarUrl: existing.avatarUrl,
     };
   }
 
