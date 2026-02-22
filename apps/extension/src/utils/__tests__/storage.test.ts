@@ -112,7 +112,6 @@ describe("Comment Storage (Convex-backed)", () => {
       mockedConvexApi.syncComments.mockResolvedValue({
         new: 2,
         preexisting: 0,
-        ignored: 1,
         missingTiktokUserId: 0,
       });
 
@@ -121,7 +120,7 @@ describe("Comment Storage (Convex-backed)", () => {
 
       expect(mockedConvexApi.fetchIgnoreList).toHaveBeenCalled();
       expect(mockedConvexApi.syncComments).toHaveBeenCalledWith(newComments, ["spam"]);
-      expect(result).toEqual({ new: 2, preexisting: 0, ignored: 1, missingTiktokUserId: 0 });
+      expect(result).toEqual({ new: 2, preexisting: 0, missingTiktokUserId: 0 });
     });
 
     it("throws CommentLimitError when syncComments returns limitReached", async () => {
@@ -129,7 +128,6 @@ describe("Comment Storage (Convex-backed)", () => {
       mockedConvexApi.syncComments.mockResolvedValue({
         new: 3,
         preexisting: 1,
-        ignored: 0,
         missingTiktokUserId: 0,
         limitReached: true,
         monthlyLimit: 500,
@@ -146,7 +144,6 @@ describe("Comment Storage (Convex-backed)", () => {
       mockedConvexApi.syncComments.mockResolvedValue({
         new: 2,
         preexisting: 1,
-        ignored: 0,
         missingTiktokUserId: 0,
         limitReached: true,
         monthlyLimit: 2500,
@@ -163,7 +160,7 @@ describe("Comment Storage (Convex-backed)", () => {
         expect(limitErr.monthlyLimit).toBe(2500);
         expect(limitErr.currentCount).toBe(2500);
         expect(limitErr.plan).toBe("pro");
-        expect(limitErr.partialResult).toEqual({ new: 2, preexisting: 1, ignored: 0 });
+        expect(limitErr.partialResult).toEqual({ new: 2, preexisting: 1 });
       }
     });
 
@@ -172,7 +169,6 @@ describe("Comment Storage (Convex-backed)", () => {
       mockedConvexApi.syncComments.mockResolvedValue({
         new: 5,
         preexisting: 0,
-        ignored: 0,
         missingTiktokUserId: 0,
         limitReached: false,
         monthlyLimit: 500,
@@ -183,7 +179,6 @@ describe("Comment Storage (Convex-backed)", () => {
       const result = await addScrapedComments([createComment()]);
       expect(result.new).toBe(5);
       expect(result.preexisting).toBe(0);
-      expect(result.ignored).toBe(0);
     });
   });
 

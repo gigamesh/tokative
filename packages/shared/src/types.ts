@@ -187,7 +187,6 @@ export interface ScrapeStats {
   found: number;       // Total comments found/scraped from page
   new: number;         // Actually saved to storage (new unique)
   preexisting: number; // Rejected because already in storage
-  ignored: number;     // Rejected by ignore list
 }
 
 export interface VideoScrapeProgress {

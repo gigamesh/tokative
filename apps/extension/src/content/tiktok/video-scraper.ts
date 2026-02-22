@@ -700,9 +700,8 @@ async function expandAndSaveReplies(
             const result = await addScrapedComments(newReplies);
             cumulativeStats.new += result.new;
             cumulativeStats.preexisting += result.preexisting;
-            cumulativeStats.ignored += result.ignored;
             logger.log(
-              `[Tokative] Replies: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored`,
+              `[Tokative] Replies: +${result.new} new, ${result.preexisting} preexisting`,
             );
           } catch (err) {
             if (err instanceof CommentLimitError) throw err;
@@ -933,7 +932,7 @@ async function scrollToLoadComments(
     });
     return {
       comments: [],
-      stats: { found: 0, new: 0, preexisting: 0, ignored: 0 },
+      stats: { found: 0, new: 0, preexisting: 0 },
       limitReached: false,
     };
   }
@@ -956,7 +955,6 @@ async function scrollToLoadComments(
     found: 0,
     new: 0,
     preexisting: 0,
-    ignored: 0,
   };
 
   while (!isCancelled) {
@@ -1030,16 +1028,14 @@ async function scrollToLoadComments(
         const result = await addScrapedComments(newComments);
         cumulativeStats.new += result.new;
         cumulativeStats.preexisting += result.preexisting;
-        cumulativeStats.ignored += result.ignored;
         logger.log(
-          `[Tokative] Storage result: +${result.new} new, ${result.preexisting} preexisting, ${result.ignored} ignored (totals: ${cumulativeStats.new}/${cumulativeStats.found})`,
+          `[Tokative] Storage result: +${result.new} new, ${result.preexisting} preexisting (totals: ${cumulativeStats.new}/${cumulativeStats.found})`,
         );
         onProgress?.(cumulativeStats);
       } catch (err) {
         if (err instanceof CommentLimitError) {
           cumulativeStats.new += err.partialResult.new;
           cumulativeStats.preexisting += err.partialResult.preexisting;
-          cumulativeStats.ignored += err.partialResult.ignored;
           logger.log(`[Tokative] Comment limit reached: ${err.currentCount}/${err.monthlyLimit} (${err.plan})`);
           exitReason = "comment_limit_reached";
           limitReached = true;
@@ -1072,7 +1068,6 @@ async function scrollToLoadComments(
         if (err instanceof CommentLimitError) {
           cumulativeStats.new += err.partialResult.new;
           cumulativeStats.preexisting += err.partialResult.preexisting;
-          cumulativeStats.ignored += err.partialResult.ignored;
           logger.log(`[Tokative] Comment limit reached during reply expansion`);
           exitReason = "comment_limit_reached";
           limitReached = true;
@@ -1155,7 +1150,6 @@ async function scrollToLoadComments(
       if (err instanceof CommentLimitError) {
         cumulativeStats.new += err.partialResult.new;
         cumulativeStats.preexisting += err.partialResult.preexisting;
-        cumulativeStats.ignored += err.partialResult.ignored;
         exitReason = "comment_limit_reached";
         limitReached = true;
       } else {
@@ -1677,7 +1671,7 @@ export async function scrapeVideoComments(
   logger.log("[Tokative] Panel opened:", panelOpened);
   if (!panelOpened) {
     logger.log("[Tokative] ERROR: Could not open comments panel");
-    const emptyStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
+    const emptyStats = { found: 0, new: 0, preexisting: 0 };
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
@@ -1706,7 +1700,7 @@ export async function scrapeVideoComments(
   logger.log("[Tokative] Comment content loaded:", contentLoaded);
   if (!contentLoaded) {
     logger.log("[Tokative] ERROR: Comments failed to load");
-    const emptyStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
+    const emptyStats = { found: 0, new: 0, preexisting: 0 };
     onProgress?.({
       videosProcessed: 0,
       totalVideos: 1,
@@ -1778,7 +1772,7 @@ export async function scrapeVideoComments(
       totalVideos: 1,
       commentsFound: result.stats.found,
       status: "cancelled",
-      message: `Cancelled: ${result.stats.new} new, ${result.stats.ignored} ignored, ${result.stats.preexisting} preexisting`,
+      message: `Cancelled: ${result.stats.new} new, ${result.stats.preexisting} preexisting`,
       stats: result.stats,
     });
     return result;
@@ -1789,7 +1783,7 @@ export async function scrapeVideoComments(
     totalVideos: 1,
     commentsFound: result.stats.found,
     status: "complete",
-    message: `Done: ${result.stats.new} new, ${result.stats.ignored} ignored, ${result.stats.preexisting} preexisting`,
+    message: `Done: ${result.stats.new} new, ${result.stats.preexisting} preexisting`,
     stats: result.stats,
   });
 
@@ -1875,7 +1869,7 @@ export async function fetchVideoCommentsViaApi(
   const config = getLoadedConfig();
   const allComments: ScrapedComment[] = [];
   const savedCommentIds = new Set<string>();
-  const cumulativeStats: ScrapeStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
+  const cumulativeStats: ScrapeStats = { found: 0, new: 0, preexisting: 0 };
   let limitReached = false;
 
   if (isCancelled) {
@@ -1924,12 +1918,10 @@ export async function fetchVideoCommentsViaApi(
           const result = await addScrapedComments(newComments);
           cumulativeStats.new += result.new;
           cumulativeStats.preexisting += result.preexisting;
-          cumulativeStats.ignored += result.ignored;
         } catch (err) {
           if (err instanceof CommentLimitError) {
             cumulativeStats.new += err.partialResult.new;
             cumulativeStats.preexisting += err.partialResult.preexisting;
-            cumulativeStats.ignored += err.partialResult.ignored;
             limitReached = true;
           } else {
             logger.error("[Tokative] Error saving API comments:", err);

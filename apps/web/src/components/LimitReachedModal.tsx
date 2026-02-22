@@ -9,7 +9,7 @@ interface LimitReachedModalProps {
   used: number;
   limit: number;
   plan: string;
-  scrapeStats?: { found: number; new: number; preexisting: number; ignored: number };
+  scrapeStats?: { found: number; new: number; preexisting: number };
   replyStats?: { completed: number; failed: number; commentNotFound: number; mentionFailed: number };
 }
 
@@ -56,10 +56,6 @@ export function LimitReachedModal({
           <div className="flex justify-between items-center py-1.5 border-b border-border">
             <span className="text-foreground-muted text-sm">Preexisting</span>
             <span className="text-foreground-muted font-medium text-sm">{scrapeStats.preexisting}</span>
-          </div>
-          <div className="flex justify-between items-center py-1.5 border-b border-border">
-            <span className="text-foreground-muted text-sm">Ignored</span>
-            <span className="text-foreground-muted font-medium text-sm">{scrapeStats.ignored}</span>
           </div>
         </div>
       )}

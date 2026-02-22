@@ -110,7 +110,6 @@ describe("comments", () => {
 
       expect(result.new).toBe(2);
       expect(result.preexisting).toBe(0);
-      expect(result.ignored).toBe(0);
     });
 
     it("deduplicates by commentId", async () => {
@@ -132,7 +131,7 @@ describe("comments", () => {
       expect(comments[0].comment).toBe("First");
     });
 
-    it("filters comments matching ignore list", async () => {
+    it("stores all comments even if they match ignore list", async () => {
       const result = await t.mutation(api.comments.addBatch, {
         clerkId,
         comments: [
@@ -143,23 +142,95 @@ describe("comments", () => {
         ignoreList: ["buy my"],
       });
 
-      expect(result.new).toBe(2);
-      expect(result.ignored).toBe(1);
+      expect(result.new).toBe(3);
+    });
+
+    it("filters ignored comments at query time via list", async () => {
+      await t.mutation(api.comments.addBatch, {
+        clerkId,
+        comments: [
+          makeComment({ commentId: "1", comment: "Hello world" }),
+          makeComment({ commentId: "2", comment: "Buy my stuff" }),
+          makeComment({ commentId: "3", comment: "Nice video" }),
+        ],
+      });
+
+      // Add ignore list entry
+      await t.run(async (ctx) => {
+        const user = await ctx.db
+          .query("users")
+          .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+          .unique();
+        await ctx.db.insert("ignoreList", {
+          userId: user!._id,
+          text: "buy my",
+          addedAt: Date.now(),
+        });
+      });
 
       const comments = await t.query(api.comments.list, { clerkId });
       expect(comments).toHaveLength(2);
       expect(comments.map((c) => c.comment)).not.toContain("Buy my stuff");
     });
 
-    it("ignore list is case-insensitive", async () => {
-      const result = await t.mutation(api.comments.addBatch, {
+    it("ignore list filtering is case-insensitive", async () => {
+      await t.mutation(api.comments.addBatch, {
         clerkId,
         comments: [makeComment({ commentId: "1", comment: "BUY MY STUFF" })],
-        ignoreList: ["buy my"],
       });
 
-      expect(result.ignored).toBe(1);
-      expect(result.new).toBe(0);
+      await t.run(async (ctx) => {
+        const user = await ctx.db
+          .query("users")
+          .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+          .unique();
+        await ctx.db.insert("ignoreList", {
+          userId: user!._id,
+          text: "buy my",
+          addedAt: Date.now(),
+        });
+      });
+
+      const comments = await t.query(api.comments.list, { clerkId });
+      expect(comments).toHaveLength(0);
+    });
+
+    it("un-ignoring restores comments in query results", async () => {
+      await t.mutation(api.comments.addBatch, {
+        clerkId,
+        comments: [
+          makeComment({ commentId: "1", comment: "Hello world" }),
+          makeComment({ commentId: "2", comment: "Buy my stuff" }),
+        ],
+      });
+
+      // Add ignore list entry
+      let ignoreEntryId: any;
+      await t.run(async (ctx) => {
+        const user = await ctx.db
+          .query("users")
+          .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+          .unique();
+        ignoreEntryId = await ctx.db.insert("ignoreList", {
+          userId: user!._id,
+          text: "buy my",
+          addedAt: Date.now(),
+        });
+      });
+
+      // Should be filtered
+      let comments = await t.query(api.comments.list, { clerkId });
+      expect(comments).toHaveLength(1);
+
+      // Remove ignore entry
+      await t.run(async (ctx) => {
+        await ctx.db.delete(ignoreEntryId);
+      });
+
+      // Should now appear again
+      comments = await t.query(api.comments.list, { clerkId });
+      expect(comments).toHaveLength(2);
+      expect(comments.map((c) => c.comment)).toContain("Buy my stuff");
     });
   });
 

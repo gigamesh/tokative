@@ -1128,7 +1128,7 @@ async function handleGetBatchComments(
   let batchLimitReached = false;
 
   // Cumulative stats across all videos
-  const cumulativeStats = { found: 0, new: 0, preexisting: 0, ignored: 0 };
+  const cumulativeStats = { found: 0, new: 0, preexisting: 0 };
 
   logger.log(
     `[Background] Starting batch scrape: ${batchVideoQueue.length} videos`,
@@ -1239,7 +1239,6 @@ async function handleGetBatchComments(
       cumulativeStats.found += result.stats.found;
       cumulativeStats.new += result.stats.new;
       cumulativeStats.preexisting += result.stats.preexisting;
-      cumulativeStats.ignored += result.stats.ignored;
       if (result.limitReached) batchLimitReached = true;
       completedVideos++;
       lastBatchProgress = { completedVideos, totalComments };
@@ -1314,7 +1313,7 @@ async function handleGetBatchComments(
 
 interface VideoScrapeResult {
   commentCount: number;
-  stats: { found: number; new: number; preexisting: number; ignored: number };
+  stats: { found: number; new: number; preexisting: number };
   limitReached: boolean;
 }
 
@@ -1344,14 +1343,13 @@ async function scrapeVideoInTab(
             found: number;
             new: number;
             preexisting: number;
-            ignored: number;
           };
           limitReached?: boolean;
         };
         chrome.runtime.onMessage.removeListener(responseHandler);
         resolve({
           commentCount: comments?.length || 0,
-          stats: stats || { found: 0, new: 0, preexisting: 0, ignored: 0 },
+          stats: stats || { found: 0, new: 0, preexisting: 0 },
           limitReached: limitReached ?? false,
         });
       } else if (msg.type === MessageType.SCRAPE_VIDEO_COMMENTS_ERROR) {

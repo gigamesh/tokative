@@ -75,7 +75,6 @@ export function PostCard({
                 <p>Found: {progress.stats.found}</p>
                 <p>New: {progress.stats.new}</p>
                 <p>Preexisting: {progress.stats.preexisting}</p>
-                <p>Ignored: {progress.stats.ignored}</p>
               </div>
             ) : (
               <p className="text-white text-xs">

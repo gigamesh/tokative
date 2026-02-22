@@ -196,7 +196,6 @@ function getTemplate(): string {
             <tr><td>Found</td><td id="stat-found">0</td></tr>
             <tr><td>New</td><td id="stat-new">0</td></tr>
             <tr><td>Pre-existing</td><td id="stat-preexisting">0</td></tr>
-            <tr><td>Ignored</td><td id="stat-ignored">0</td></tr>
           </table>
           <div class="rate-limit" id="rate-limit">
             Rate limit detected — waiting before retrying...
@@ -398,10 +397,8 @@ function renderStats(stats: ScrapeStats): void {
   const found = el("stat-found");
   const newEl = el("stat-new");
   const preexisting = el("stat-preexisting");
-  const ignored = el("stat-ignored");
 
   if (found) found.textContent = String(stats.found);
   if (newEl) newEl.textContent = String(stats.new);
   if (preexisting) preexisting.textContent = String(stats.preexisting);
-  if (ignored) ignored.textContent = String(stats.ignored);
 }

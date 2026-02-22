@@ -68,7 +68,7 @@ function renderSpinnerWithText(container: HTMLElement, text: string): void {
 
 function renderStatsTable(
   container: HTMLElement,
-  stats: { found: number; new: number; ignored: number; preexisting: number },
+  stats: { found: number; new: number; preexisting: number },
   isComplete: boolean
 ): void {
   container.innerHTML = "";
@@ -96,7 +96,6 @@ function renderStatsTable(
     { label: "Found", value: stats.found, className: "" },
     { label: "New", value: stats.new, className: "green" },
     { label: "Preexisting", value: stats.preexisting, className: "gray" },
-    { label: "Ignored", value: stats.ignored, className: "gray" },
   ];
 
   rows.forEach(({ label, value, className }) => {
@@ -121,7 +120,7 @@ function renderStatsTable(
   if (isComplete) {
     const note = document.createElement("div");
     note.className = "stats-note";
-    note.innerHTML = `<strong>Preexisting:</strong> Already stored.<br><strong>Ignored:</strong> Matched ignore list.<br><strong>Note:</strong> TikTok's count may include deleted comments.`;
+    note.innerHTML = `<strong>Preexisting:</strong> Already stored.<br><strong>Note:</strong> TikTok's count may include deleted comments.`;
     container.appendChild(note);
   }
 }
@@ -405,7 +404,7 @@ async function init(): Promise<void> {
 
     // Comment scraping messages
     if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_PROGRESS) {
-      const progress = message.payload as { message?: string; stats?: { found: number; new: number; ignored: number; preexisting: number } };
+      const progress = message.payload as { message?: string; stats?: { found: number; new: number; preexisting: number } };
       isCommentScraping = true;
       updateScrapeButtonState(scrapeCommentsBtn, true, "Collect Comments");
       if (commentScrapeStatusEl) {
@@ -417,7 +416,7 @@ async function init(): Promise<void> {
         }
       }
     } else if (message.type === MessageType.SCRAPE_VIDEO_COMMENTS_COMPLETE) {
-      const payload = message.payload as { comments?: unknown[]; stats?: { found: number; new: number; ignored: number; preexisting: number } };
+      const payload = message.payload as { comments?: unknown[]; stats?: { found: number; new: number; preexisting: number } };
       isCommentScraping = false;
       updateScrapeButtonState(scrapeCommentsBtn, false, "Collect Comments");
       if (commentScrapeStatusEl) {

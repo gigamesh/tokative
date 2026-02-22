@@ -18,7 +18,6 @@ let tokenRequestInProgress: Promise<string | null> | null = null;
 export interface ConvexSyncResult {
   new: number;
   preexisting: number;
-  ignored: number;
   missingTiktokUserId: number;
   limitReached?: boolean;
   monthlyLimit?: number;

@@ -37,7 +37,20 @@ export const list = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    return comments.map(formatComment);
+    const ignoreEntries = await ctx.db
+      .query("ignoreList")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    const ignoreTexts = ignoreEntries.map((e) => e.text.toLowerCase());
+
+    const filtered = ignoreTexts.length > 0
+      ? comments.filter(
+          (c) =>
+            !ignoreTexts.some((t) => c.comment.toLowerCase().includes(t)),
+        )
+      : comments;
+
+    return filtered.map(formatComment);
   },
 });
 
@@ -90,6 +103,12 @@ export const listPaginated = query({
       };
     }
 
+    const ignoreEntries = await ctx.db
+      .query("ignoreList")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    const ignoreTexts = ignoreEntries.map((e) => e.text.toLowerCase());
+
     const order = args.sortOrder ?? "desc";
     const searchLower = args.search?.toLowerCase().trim() || "";
 
@@ -113,7 +132,14 @@ export const listPaginated = query({
         searchLower,
       );
 
-      matching.sort((a, b) => {
+      const filtered = ignoreTexts.length > 0
+        ? matching.filter(
+            (c) =>
+              !ignoreTexts.some((t) => c.comment.toLowerCase().includes(t)),
+          )
+        : matching;
+
+      filtered.sort((a, b) => {
         const aTime = a.commentTimestamp
           ? new Date(a.commentTimestamp).getTime()
           : a.scrapedAt;
@@ -127,9 +153,9 @@ export const listPaginated = query({
         ? parseInt(args.paginationOpts.cursor, 10)
         : 0;
       const pageSize = args.paginationOpts.numItems;
-      const pageComments = matching.slice(cursor, cursor + pageSize);
+      const pageComments = filtered.slice(cursor, cursor + pageSize);
       const nextCursor = cursor + pageSize;
-      const isDone = nextCursor >= matching.length;
+      const isDone = nextCursor >= filtered.length;
 
       return {
         page: pageComments.map(formatComment),
@@ -172,7 +198,14 @@ export const listPaginated = query({
       replies.push(...parentReplies);
     }
 
-    const allComments = [...topLevelResult.page, ...replies];
+    let allComments = [...topLevelResult.page, ...replies];
+
+    if (ignoreTexts.length > 0) {
+      allComments = allComments.filter(
+        (c) =>
+          !ignoreTexts.some((t) => c.comment.toLowerCase().includes(t)),
+      );
+    }
 
     return {
       page: allComments.map(formatComment),
@@ -236,7 +269,6 @@ export const addBatch = mutation({
       return {
         new: 0,
         preexisting: 0,
-        ignored: 0,
         missingTiktokUserId: 0,
         limitReached: true,
         monthlyLimit,
@@ -247,9 +279,7 @@ export const addBatch = mutation({
 
     const remainingMonthlyBudget = monthlyLimit - monthlyCount;
 
-    const ignoreTexts = (args.ignoreList ?? []).map((t) => t.toLowerCase());
     let preexisting = 0;
-    let ignored = 0;
     let missingTiktokUserId = 0;
 
     const profileCache = new Map<
@@ -269,15 +299,6 @@ export const addBatch = mutation({
     for (const comment of args.comments) {
       if (!comment.tiktokUserId) {
         missingTiktokUserId++;
-        continue;
-      }
-
-      if (
-        ignoreTexts.some((ignoreText) =>
-          comment.comment.toLowerCase().includes(ignoreText),
-        )
-      ) {
-        ignored++;
         continue;
       }
 
@@ -395,7 +416,6 @@ export const addBatch = mutation({
     return {
       new: newCount,
       preexisting,
-      ignored,
       missingTiktokUserId,
       limitReached,
       monthlyLimit,

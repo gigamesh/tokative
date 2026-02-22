@@ -5,7 +5,6 @@ import { TokativeError } from "@tokative/shared";
 export interface AddCommentsResult {
   new: number;
   preexisting: number;
-  ignored: number;
 }
 
 export type TikTokApiErrorCode =

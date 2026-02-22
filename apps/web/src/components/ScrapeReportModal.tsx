@@ -1,5 +1,4 @@
 import { Button } from "./Button";
-import { Link } from "./Link";
 import { Modal } from "./Modal";
 
 interface ScrapeReportModalProps {
@@ -8,7 +7,6 @@ interface ScrapeReportModalProps {
   stats: {
     found: number;
     new: number;
-    ignored: number;
     preexisting: number;
   };
 }
@@ -35,23 +33,12 @@ export function ScrapeReportModal({
           <span className="text-foreground-muted">Preexisting</span>
           <span className="text-foreground-muted font-medium">{stats.preexisting}</span>
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-border">
-          <span className="text-foreground-muted">Ignored</span>
-          <span className="text-foreground-muted font-medium">{stats.ignored}</span>
-        </div>
       </div>
 
       <div className="text-xs text-foreground-muted space-y-2 mb-6">
         <p>
           <strong className="text-foreground-muted">Preexisting:</strong> Comments
           already stored.
-        </p>
-        <p>
-          <strong className="text-foreground-muted">Ignored:</strong> Comments matching text in your{" "}
-          <Link href="/dashboard?tab=settings" onClick={onClose}>
-            ignore list
-          </Link>
-          .
         </p>
         <p>
           <strong className="text-foreground-muted">Note:</strong> The count shown by

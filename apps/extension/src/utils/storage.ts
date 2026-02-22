@@ -26,7 +26,7 @@ export async function addScrapedComments(newComments: ScrapedComment[]): Promise
       result.monthlyLimit ?? 0,
       result.currentCount ?? 0,
       result.plan ?? "free",
-      { new: result.new, preexisting: result.preexisting, ignored: result.ignored },
+      { new: result.new, preexisting: result.preexisting },
     );
   }
   return result;
