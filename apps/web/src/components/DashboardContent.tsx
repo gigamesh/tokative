@@ -27,7 +27,7 @@ import { useTokativeEndpoint } from "@/hooks/useTokativeEndpoint";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useVideoData } from "@/hooks/useVideoData";
 import { useAuth } from "@/providers/ConvexProvider";
-import { ScrapedComment } from "@/utils/constants";
+import { ScrapedComment, TERMINAL_REPLY_STATUSES } from "@/utils/constants";
 import { api, BILLING_ENABLED, PLAN_LIMITS } from "@tokative/convex";
 import { useQuery } from "convex/react";
 import { AlertTriangle, Settings, X } from "lucide-react";
@@ -128,6 +128,7 @@ export function DashboardContent() {
     startBulkReply,
     stopBulkReply,
     updateBulkReplyQueue,
+    clearBulkReplyProgress,
   } = useMessaging({
     onReplyComplete: handleReplyComplete,
     onPostedReply: addOptimisticComment,
@@ -511,11 +512,17 @@ export function DashboardContent() {
 
   const handleClearSelection = useCallback(() => {
     setSelectedCommentIds(new Set());
-  }, []);
+    clearBulkReplyProgress();
+  }, [clearBulkReplyProgress]);
 
   const executeBulkReply = useCallback(
     async (messages: string[], deleteMissing: boolean) => {
-      const capped = selectedCommentsForDisplay.slice(0, replyBudget);
+      const prevStatuses = bulkReplyProgress?.commentStatuses ?? {};
+      const terminalSet = new Set<string>(TERMINAL_REPLY_STATUSES);
+      const unprocessed = selectedCommentsForDisplay.filter(
+        (c) => !terminalSet.has(prevStatuses[c.id]),
+      );
+      const capped = unprocessed.slice(0, replyBudget);
 
       if (translateRepliesEnabled && translationEnabled) {
         try {
@@ -576,12 +583,14 @@ export function DashboardContent() {
         }
       }
 
-      startBulkReply(capped, messages, deleteMissing);
+      startBulkReply(capped, messages, deleteMissing, selectedCommentIds);
     },
     [
       selectedCommentsForDisplay,
+      selectedCommentIds,
       replyBudget,
       startBulkReply,
+      bulkReplyProgress,
       translateRepliesEnabled,
       translationEnabled,
       targetLanguage,

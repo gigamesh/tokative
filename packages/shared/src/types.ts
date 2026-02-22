@@ -152,13 +152,49 @@ export interface ReplyProgress {
 
 export type CommentReplyStatus = "pending" | "replying" | "sent" | "detectionFailed" | "commentNotFound" | "mentionFailed" | "failed";
 
-export interface BulkReplyProgress {
+export type BulkReplyCounterKey = "completed" | "failed" | "commentNotFound" | "mentionFailed" | "detectionFailed";
+
+export const STATUS_TO_COUNTER = {
+  sent: "completed",
+  failed: "failed",
+  commentNotFound: "commentNotFound",
+  mentionFailed: "mentionFailed",
+  detectionFailed: "detectionFailed",
+} as const satisfies Record<string, BulkReplyCounterKey>;
+
+export type TerminalReplyStatus = keyof typeof STATUS_TO_COUNTER;
+
+export const TERMINAL_REPLY_STATUSES = Object.keys(STATUS_TO_COUNTER) as TerminalReplyStatus[];
+
+export type BulkReplyCounters = Record<BulkReplyCounterKey, number>;
+
+const ZERO_COUNTERS: BulkReplyCounters = { completed: 0, failed: 0, commentNotFound: 0, mentionFailed: 0, detectionFailed: 0 };
+
+/** Tally terminal commentStatuses into counter fields. */
+export function tallyStatuses(statuses: Record<string, CommentReplyStatus>): BulkReplyCounters & { total: number } {
+  const counters = { ...ZERO_COUNTERS };
+  let total = 0;
+  for (const status of Object.values(statuses)) {
+    const key = STATUS_TO_COUNTER[status as TerminalReplyStatus];
+    if (key) {
+      counters[key]++;
+      total++;
+    }
+  }
+  return { ...counters, total };
+}
+
+/** Add two sets of counters together. */
+export function addCounters(a: BulkReplyCounters, b: BulkReplyCounters): BulkReplyCounters {
+  const result = { ...a };
+  for (const key of Object.keys(ZERO_COUNTERS) as BulkReplyCounterKey[]) {
+    result[key] += b[key];
+  }
+  return result;
+}
+
+export interface BulkReplyProgress extends BulkReplyCounters {
   total: number;
-  completed: number;
-  failed: number;
-  commentNotFound: number;
-  mentionFailed: number;
-  detectionFailed: number;
   current?: string;
   status: "running" | "complete" | "stopped" | "error";
   commentStatuses?: Record<string, CommentReplyStatus>;

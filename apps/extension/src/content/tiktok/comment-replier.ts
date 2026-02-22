@@ -251,24 +251,40 @@ async function mentionUser(editableInput: HTMLElement, handle: string, commentId
   const targetHandle = handle.toLowerCase();
   const pollInterval = 150;
   const maxAttempts = Math.ceil(config.timeouts.mentionUserSearch / pollInterval);
+  const stabilizeChecks = 2;
+
+  let stableCount = 0;
+  let lastItemSignature = "";
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((r) => setTimeout(r, pollInterval));
 
     const items = querySelectorAll<HTMLElement>(SELECTORS.mentionItem);
-    for (const item of items) {
+    const signature = items.map(i => {
+      const h = querySelector<HTMLElement>(SELECTORS.mentionItemHandle, i);
+      return (h?.textContent || "").trim().toLowerCase();
+    }).join(",");
+
+    if (signature === lastItemSignature && signature.length > 0) {
+      stableCount++;
+    } else {
+      stableCount = 0;
+    }
+    lastItemSignature = signature;
+
+    if (stableCount < stabilizeChecks) continue;
+
+    for (let domIndex = 0; domIndex < items.length; domIndex++) {
+      const item = items[domIndex];
       const handleEl = querySelector<HTMLElement>(SELECTORS.mentionItemHandle, item);
       const itemHandle = (handleEl?.textContent || "").trim().toLowerCase();
       if (itemHandle === targetHandle) {
-        const itemIndex = parseInt(item.getAttribute("data-index") || "0", 10);
-
         const container = item.closest('[class*="DivMentionSuggestionContainer"]') as HTMLElement;
         if (container) {
           container.focus();
         }
-
         const target = container || item;
-        for (let i = 0; i <= itemIndex; i++) {
+        for (let i = 0; i <= domIndex; i++) {
           target.dispatchEvent(new KeyboardEvent("keydown", {
             key: "ArrowDown", code: "ArrowDown", keyCode: 40, bubbles: true, cancelable: true,
           }));

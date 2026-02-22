@@ -89,7 +89,7 @@ describe("verifyComment", () => {
       </div>
     `;
     document.body.appendChild(container);
-    return container.querySelector(".CommentText-xyz")!;
+    return container.querySelector('[class*="DivCommentObjectWrapper"]')!;
   }
 
   afterEach(() => {
@@ -195,7 +195,7 @@ describe("verifyComment", () => {
     `;
     document.body.appendChild(container);
 
-    const commentEl = container.querySelector(".CommentText-xyz")!;
+    const commentEl = container.querySelector('[class*="DivCommentObjectWrapper"]')!;
     const user = createScrapedComment({ handle: "user.name_123", comment: "Test" });
 
     const result = verifyComment(commentEl, user);
@@ -214,7 +214,7 @@ describe("verifyComment", () => {
     `;
     document.body.appendChild(container);
 
-    const commentEl = container.querySelector(".CommentText-xyz")!;
+    const commentEl = container.querySelector('[class*="DivCommentObjectWrapper"]')!;
     const user = createScrapedComment({
       handle: "testuser",
       comment: "This is the actual comment content that is much longer",
@@ -238,7 +238,7 @@ describe("verifyComment", () => {
     `;
     document.body.appendChild(container);
 
-    const commentEl = container.querySelector('[data-e2e="comment-level-1"]')!;
+    const commentEl = container.querySelector('[class*="DivCommentObjectWrapper"]')!;
     const user = createScrapedComment({
       handle: "testuser",
       comment: "Fallback comment text",

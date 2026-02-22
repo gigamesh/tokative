@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { bridge } from "@/utils/extension-bridge";
-import { MessageType, ScrapedComment, BulkReplyProgress } from "@/utils/constants";
+import {
+  MessageType,
+  ScrapedComment,
+  BulkReplyProgress,
+  CommentReplyStatus,
+  BulkReplyCounters,
+  TERMINAL_REPLY_STATUSES,
+  tallyStatuses,
+  addCounters,
+} from "@/utils/constants";
 
 interface ReplyState {
   isReplying: boolean;
@@ -16,8 +25,15 @@ interface UseMessagingOptions {
   onPostedReply?: (reply: ScrapedComment) => void;
 }
 
+interface CarryOver {
+  statuses: Record<string, CommentReplyStatus>;
+  counters: BulkReplyCounters;
+  total: number;
+}
+
 export function useMessaging(options: UseMessagingOptions = {}) {
   const { onReplyComplete, onPostedReply } = options;
+  const carryRef = useRef<CarryOver | null>(null);
   const [state, setState] = useState<ReplyState>({
     isReplying: false,
     bulkReplyProgress: null,
@@ -83,14 +99,28 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       bridge.on(MessageType.BULK_REPLY_PROGRESS, (payload) => {
         setState((prev) => {
           if (prev.bulkReplyProgress?.status === "stopped") return prev;
-          return { ...prev, bulkReplyProgress: payload as BulkReplyProgress };
+          const incoming = payload as BulkReplyProgress;
+          const carry = carryRef.current;
+          if (!carry) return { ...prev, bulkReplyProgress: incoming };
+          return {
+            ...prev,
+            bulkReplyProgress: {
+              ...incoming,
+              ...addCounters(incoming, carry.counters),
+              total: incoming.total + carry.total,
+              commentStatuses: { ...carry.statuses, ...incoming.commentStatuses },
+            },
+          };
         });
       }),
 
       bridge.on(MessageType.BULK_REPLY_COMPLETE, (payload) => {
         const progress = payload as BulkReplyProgress;
+        const carry = carryRef.current;
+        carryRef.current = null;
         setState((prev) => {
           const mergedStatuses = {
+            ...(carry?.statuses),
             ...prev.bulkReplyProgress?.commentStatuses,
             ...progress.commentStatuses,
           };
@@ -101,12 +131,15 @@ export function useMessaging(options: UseMessagingOptions = {}) {
               }
             }
           }
+          const carriedCounters = carry?.counters ?? { completed: 0, failed: 0, commentNotFound: 0, mentionFailed: 0, detectionFailed: 0 };
           return {
             ...prev,
             isReplying: false,
             replyStatusMessage: null,
             bulkReplyProgress: {
               ...progress,
+              ...addCounters(progress, carriedCounters),
+              total: progress.total + (carry?.total ?? 0),
               commentStatuses: mergedStatuses,
             },
           };
@@ -117,24 +150,33 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     return () => cleanups.forEach((cleanup) => cleanup());
   }, [onReplyComplete, onPostedReply]);
 
-  const startBulkReply = useCallback((comments: ScrapedComment[], messages: string[], deleteMissingComments: boolean) => {
+  const startBulkReply = useCallback((comments: ScrapedComment[], messages: string[], deleteMissingComments: boolean, selectedIds: Set<string>) => {
     if (!bridge) return;
 
-    setState((prev) => ({
-      ...prev,
-      isReplying: true,
-      error: null,
-      replyStatusMessage: null,
-      bulkReplyProgress: {
-        total: comments.length,
-        completed: 0,
-        failed: 0,
-        commentNotFound: 0,
-        mentionFailed: 0,
-        detectionFailed: 0,
-        status: "running",
-      },
-    }));
+    setState((prev) => {
+      const prevStatuses = prev.bulkReplyProgress?.commentStatuses ?? {};
+      const terminalSet = new Set<string>(TERMINAL_REPLY_STATUSES);
+      const carried: Record<string, CommentReplyStatus> = {};
+      for (const [id, status] of Object.entries(prevStatuses)) {
+        if (terminalSet.has(status) && selectedIds.has(id)) carried[id] = status;
+      }
+      const { total: carriedCount, ...carriedCounters } = tallyStatuses(carried);
+      carryRef.current = carriedCount > 0
+        ? { statuses: carried, counters: carriedCounters, total: carriedCount }
+        : null;
+      return {
+        ...prev,
+        isReplying: true,
+        error: null,
+        replyStatusMessage: null,
+        bulkReplyProgress: {
+          ...carriedCounters,
+          total: comments.length + carriedCount,
+          status: "running" as const,
+          commentStatuses: carried,
+        },
+      };
+    });
 
     const trimmedComments = comments.map((c) => ({
       id: c.id,
@@ -180,6 +222,11 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     }));
   }, []);
 
+  const clearBulkReplyProgress = useCallback(() => {
+    carryRef.current = null;
+    setState((prev) => ({ ...prev, bulkReplyProgress: null }));
+  }, []);
+
   const clearError = useCallback(() => {
     setState((prev) => ({ ...prev, error: null }));
   }, []);
@@ -189,6 +236,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     startBulkReply,
     stopBulkReply,
     updateBulkReplyQueue,
+    clearBulkReplyProgress,
     clearError,
   };
 }
