@@ -89,20 +89,28 @@ export function useMessaging(options: UseMessagingOptions = {}) {
 
       bridge.on(MessageType.BULK_REPLY_COMPLETE, (payload) => {
         const progress = payload as BulkReplyProgress;
-        setState((prev) => ({
-          ...prev,
-          isReplying: false,
-          replyStatusMessage: null,
-          bulkReplyProgress: progress,
-        }));
-        if (progress.commentNotFound === 0 && progress.mentionFailed === 0 && progress.failed === 0 && progress.detectionFailed === 0) {
-          setTimeout(() => {
-            setState((prev) => ({
-              ...prev,
-              bulkReplyProgress: null,
-            }));
-          }, 1500);
-        }
+        setState((prev) => {
+          const mergedStatuses = {
+            ...prev.bulkReplyProgress?.commentStatuses,
+            ...progress.commentStatuses,
+          };
+          if (progress.status === "stopped") {
+            for (const [id, status] of Object.entries(mergedStatuses)) {
+              if (status === "replying" || status === "pending") {
+                delete mergedStatuses[id];
+              }
+            }
+          }
+          return {
+            ...prev,
+            isReplying: false,
+            replyStatusMessage: null,
+            bulkReplyProgress: {
+              ...progress,
+              commentStatuses: mergedStatuses,
+            },
+          };
+        });
       }),
     ];
 
@@ -176,16 +184,11 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     setState((prev) => ({ ...prev, error: null }));
   }, []);
 
-  const clearBulkReplyProgress = useCallback(() => {
-    setState((prev) => ({ ...prev, bulkReplyProgress: null }));
-  }, []);
-
   return {
     ...state,
     startBulkReply,
     stopBulkReply,
     updateBulkReplyQueue,
     clearError,
-    clearBulkReplyProgress,
   };
 }

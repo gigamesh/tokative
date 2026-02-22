@@ -852,8 +852,24 @@ async function handleReplyToComment(
 
     const config = getLoadedConfig();
     return await new Promise<ReplyToCommentResult>((resolve) => {
-      const timeout = setTimeout(() => {
+      let resolved = false;
+      const cleanup = () => {
+        if (resolved) return;
+        resolved = true;
+        clearInterval(abortCheck);
+        clearTimeout(timeout);
         chrome.runtime.onMessage.removeListener(responseHandler);
+      };
+
+      const abortCheck = setInterval(() => {
+        if (bulkReplyAborted) {
+          cleanup();
+          resolve({ success: false, error: "Aborted" });
+        }
+      }, 500);
+
+      const timeout = setTimeout(() => {
+        cleanup();
         port.postMessage({
           type: MessageType.REPLY_COMMENT_ERROR,
           payload: {
@@ -872,8 +888,7 @@ async function handleReplyToComment(
         if (msg.type === MessageType.REPLY_COMMENT_COMPLETE) {
           const payload = msg.payload as { commentId?: string; detectionFailed?: boolean };
           if (payload.commentId === comment.id) {
-            clearTimeout(timeout);
-            chrome.runtime.onMessage.removeListener(responseHandler);
+            cleanup();
             resolve({
               success: true,
               detectionFailed: payload.detectionFailed,
@@ -883,8 +898,7 @@ async function handleReplyToComment(
         } else if (msg.type === MessageType.REPLY_COMMENT_ERROR) {
           const payload = msg.payload as { commentId?: string; error?: string; errorCode?: string };
           if (payload.commentId === comment.id) {
-            clearTimeout(timeout);
-            chrome.runtime.onMessage.removeListener(responseHandler);
+            cleanup();
             resolve({
               success: false,
               error: payload.error,
@@ -973,7 +987,11 @@ async function handleBulkReply(
       if (needsNewTab && currentTabId) {
         closeTabIntentionally(currentTabId);
         currentTabId = undefined;
-        await new Promise((resolve) => setTimeout(resolve, Math.random() * maxDelay));
+        const delay = Math.random() * maxDelay;
+        const start = Date.now();
+        while (Date.now() - start < delay && !bulkReplyAborted) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
       }
       currentVideoId = videoId;
 
@@ -1000,6 +1018,8 @@ async function handleBulkReply(
 
       bulkReplyProcessedIds.add(comment.id);
       bulkReplyCurrentId = null;
+
+      if (bulkReplyAborted) break;
 
       if (result.errorCode === "USER_NOT_LOGGED_IN") {
         bulkReplyProgress.abortReason = "USER_NOT_LOGGED_IN";
@@ -1067,8 +1087,12 @@ async function handleBulkReply(
         });
       }
 
-      if (bulkReplyPending.length > 0) {
-        await new Promise((resolve) => setTimeout(resolve, Math.random() * maxDelay));
+      if (bulkReplyPending.length > 0 && !bulkReplyAborted) {
+        const delay = Math.random() * maxDelay;
+        const start = Date.now();
+        while (Date.now() - start < delay && !bulkReplyAborted) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
       }
     }
   } catch (error) {

@@ -18,7 +18,6 @@ interface ReplyComposerProps {
   bulkReplyProgress: BulkReplyProgress | null;
   replyStatusMessage: string | null;
   onStopBulkReply: () => void;
-  onDismissProgress?: () => void;
   disabled?: boolean;
   replyBudget?: number;
   replyLimitReached?: boolean;
@@ -38,7 +37,6 @@ export function ReplyComposer({
   bulkReplyProgress,
   replyStatusMessage,
   onStopBulkReply,
-  onDismissProgress,
   disabled,
   replyBudget,
   replyLimitReached,
@@ -156,11 +154,6 @@ export function ReplyComposer({
     onSend(validMessages);
   };
 
-  const handleDismiss = () => {
-    onDismissProgress?.();
-    onClearSelection();
-  };
-
   const allMessagesValid =
     messages.length > 1 ? messages.every((m) => m.trim()) : messages[0]?.trim();
 
@@ -178,7 +171,6 @@ export function ReplyComposer({
     bulkReplyProgress &&
     (bulkReplyProgress.status === "complete" ||
       bulkReplyProgress.status === "stopped");
-
   const showBulkProgress = isActiveBulkReply;
 
   return (
@@ -198,7 +190,7 @@ export function ReplyComposer({
             <span className="text-xs text-foreground-muted">
               Selected comments
             </span>
-            {!isActiveBulkReply && !isBulkReplyFinished && (
+            {!isActiveBulkReply && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -234,16 +226,14 @@ export function ReplyComposer({
                 Reply Progress
               </span>
             </div>
-            {bulkReplyProgress.total > 1 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onStopBulkReply}
-                className="text-xs text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300"
-              >
-                Stop
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onStopBulkReply}
+              className="text-xs text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300"
+            >
+              Stop
+            </Button>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-foreground-muted">
@@ -317,14 +307,6 @@ export function ReplyComposer({
               </span>
             )}
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            fullWidth
-            onClick={handleDismiss}
-          >
-            Done
-          </Button>
         </div>
       )}
 

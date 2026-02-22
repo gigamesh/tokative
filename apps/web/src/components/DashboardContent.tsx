@@ -128,7 +128,6 @@ export function DashboardContent() {
     startBulkReply,
     stopBulkReply,
     updateBulkReplyQueue,
-    clearBulkReplyProgress,
   } = useMessaging({
     onReplyComplete: handleReplyComplete,
     onPostedReply: addOptimisticComment,
@@ -1031,7 +1030,6 @@ export function DashboardContent() {
               bulkReplyProgress={bulkReplyProgress}
               replyStatusMessage={replyStatusMessage}
               onStopBulkReply={stopBulkReply}
-              onDismissProgress={clearBulkReplyProgress}
               disabled={isReplying || replyLimitReached || isTranslatingReplies}
               replyBudget={replyBudget}
               replyLimitReached={replyLimitReached}
