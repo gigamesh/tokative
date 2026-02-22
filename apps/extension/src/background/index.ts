@@ -1047,7 +1047,8 @@ async function handleBulkReply(
         result.errorCode === "MENTION_USER_NOT_FOUND" ||
         result.errorCode === "MENTION_BUTTON_NOT_FOUND" ||
         result.errorCode === "MENTION_DROPDOWN_NOT_FOUND" ||
-        result.errorCode === "MENTION_NOT_INSERTED"
+        result.errorCode === "MENTION_NOT_INSERTED" ||
+        result.errorCode === "MENTION_NOT_LINKED"
       ) {
         bulkReplyProgress.mentionFailed++;
         if (bulkReplyProgress.commentStatuses) {

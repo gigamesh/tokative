@@ -54,6 +54,7 @@ export type CommentReplyErrorCode =
   | "MENTION_BUTTON_NOT_FOUND"
   | "MENTION_DROPDOWN_NOT_FOUND"
   | "MENTION_NOT_INSERTED"
+  | "MENTION_NOT_LINKED"
   | "MENTION_USER_NOT_FOUND";
 
 export class CommentReplyError extends TokativeError {

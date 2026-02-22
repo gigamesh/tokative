@@ -40,7 +40,7 @@ const STATUS_CONFIG: Record<
   mentionFailed: {
     icon: <AlertTriangle className="w-4 h-4 text-orange-400" />,
     tooltip:
-      "Skipped — could not @mention this user, likely because their account is private, which prevents them from receiving reply notifications.",
+      "Skipped — could not @mention this user, likely because they have privacy controls enabled.",
   },
   failed: {
     icon: <CircleAlert className="w-4 h-4 text-red-400" />,

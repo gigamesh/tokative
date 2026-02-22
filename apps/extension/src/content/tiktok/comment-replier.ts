@@ -123,6 +123,17 @@ export async function replyToComment(
     sendProgress(user.id, "replying", "Mentioning @" + user.handle + "...");
     await mentionUser(editableInput, user.handle, user.id);
     mentioned = true;
+
+    await tick();
+    const mentionTag = querySelector(SELECTORS.mentionTag, editableInput);
+    if (!mentionTag) {
+      throw new CommentReplyError(
+        "MENTION_NOT_LINKED",
+        `Mention for @${user.handle} appeared but was removed — user likely has mention restrictions`,
+        { commentId: user.id }
+      );
+    }
+
     moveCursorToEnd(editableInput);
   }
 
