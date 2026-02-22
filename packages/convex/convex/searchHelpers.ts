@@ -1,11 +1,9 @@
 import { Doc } from "./_generated/dataModel";
 
 /**
- * Given all comments and a search string, returns matching comments with full
- * thread context (parents of matched replies AND replies of matched parents)
- * plus the set of profile IDs that had matching comments.
- *
- * Uses the denormalized `handle` field on comment docs instead of a profile map.
+ * Given all comments and a search string, returns matching comments plus the
+ * parent of any matched reply (for context). Uses the denormalized `handle`
+ * field on comment docs instead of a profile map.
  */
 export function buildSearchResults(
   allComments: Doc<"comments">[],
@@ -34,24 +32,6 @@ export function buildSearchResults(
         matching.push(parent);
         matchingIds.add(parent.commentId);
       }
-    }
-  }
-
-  const matchedParentIds = new Set(
-    [...matchingIds].filter((id) => {
-      const c = commentIdMap.get(id);
-      return c && !c.isReply;
-    }),
-  );
-  for (const c of allComments) {
-    if (
-      c.isReply &&
-      c.parentCommentId &&
-      matchedParentIds.has(c.parentCommentId) &&
-      !matchingIds.has(c.commentId)
-    ) {
-      matching.push(c);
-      matchingIds.add(c.commentId);
     }
   }
 
