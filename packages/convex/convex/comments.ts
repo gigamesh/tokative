@@ -483,7 +483,10 @@ export const update = mutation({
       });
     }
 
-    await ctx.db.patch(comment._id, args.updates);
+    const updates = args.updates.repliedTo === true
+      ? { ...args.updates, replyError: undefined }
+      : args.updates;
+    await ctx.db.patch(comment._id, updates);
 
     return { replyLimitReached };
   },
