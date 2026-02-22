@@ -196,16 +196,12 @@ export function CommentTable({
 
     const repliesMap = new Map<string, ScrapedComment[]>();
 
-    const orphanedReplies: ScrapedComment[] = [];
-
     filteredComments
       .filter((c) => c.isReply)
       .forEach((reply) => {
         if (reply.parentCommentId && parentIdsInList.has(reply.parentCommentId)) {
           if (!repliesMap.has(reply.parentCommentId)) repliesMap.set(reply.parentCommentId, []);
           repliesMap.get(reply.parentCommentId)!.push(reply);
-        } else {
-          orphanedReplies.push(reply);
         }
       });
 
@@ -255,10 +251,6 @@ export function CommentTable({
           }
         }
       }
-    }
-
-    for (const orphan of orphanedReplies) {
-      result.push({ ...orphan, depth: 0 });
     }
 
     return result;
