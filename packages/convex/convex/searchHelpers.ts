@@ -24,6 +24,14 @@ export function buildSearchResults(
   }
 
   const commentIdMap = new Map(allComments.map((c) => [c.commentId, c]));
+  const repliesByParent = new Map<string, Doc<"comments">[]>();
+  for (const c of allComments) {
+    if (c.isReply && c.parentCommentId) {
+      const list = repliesByParent.get(c.parentCommentId) ?? [];
+      list.push(c);
+      repliesByParent.set(c.parentCommentId, list);
+    }
+  }
 
   for (const c of [...matching]) {
     if (c.isReply && c.parentCommentId && !matchingIds.has(c.parentCommentId)) {
@@ -31,6 +39,15 @@ export function buildSearchResults(
       if (parent) {
         matching.push(parent);
         matchingIds.add(parent.commentId);
+      }
+    }
+
+    if (!c.isReply) {
+      for (const reply of repliesByParent.get(c.commentId) ?? []) {
+        if (!matchingIds.has(reply.commentId)) {
+          matching.push(reply);
+          matchingIds.add(reply.commentId);
+        }
       }
     }
   }
