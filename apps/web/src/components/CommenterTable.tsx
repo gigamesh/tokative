@@ -104,10 +104,17 @@ export function CommenterTable({
   targetLanguage,
 }: CommenterTableProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const setScrollContainerRef = useCallback((el: HTMLDivElement | null) => {
-    (scrollContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-    if (scrollerRef) (scrollerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-  }, [scrollerRef]);
+  const setScrollContainerRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      (
+        scrollContainerRef as React.MutableRefObject<HTMLDivElement | null>
+      ).current = el;
+      if (scrollerRef)
+        (scrollerRef as React.MutableRefObject<HTMLDivElement | null>).current =
+          el;
+    },
+    [scrollerRef],
+  );
   const [expandedCommenterIds, setExpandedCommenterIds] = useState<Set<string>>(
     new Set(),
   );
@@ -167,7 +174,6 @@ export function CommenterTable({
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-wrap items-center">
             <SearchInput value={search} onChange={onSearchChange} />
-
           </div>
         </div>
 
@@ -198,10 +204,7 @@ export function CommenterTable({
         </div>
       </div>
 
-      <div
-        ref={setScrollContainerRef}
-        className="overflow-y-auto max-h-panel"
-      >
+      <div ref={setScrollContainerRef} className="overflow-x-hidden scrollbar-visible max-h-panel pr-2">
         {isLoading ? (
           <CommenterTableSkeleton count={5} />
         ) : commenters.length === 0 ? (

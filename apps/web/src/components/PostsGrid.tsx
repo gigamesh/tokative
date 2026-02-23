@@ -221,7 +221,7 @@ export function PostsGrid({
     <TabContentContainer stickyHeader={stickyHeader}>
       <div
         ref={scrollContainerRef}
-        className="overflow-y-auto max-h-panel"
+        className="overflow-x-hidden scrollbar-visible max-h-panel pr-2"
       >
         {loading ? (
           <PostsGridSkeleton />

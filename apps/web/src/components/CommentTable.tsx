@@ -148,10 +148,17 @@ export function CommentTable({
     new Set(),
   );
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const setScrollContainerRef = useCallback((el: HTMLDivElement | null) => {
-    (scrollContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-    if (scrollerRef) (scrollerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-  }, [scrollerRef]);
+  const setScrollContainerRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      (
+        scrollContainerRef as React.MutableRefObject<HTMLDivElement | null>
+      ).current = el;
+      if (scrollerRef)
+        (scrollerRef as React.MutableRefObject<HTMLDivElement | null>).current =
+          el;
+    },
+    [scrollerRef],
+  );
   const lastSelectedIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -445,10 +452,7 @@ export function CommentTable({
         </div>
       </div>
 
-      <div
-        ref={setScrollContainerRef}
-        className="overflow-y-auto max-h-panel"
-      >
+      <div ref={setScrollContainerRef} className="overflow-x-hidden scrollbar-visible max-h-panel pr-2">
         {isInitialLoading ? (
           <CommentTableSkeleton count={5} />
         ) : displayComments.length === 0 ? (
