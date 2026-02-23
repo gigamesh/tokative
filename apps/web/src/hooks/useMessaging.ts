@@ -150,7 +150,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
     return () => cleanups.forEach((cleanup) => cleanup());
   }, [onReplyComplete, onPostedReply]);
 
-  const startBulkReply = useCallback((comments: ScrapedComment[], messages: string[], deleteMissingComments: boolean, selectedIds: Set<string>) => {
+  const startBulkReply = useCallback((comments: ScrapedComment[], messages: string[], selectedIds: Set<string>) => {
     if (!bridge) return;
 
     setState((prev) => {
@@ -189,7 +189,7 @@ export function useMessaging(options: UseMessagingOptions = {}) {
       ...(c.messageToSend && { messageToSend: c.messageToSend }),
     }));
 
-    bridge.send(MessageType.BULK_REPLY_START, { comments: trimmedComments, messages, deleteMissingComments });
+    bridge.send(MessageType.BULK_REPLY_START, { comments: trimmedComments, messages });
   }, []);
 
   const updateBulkReplyQueue = useCallback((comments: ScrapedComment[]) => {

@@ -7,7 +7,6 @@ import { CommentTable, SortOption } from "@/components/CommentTable";
 import { CommenterTable } from "@/components/CommenterTable";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { LimitReachedModal } from "@/components/LimitReachedModal";
-import { MissingCommentChoiceModal } from "@/components/MissingCommentChoiceModal";
 import { PostsGrid } from "@/components/PostsGrid";
 import { ReplyComposer } from "@/components/ReplyComposer";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
@@ -74,7 +73,7 @@ export function DashboardContent() {
     comments: allComments,
     postLimit,
     hideOwnReplies,
-    deleteMissingComments,
+    hideMissingComments,
     accountHandle,
     loading,
     error,
@@ -82,7 +81,7 @@ export function DashboardContent() {
     updateComment,
     savePostLimit,
     saveHideOwnReplies,
-    saveDeleteMissingComments,
+    saveHideMissingComments,
     saveAccountHandle,
     addOptimisticComment,
     loadMore,
@@ -111,11 +110,16 @@ export function DashboardContent() {
         return true;
       });
     }
+    if (hideMissingComments) {
+      filtered = filtered.filter(
+        (c) => !c.replyError?.toLowerCase().includes("not found"),
+      );
+    }
     if (optimisticDeletedIds.size > 0) {
       filtered = filtered.filter((c) => !optimisticDeletedIds.has(c.id));
     }
     return filtered;
-  }, [allComments, hideOwnReplies, accountHandle, optimisticDeletedIds]);
+  }, [allComments, hideOwnReplies, accountHandle, hideMissingComments, optimisticDeletedIds]);
 
   const handleReplyComplete = useCallback(
     (commentId: string) => {
@@ -210,11 +214,6 @@ export function DashboardContent() {
   const router = useRouter();
 
   const [toast, setToast] = useState<{ isVisible: boolean; message: string; variant?: "success" | "error"; duration?: number }>({ isVisible: false, message: "" });
-  const [missingCommentChoiceModal, setMissingCommentChoiceModal] = useState<{
-    isOpen: boolean;
-    pendingMessages: string[];
-  }>({ isOpen: false, pendingMessages: [] });
-
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [translateRepliesEnabled, setTranslateRepliesEnabled] = useState(false);
 
@@ -537,7 +536,7 @@ export function DashboardContent() {
   }, [clearBulkReplyProgress]);
 
   const executeBulkReply = useCallback(
-    async (messages: string[], deleteMissing: boolean) => {
+    async (messages: string[]) => {
       const prevStatuses = bulkReplyProgress?.commentStatuses ?? {};
       const terminalSet = new Set<string>(TERMINAL_REPLY_STATUSES);
       const unprocessed = selectedCommentsForDisplay.filter(
@@ -604,7 +603,7 @@ export function DashboardContent() {
         }
       }
 
-      startBulkReply(capped, messages, deleteMissing, selectedCommentIds);
+      startBulkReply(capped, messages, selectedCommentIds);
     },
     [
       selectedCommentsForDisplay,
@@ -627,43 +626,15 @@ export function DashboardContent() {
         showToast("Monthly reply limit reached. Upgrade for more replies.");
         return;
       }
-      if (deleteMissingComments === null) {
-        setMissingCommentChoiceModal({
-          isOpen: true,
-          pendingMessages: messages,
-        });
-        return;
-      }
-      executeBulkReply(messages, deleteMissingComments);
+      executeBulkReply(messages);
     },
     [
       selectedCommentIds.size,
       replyLimitReached,
-      deleteMissingComments,
       executeBulkReply,
       showToast,
     ],
   );
-
-  const handleMissingCommentChoiceSkip = useCallback(() => {
-    saveDeleteMissingComments(false);
-    executeBulkReply(missingCommentChoiceModal.pendingMessages, false);
-    setMissingCommentChoiceModal({ isOpen: false, pendingMessages: [] });
-  }, [
-    missingCommentChoiceModal.pendingMessages,
-    executeBulkReply,
-    saveDeleteMissingComments,
-  ]);
-
-  const handleMissingCommentChoiceDelete = useCallback(() => {
-    saveDeleteMissingComments(true);
-    executeBulkReply(missingCommentChoiceModal.pendingMessages, true);
-    setMissingCommentChoiceModal({ isOpen: false, pendingMessages: [] });
-  }, [
-    missingCommentChoiceModal.pendingMessages,
-    executeBulkReply,
-    saveDeleteMissingComments,
-  ]);
 
   const handleViewPostComments = useCallback(
     (videoId: string) => {
@@ -1083,8 +1054,8 @@ export function DashboardContent() {
         onRemoveFromIgnoreList={removeFromIgnoreList}
         hideOwnReplies={hideOwnReplies}
         onHideOwnRepliesChange={saveHideOwnReplies}
-        deleteMissingComments={deleteMissingComments}
-        onDeleteMissingCommentsChange={saveDeleteMissingComments}
+        hideMissingComments={hideMissingComments}
+        onHideMissingCommentsChange={saveHideMissingComments}
         accountHandle={accountHandle}
         onAccountHandleChange={saveAccountHandle}
       />
@@ -1143,12 +1114,6 @@ export function DashboardContent() {
           replyStats={replyLimitModal}
         />
       )}
-
-      <MissingCommentChoiceModal
-        isOpen={missingCommentChoiceModal.isOpen}
-        onSkip={handleMissingCommentChoiceSkip}
-        onDelete={handleMissingCommentChoiceDelete}
-      />
 
       <Toast
         message={toast.message}

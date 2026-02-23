@@ -11,7 +11,7 @@ import { useDebounce } from "./useDebounce";
 interface CommentDataState {
   postLimit: number;
   hideOwnReplies: boolean;
-  deleteMissingComments: boolean | null;
+  hideMissingComments: boolean | null;
   accountHandle: string | null;
   loading: boolean;
   error: string | null;
@@ -34,7 +34,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
   const [state, setState] = useState<CommentDataState>({
     postLimit: 50,
     hideOwnReplies: false,
-    deleteMissingComments: null,
+    hideMissingComments: null,
     accountHandle: null,
     loading: true,
     error: null,
@@ -76,7 +76,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
         ...prev,
         postLimit: settings.postLimit ?? 50,
         hideOwnReplies: settings.hideOwnReplies ?? false,
-        deleteMissingComments: settings.deleteMissingComments ?? null,
+        hideMissingComments: settings.hideMissingComments ?? null,
         accountHandle: settings.accountHandle ?? null,
         loading: false,
       }));
@@ -156,14 +156,14 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     [userId, updateSettingsMutation]
   );
 
-  const saveDeleteMissingComments = useCallback(
+  const saveHideMissingComments = useCallback(
     async (value: boolean) => {
       if (!userId) return;
 
-      setState((prev) => ({ ...prev, deleteMissingComments: value }));
+      setState((prev) => ({ ...prev, hideMissingComments: value }));
       await updateSettingsMutation({
         clerkId: userId,
-        settings: { deleteMissingComments: value },
+        settings: { hideMissingComments: value },
       });
     },
     [userId, updateSettingsMutation]
@@ -299,7 +299,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     comments,
     postLimit: state.postLimit,
     hideOwnReplies: state.hideOwnReplies,
-    deleteMissingComments: state.deleteMissingComments,
+    hideMissingComments: state.hideMissingComments,
     accountHandle: state.accountHandle,
     loading: isInitialLoading,
     error: state.error,
@@ -308,7 +308,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     updateComment,
     savePostLimit,
     saveHideOwnReplies,
-    saveDeleteMissingComments,
+    saveHideMissingComments,
     saveAccountHandle,
     addOptimisticComment,
     loadMore: handleLoadMore,

@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS = {
   accountHandle: null as string | null,
   hasCompletedSetup: false,
   hideOwnReplies: false,
-  deleteMissingComments: null as boolean | null,
+  hideMissingComments: null as boolean | null,
 };
 
 export const get = query({
@@ -37,9 +37,12 @@ export const get = query({
       scrollDelay: settings.scrollDelay,
       postLimit: settings.postLimit ?? DEFAULT_SETTINGS.postLimit,
       accountHandle: settings.accountHandle ?? DEFAULT_SETTINGS.accountHandle,
-      hasCompletedSetup: settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
-      hideOwnReplies: settings.hideOwnReplies ?? DEFAULT_SETTINGS.hideOwnReplies,
-      deleteMissingComments: settings.deleteMissingComments ?? DEFAULT_SETTINGS.deleteMissingComments,
+      hasCompletedSetup:
+        settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
+      hideOwnReplies:
+        settings.hideOwnReplies ?? DEFAULT_SETTINGS.hideOwnReplies,
+      hideMissingComments:
+        settings.hideMissingComments ?? DEFAULT_SETTINGS.hideMissingComments,
     };
   },
 });
@@ -54,7 +57,7 @@ export const update = mutation({
       accountHandle: v.optional(v.string()),
       hasCompletedSetup: v.optional(v.boolean()),
       hideOwnReplies: v.optional(v.boolean()),
-      deleteMissingComments: v.optional(v.boolean()),
+      hideMissingComments: v.optional(v.boolean()),
     }),
   },
   handler: async (ctx, args) => {
@@ -77,7 +80,8 @@ export const update = mutation({
     } else {
       await ctx.db.insert("settings", {
         userId: user._id,
-        messageDelay: args.settings.messageDelay ?? DEFAULT_SETTINGS.messageDelay,
+        messageDelay:
+          args.settings.messageDelay ?? DEFAULT_SETTINGS.messageDelay,
         scrollDelay: args.settings.scrollDelay ?? DEFAULT_SETTINGS.scrollDelay,
         postLimit: args.settings.postLimit ?? DEFAULT_SETTINGS.postLimit,
       });
@@ -116,9 +120,12 @@ export const getForCurrentUser = query({
       scrollDelay: settings.scrollDelay,
       postLimit: settings.postLimit ?? DEFAULT_SETTINGS.postLimit,
       accountHandle: settings.accountHandle ?? DEFAULT_SETTINGS.accountHandle,
-      hasCompletedSetup: settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
-      hideOwnReplies: settings.hideOwnReplies ?? DEFAULT_SETTINGS.hideOwnReplies,
-      deleteMissingComments: settings.deleteMissingComments ?? DEFAULT_SETTINGS.deleteMissingComments,
+      hasCompletedSetup:
+        settings.hasCompletedSetup ?? DEFAULT_SETTINGS.hasCompletedSetup,
+      hideOwnReplies:
+        settings.hideOwnReplies ?? DEFAULT_SETTINGS.hideOwnReplies,
+      hideMissingComments:
+        settings.hideMissingComments ?? DEFAULT_SETTINGS.hideMissingComments,
     };
   },
 });

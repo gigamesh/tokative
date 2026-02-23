@@ -12,8 +12,8 @@ interface SettingsModalProps {
   onRemoveFromIgnoreList: (text: string) => void;
   hideOwnReplies: boolean;
   onHideOwnRepliesChange: (value: boolean) => void;
-  deleteMissingComments: boolean | null;
-  onDeleteMissingCommentsChange: (value: boolean) => void;
+  hideMissingComments: boolean | null;
+  onHideMissingCommentsChange: (value: boolean) => void;
   accountHandle: string | null;
   onAccountHandleChange: (handle: string) => void;
 }
@@ -26,8 +26,8 @@ export function SettingsModal({
   onRemoveFromIgnoreList,
   hideOwnReplies,
   onHideOwnRepliesChange,
-  deleteMissingComments,
-  onDeleteMissingCommentsChange,
+  hideMissingComments,
+  onHideMissingCommentsChange,
   accountHandle,
   onAccountHandleChange,
 }: SettingsModalProps) {
@@ -104,17 +104,16 @@ export function SettingsModal({
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={deleteMissingComments === true}
-              onChange={(e) => onDeleteMissingCommentsChange(e.target.checked)}
+              checked={hideMissingComments === true}
+              onChange={(e) => onHideMissingCommentsChange(e.target.checked)}
               className="w-5 h-5 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
             />
             <div>
               <span className="text-sm text-foreground">
-                Auto-delete missing comments
+                Hide missing comments
               </span>
               <p className="text-xs text-foreground-muted">
-                Automatically remove comments from your list during bulk reply
-                if they no longer exist on TikTok
+                Hide comments that were not found on TikTok during bulk reply
               </p>
             </div>
           </label>

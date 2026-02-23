@@ -520,16 +520,13 @@ async function handlePortMessage(
       const {
         comments: incomingComments,
         messages: replyMessages,
-        deleteMissingComments,
       } = message.payload as {
         comments: ScrapedComment[];
         messages: string[];
-        deleteMissingComments: boolean;
       };
       await handleBulkReply(
         incomingComments,
         replyMessages,
-        deleteMissingComments,
         port,
       );
       break;
@@ -942,7 +939,6 @@ function extractVideoIdFromUrl(url: string): string | null {
 async function handleBulkReply(
   comments: ScrapedComment[],
   replyMessages: string[],
-  deleteMissingComments: boolean,
   port: chrome.runtime.Port,
 ): Promise<void> {
   bulkReplyPending = comments.filter((c) => !c.repliedTo && c.videoUrl);
@@ -1056,13 +1052,9 @@ async function handleBulkReply(
         if (bulkReplyProgress.commentStatuses) {
           bulkReplyProgress.commentStatuses[comment.id] = "commentNotFound";
         }
-        if (deleteMissingComments) {
-          await removeScrapedComment(comment.id);
-        } else {
-          await updateScrapedComment(comment.id, {
-            replyError: result.error || "Comment not found",
-          });
-        }
+        await updateScrapedComment(comment.id, {
+          replyError: result.error || "Comment not found",
+        });
       } else if (
         result.errorCode === "MENTION_USER_NOT_FOUND" ||
         result.errorCode === "MENTION_BUTTON_NOT_FOUND" ||
