@@ -1,7 +1,7 @@
 import { initSentry } from "../utils/sentry";
 initSentry("background");
 
-import { colors, ScrapeStats, CommentReplyStatus } from "@tokative/shared";
+import { colors, ScrapeStats, CommentReplyStatus, ReplyErrorCode } from "@tokative/shared";
 import { getLoadedConfig, loadConfig, refreshConfig } from "../config/loader";
 import {
   BulkReplyProgress,
@@ -11,7 +11,7 @@ import {
   ScrapedVideo,
 } from "../types";
 import { setAuthToken } from "../utils/convex-api";
-import { TabError } from "../utils/errors";
+import { CommentReplyErrorCode, TabError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import {
   addToIgnoreList,
@@ -794,7 +794,7 @@ interface ReplyToCommentResult {
   success: boolean;
   detectionFailed?: boolean;
   error?: string;
-  errorCode?: string;
+  errorCode?: CommentReplyErrorCode;
   tabId?: number;
 }
 
@@ -893,7 +893,7 @@ async function handleReplyToComment(
             });
           }
         } else if (msg.type === MessageType.REPLY_COMMENT_ERROR) {
-          const payload = msg.payload as { commentId?: string; error?: string; errorCode?: string };
+          const payload = msg.payload as { commentId?: string; error?: string; errorCode?: CommentReplyErrorCode };
           if (payload.commentId === comment.id) {
             cleanup();
             resolve({
@@ -1053,7 +1053,7 @@ async function handleBulkReply(
           bulkReplyProgress.commentStatuses[comment.id] = "commentNotFound";
         }
         await updateScrapedComment(comment.id, {
-          replyError: result.error || "Comment not found",
+          replyErrorCode: "comment_not_found",
         });
       } else if (
         result.errorCode === "MENTION_USER_NOT_FOUND" ||
@@ -1067,7 +1067,7 @@ async function handleBulkReply(
           bulkReplyProgress.commentStatuses[comment.id] = "mentionFailed";
         }
         await updateScrapedComment(comment.id, {
-          replyError: result.error || "Could not @mention user",
+          replyErrorCode: "mention_failed",
         });
       } else {
         bulkReplyProgress.failed++;
@@ -1075,7 +1075,7 @@ async function handleBulkReply(
           bulkReplyProgress.commentStatuses[comment.id] = "failed";
         }
         await updateScrapedComment(comment.id, {
-          replyError: result.error || "Failed to post reply",
+          replyErrorCode: "reply_failed",
         });
       }
 

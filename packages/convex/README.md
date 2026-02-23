@@ -78,7 +78,7 @@ comments: {
   repliedTo?: boolean,
   repliedAt?: number,
   replyContent?: string,
-  replyError?: string,
+  replyErrorCode?: "comment_not_found" | "mention_failed" | "reply_failed",
 
   // Thread structure
   parentCommentId?: string,

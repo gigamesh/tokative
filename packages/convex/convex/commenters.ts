@@ -140,7 +140,7 @@ export const listPaginated = query({
             repliedAt: c.repliedAt
               ? new Date(c.repliedAt).toISOString()
               : undefined,
-            replyError: c.replyError,
+            replyErrorCode: c.replyErrorCode,
             replyContent: c.replyContent,
             commentTimestamp: c.commentTimestamp,
             commentId: c.commentId,
@@ -211,7 +211,7 @@ export const list = query({
           videoUrl?: string;
           repliedTo?: boolean;
           repliedAt?: string;
-          replyError?: string;
+          replyErrorCode?: string;
           replyContent?: string;
           commentTimestamp?: string;
           commentId?: string;
@@ -240,7 +240,7 @@ export const list = query({
         videoUrl: c.videoUrl,
         repliedTo: c.repliedTo,
         repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
-        replyError: c.replyError,
+        replyErrorCode: c.replyErrorCode,
         replyContent: c.replyContent,
         commentTimestamp: c.commentTimestamp,
         commentId: c.commentId,

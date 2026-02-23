@@ -111,6 +111,8 @@ export const MessageType = {
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
 
+export type ReplyErrorCode = "comment_not_found" | "mention_failed" | "reply_failed";
+
 export interface ScrapedComment {
   id: string;
   tiktokUserId: string;
@@ -122,7 +124,7 @@ export interface ScrapedComment {
   videoUrl?: string;
   repliedTo?: boolean;
   repliedAt?: string;
-  replyError?: string;
+  replyErrorCode?: ReplyErrorCode;
   replyContent?: string;
   commentTimestamp?: string;
   commentId?: string;

@@ -39,12 +39,12 @@ export async function updateScrapedComment(
   const convexUpdates: {
     repliedTo?: boolean;
     repliedAt?: number;
-    replyError?: string;
+    replyErrorCode?: ScrapedComment["replyErrorCode"];
     replyContent?: string;
   } = {};
   if (updates.repliedTo !== undefined) convexUpdates.repliedTo = updates.repliedTo;
   if (updates.repliedAt !== undefined) convexUpdates.repliedAt = new Date(updates.repliedAt).getTime();
-  if (updates.replyError !== undefined) convexUpdates.replyError = updates.replyError;
+  if (updates.replyErrorCode !== undefined) convexUpdates.replyErrorCode = updates.replyErrorCode;
   if (updates.replyContent !== undefined) convexUpdates.replyContent = updates.replyContent;
 
   if (Object.keys(convexUpdates).length > 0) {

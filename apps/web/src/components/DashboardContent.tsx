@@ -112,7 +112,7 @@ export function DashboardContent() {
     }
     if (hideMissingComments) {
       filtered = filtered.filter(
-        (c) => !c.replyError?.toLowerCase().includes("not found"),
+        (c) => c.replyErrorCode !== "comment_not_found",
       );
     }
     if (optimisticDeletedIds.size > 0) {

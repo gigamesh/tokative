@@ -23,7 +23,7 @@ describe("settings", () => {
         accountHandle: null,
         hasCompletedSetup: false,
         hideOwnReplies: false,
-        deleteMissingComments: null,
+        hideMissingComments: null,
       });
     });
 

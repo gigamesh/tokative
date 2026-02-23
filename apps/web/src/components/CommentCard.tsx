@@ -68,7 +68,7 @@ export function CommentCard({
     }
   }, [comment.comment]);
 
-  const replyStatusText = comment.replyError ? "Reply failed" : "";
+  const replyStatusText = comment.replyErrorCode ? "Reply failed" : "";
   const showingTranslation = !!comment.translatedText && !showingOriginal;
   const displayText = showingTranslation ? comment.translatedText! : comment.comment;
 

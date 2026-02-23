@@ -180,8 +180,8 @@ export function CommentTable({
     const matchesFilterStatus = (comment: ScrapedComment) =>
       filter === "all" ||
       (filter === "replied" && comment.repliedTo) ||
-      (filter === "not_replied" && !comment.repliedTo && !comment.replyError) ||
-      (filter === "failed" && comment.replyError);
+      (filter === "not_replied" && !comment.repliedTo && !comment.replyErrorCode) ||
+      (filter === "failed" && comment.replyErrorCode);
 
     const filteredTopLevel = topLevel.filter((c) => matchesFilterStatus(c));
 

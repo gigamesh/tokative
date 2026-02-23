@@ -63,7 +63,7 @@ export default defineSchema({
     // Canonical data lives on the reply's own row (parentCommentId + source: "app").
     repliedTo: v.optional(v.boolean()),
     repliedAt: v.optional(v.number()),
-    replyError: v.optional(v.string()),
+    replyErrorCode: v.optional(v.union(v.literal("comment_not_found"), v.literal("mention_failed"), v.literal("reply_failed"))),
     replyContent: v.optional(v.string()),
     commentTimestamp: v.optional(v.string()),
     videoId: v.optional(v.string()),

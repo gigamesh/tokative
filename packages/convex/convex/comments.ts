@@ -43,12 +43,13 @@ export const list = query({
       .collect();
     const ignoreTexts = ignoreEntries.map((e) => e.text.toLowerCase());
 
-    const filtered = ignoreTexts.length > 0
-      ? comments.filter(
-          (c) =>
-            !ignoreTexts.some((t) => c.comment.toLowerCase().includes(t)),
-        )
-      : comments;
+    const filtered =
+      ignoreTexts.length > 0
+        ? comments.filter(
+            (c) =>
+              !ignoreTexts.some((t) => c.comment.toLowerCase().includes(t)),
+          )
+        : comments;
 
     return filtered.map(formatComment);
   },
@@ -65,7 +66,7 @@ function formatComment(c: Doc<"comments">) {
     videoUrl: c.videoUrl,
     repliedTo: c.repliedTo,
     repliedAt: c.repliedAt ? new Date(c.repliedAt).toISOString() : undefined,
-    replyError: c.replyError,
+    replyErrorCode: c.replyErrorCode,
     replyContent: c.replyContent,
     commentTimestamp: c.commentTimestamp,
     commentId: c.commentId,
@@ -132,12 +133,13 @@ export const listPaginated = query({
         searchLower,
       );
 
-      const filtered = ignoreTexts.length > 0
-        ? matching.filter(
-            (c) =>
-              !ignoreTexts.some((t) => c.comment.toLowerCase().includes(t)),
-          )
-        : matching;
+      const filtered =
+        ignoreTexts.length > 0
+          ? matching.filter(
+              (c) =>
+                !ignoreTexts.some((t) => c.comment.toLowerCase().includes(t)),
+            )
+          : matching;
 
       filtered.sort((a, b) => {
         const aTime = a.commentTimestamp
@@ -202,8 +204,7 @@ export const listPaginated = query({
 
     if (ignoreTexts.length > 0) {
       allComments = allComments.filter(
-        (c) =>
-          !ignoreTexts.some((t) => c.comment.toLowerCase().includes(t)),
+        (c) => !ignoreTexts.some((t) => c.comment.toLowerCase().includes(t)),
       );
     }
 
@@ -432,7 +433,13 @@ export const update = mutation({
     updates: v.object({
       repliedTo: v.optional(v.boolean()),
       repliedAt: v.optional(v.number()),
-      replyError: v.optional(v.string()),
+      replyErrorCode: v.optional(
+        v.union(
+          v.literal("comment_not_found"),
+          v.literal("mention_failed"),
+          v.literal("reply_failed"),
+        ),
+      ),
       replyContent: v.optional(v.string()),
       replyOriginalContent: v.optional(v.string()),
     }),
@@ -483,9 +490,10 @@ export const update = mutation({
       });
     }
 
-    const updates = args.updates.repliedTo === true
-      ? { ...args.updates, replyError: undefined }
-      : args.updates;
+    const updates =
+      args.updates.repliedTo === true
+        ? { ...args.updates, replyErrorCode: undefined }
+        : args.updates;
     await ctx.db.patch(comment._id, updates);
 
     return { replyLimitReached };
@@ -714,3 +722,4 @@ export const migrateReplySentToRepliedTo = mutation({
     };
   },
 });
+

@@ -187,7 +187,7 @@ export async function updateComment(
   updates: {
     repliedTo?: boolean;
     repliedAt?: number;
-    replyError?: string;
+    replyErrorCode?: string;
     replyContent?: string;
   },
 ): Promise<void> {

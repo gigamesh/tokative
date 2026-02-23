@@ -221,7 +221,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
       const convexUpdates: {
         repliedTo?: boolean;
         repliedAt?: number;
-        replyError?: string;
+        replyErrorCode?: ScrapedComment["replyErrorCode"];
         replyContent?: string;
       } = {};
 
@@ -229,8 +229,8 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
         convexUpdates.repliedTo = updates.repliedTo;
       if (updates.repliedAt !== undefined)
         convexUpdates.repliedAt = new Date(updates.repliedAt).getTime();
-      if (updates.replyError !== undefined)
-        convexUpdates.replyError = updates.replyError;
+      if (updates.replyErrorCode !== undefined)
+        convexUpdates.replyErrorCode = updates.replyErrorCode;
       if (updates.replyContent !== undefined)
         convexUpdates.replyContent = updates.replyContent;
 
