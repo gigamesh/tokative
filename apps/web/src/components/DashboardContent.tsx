@@ -8,6 +8,7 @@ import { CommenterTable } from "@/components/CommenterTable";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { LimitReachedModal } from "@/components/LimitReachedModal";
 import { PostsGrid } from "@/components/PostsGrid";
+import { QueuePanel } from "@/components/QueuePanel";
 import { ReplyComposer } from "@/components/ReplyComposer";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
@@ -28,7 +29,7 @@ import { useVideoData } from "@/hooks/useVideoData";
 import { useAuth } from "@/providers/ConvexProvider";
 import { ScrapedComment, TERMINAL_REPLY_STATUSES } from "@/utils/constants";
 import { api, BILLING_ENABLED, PLAN_LIMITS } from "@tokative/convex";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { AlertTriangle, Settings, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -170,6 +171,33 @@ export function DashboardContent() {
     translateReplies,
     isTranslatingReplies,
   } = useTranslation(translationEnabled);
+
+  const queuedCommentsFromDb = useQuery(
+    api.comments.getQueue,
+    userId ? { clerkId: userId } : "skip",
+  );
+  const enqueueMutation = useMutation(api.comments.enqueue);
+  const dequeueMutation = useMutation(api.comments.dequeue);
+  const clearQueueMutation = useMutation(api.comments.clearQueue);
+
+  const [optimisticQueueItems, setOptimisticQueueItems] = useState<ScrapedComment[]>([]);
+
+  useEffect(() => {
+    if (!queuedCommentsFromDb || optimisticQueueItems.length === 0) return;
+    const dbIds = new Set(queuedCommentsFromDb.map((c) => c.id));
+    const remaining = optimisticQueueItems.filter((c) => !dbIds.has(c.id));
+    if (remaining.length < optimisticQueueItems.length) {
+      setOptimisticQueueItems(remaining);
+    }
+  }, [queuedCommentsFromDb, optimisticQueueItems]);
+
+  const queuedComments = useMemo(() => {
+    const dbComments = (queuedCommentsFromDb ?? []) as unknown as ScrapedComment[];
+    if (optimisticQueueItems.length === 0) return dbComments;
+    const dbIds = new Set(dbComments.map((c) => c.id));
+    const newItems = optimisticQueueItems.filter((c) => !dbIds.has(c.id));
+    return [...dbComments, ...newItems];
+  }, [queuedCommentsFromDb, optimisticQueueItems]);
 
   const { commentCountsByVideo, totalCount: totalCommentCount } =
     useCommentCounts();
@@ -365,10 +393,23 @@ export function DashboardContent() {
     return selected;
   }, [comments, allCommentsFromCommenters, selectedCommentIds, activeTab]);
 
+  const replyingCommentId = useMemo(() => {
+    if (!bulkReplyProgress?.commentStatuses) return null;
+    for (const [id, status] of Object.entries(bulkReplyProgress.commentStatuses)) {
+      if (status === "replying") return id;
+    }
+    return null;
+  }, [bulkReplyProgress?.commentStatuses]);
+
   useEffect(() => {
-    if (!isReplying) return;
-    updateBulkReplyQueue(selectedCommentsForDisplay);
-  }, [isReplying, selectedCommentsForDisplay, updateBulkReplyQueue]);
+    if (!isReplying || queuedComments.length === 0) return;
+    updateBulkReplyQueue(
+      queuedComments.map((c) => ({
+        ...c,
+        messageToSend: c.queuedReplyText,
+      })),
+    );
+  }, [isReplying, queuedComments, updateBulkReplyQueue]);
 
   const getCommentIdsByVideoIds = useCallback(
     (videoIds: string[]) =>
@@ -535,106 +576,123 @@ export function DashboardContent() {
     clearBulkReplyProgress();
   }, [clearBulkReplyProgress]);
 
-  const executeBulkReply = useCallback(
+  const handleAddToQueue = useCallback(
     async (messages: string[]) => {
-      const prevStatuses = bulkReplyProgress?.commentStatuses ?? {};
-      const terminalSet = new Set<string>(TERMINAL_REPLY_STATUSES);
-      const unprocessed = selectedCommentsForDisplay.filter(
-        (c) => !terminalSet.has(prevStatuses[c.id]),
-      );
-      const capped = unprocessed.slice(0, replyBudget);
+      if (!userId || selectedCommentIds.size === 0) return;
 
-      if (translateRepliesEnabled && translationEnabled) {
+      const commentsToSearch =
+        activeTab === "commenters" ? allCommentsFromCommenters : comments;
+      const selected = Array.from(selectedCommentIds)
+        .map((id) => commentsToSearch.find((c) => c.id === id))
+        .filter((c): c is ScrapedComment => c != null);
+
+      let replyTexts: string[] = selected.map(
+        (_, i) => messages[i % messages.length],
+      );
+
+      if (translateRepliesEnabled && translationEnabled && targetLanguage) {
         try {
           const pairs: Array<{
             text: string;
             targetLanguage: string;
-            commentIdx: number;
-            msgIdx: number;
           }> = [];
-          for (let ci = 0; ci < capped.length; ci++) {
-            const lang = capped[ci].detectedLanguage;
+          const pairIndices: number[] = [];
+          for (let ci = 0; ci < selected.length; ci++) {
+            const lang = selected[ci].detectedLanguage;
             if (!lang || lang === "other" || lang === targetLanguage) continue;
-            for (let mi = 0; mi < messages.length; mi++) {
-              pairs.push({
-                text: messages[mi],
-                targetLanguage: lang,
-                commentIdx: ci,
-                msgIdx: mi,
-              });
-            }
+            pairs.push({ text: replyTexts[ci], targetLanguage: lang });
+            pairIndices.push(ci);
           }
 
           if (pairs.length > 0) {
             const deduped = new Map<string, number>();
-            const dedupedList: Array<{ text: string; targetLanguage: string }> =
-              [];
+            const dedupedList: Array<{ text: string; targetLanguage: string }> = [];
+            const pairToDedupIdx: number[] = [];
             for (const p of pairs) {
               const key = `${p.targetLanguage}:${p.text}`;
               if (!deduped.has(key)) {
                 deduped.set(key, dedupedList.length);
-                dedupedList.push({
-                  text: p.text,
-                  targetLanguage: p.targetLanguage,
-                });
+                dedupedList.push(p);
               }
+              pairToDedupIdx.push(deduped.get(key)!);
             }
 
             const results = await translateReplies(dedupedList);
             if (results && results.length > 0) {
-              for (let ci = 0; ci < capped.length; ci++) {
-                const lang = capped[ci].detectedLanguage;
-                if (!lang || lang === "other" || lang === targetLanguage)
-                  continue;
-                const msgIdx = ci % messages.length;
-                const key = `${lang}:${messages[msgIdx]}`;
-                const idx = deduped.get(key);
-                if (idx !== undefined && results[idx]) {
-                  capped[ci] = {
-                    ...capped[ci],
-                    messageToSend: results[idx].translatedText,
-                  };
+              const translatedTexts = [...replyTexts];
+              for (let pi = 0; pi < pairIndices.length; pi++) {
+                const idx = pairToDedupIdx[pi];
+                if (results[idx]) {
+                  translatedTexts[pairIndices[pi]] = results[idx].translatedText;
                 }
               }
+              replyTexts = translatedTexts;
             }
           }
         } catch {
-          showToast("Translation failed — sending original messages");
+          showToast("Translation failed — queuing with original messages");
         }
       }
 
-      startBulkReply(capped, messages, selectedCommentIds);
+      const items = selected.map((c, i) => ({
+        commentId: c.id,
+        replyText: replyTexts[i],
+      }));
+
+      const optimistic = selected
+        .filter((c) => !c.repliedTo && !c.replyErrorCode)
+        .map((c, i) => ({
+          ...c,
+          queuedReplyText: replyTexts[i],
+          queuedAt: new Date().toISOString(),
+        }));
+      setOptimisticQueueItems((prev) => [...prev, ...optimistic]);
+      setSelectedCommentIds(new Set());
+      showToast(`Added ${items.length} comment${items.length > 1 ? "s" : ""} to queue`);
+
+      enqueueMutation({ clerkId: userId, items });
     },
     [
-      selectedCommentsForDisplay,
+      userId,
       selectedCommentIds,
-      replyBudget,
-      startBulkReply,
-      bulkReplyProgress,
+      activeTab,
+      comments,
+      allCommentsFromCommenters,
       translateRepliesEnabled,
       translationEnabled,
       targetLanguage,
       translateReplies,
+      enqueueMutation,
       showToast,
     ],
   );
 
-  const handleBulkReply = useCallback(
-    (messages: string[]) => {
-      if (selectedCommentIds.size === 0) return;
-      if (replyLimitReached) {
-        showToast("Monthly reply limit reached. Upgrade for more replies.");
-        return;
-      }
-      executeBulkReply(messages);
+  const handleDequeue = useCallback(
+    async (commentIds: string[]) => {
+      if (!userId) return;
+      await dequeueMutation({ clerkId: userId, commentIds });
     },
-    [
-      selectedCommentIds.size,
-      replyLimitReached,
-      executeBulkReply,
-      showToast,
-    ],
+    [userId, dequeueMutation],
   );
+
+  const handleClearQueue = useCallback(async () => {
+    if (!userId) return;
+    await clearQueueMutation({ clerkId: userId });
+  }, [userId, clearQueueMutation]);
+
+  const handleStartQueueReply = useCallback(() => {
+    if (!queuedComments || queuedComments.length === 0) return;
+    if (replyLimitReached) {
+      showToast("Monthly reply limit reached. Upgrade for more replies.");
+      return;
+    }
+    const capped = queuedComments.slice(0, replyBudget).map((c) => ({
+      ...c,
+      messageToSend: c.queuedReplyText,
+    }));
+    const messages = [...new Set(capped.map((c) => c.queuedReplyText ?? ""))].filter(Boolean);
+    startBulkReply(capped, messages, new Set(capped.map((c) => c.id)));
+  }, [queuedComments, replyBudget, replyLimitReached, startBulkReply, showToast]);
 
   const handleViewPostComments = useCallback(
     (videoId: string) => {
@@ -882,10 +940,8 @@ export function DashboardContent() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div
-            className={`${activeTab === "posts" ? "lg:col-span-3" : "lg:col-span-2"}`}
-          >
+        <div className={`grid grid-cols-1 gap-6 ${activeTab === "posts" ? "" : "lg:grid-cols-[3fr_2fr]"}`}>
+          <div>
             <div className={activeTab !== "posts" ? "hidden" : ""}>
               <PostsGrid
                 videos={videos}
@@ -924,7 +980,7 @@ export function DashboardContent() {
                   hasMore={hasMore}
                   isLoadingMore={isLoadingMore}
                   isInitialLoading={loading}
-                  replyingCommentId={null}
+                  replyingCommentId={replyingCommentId}
                   searchingMatchesCommentId={searchingMatchesCommentId}
                   search={commentSearch}
                   onSearchChange={setCommentSearch}
@@ -990,7 +1046,7 @@ export function DashboardContent() {
                   onReplyComment={handleReplyComment}
                   videoThumbnails={videoThumbnailMap}
                   isLoading={commentersLoading}
-                  replyingCommentId={null}
+                  replyingCommentId={replyingCommentId}
                   searchingMatchesCommentId={searchingMatchesCommentId}
                   onLoadMore={loadMoreCommenters}
                   hasMore={hasMoreCommenters}
@@ -1022,25 +1078,31 @@ export function DashboardContent() {
           </div>
 
           <div
-            className={`space-y-6 sticky top-[130px] self-start max-h-[calc(100vh-150px)] overflow-y-auto ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
+            className={`space-y-4 sticky top-[130px] self-start max-h-[calc(100vh-150px)] overflow-y-auto ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
           >
             <ReplyComposer
               selectedComments={selectedCommentsForDisplay}
               selectedCount={selectedCommentIds.size}
-              onSend={handleBulkReply}
-              onClearSelection={handleClearSelection}
-              onToggleComment={handleSelectComment}
-              bulkReplyProgress={bulkReplyProgress}
-              replyStatusMessage={replyStatusMessage}
-              onStopBulkReply={stopBulkReply}
+              onAddToQueue={handleAddToQueue}
               disabled={isReplying || replyLimitReached || isTranslatingReplies}
-              replyBudget={replyBudget}
               replyLimitReached={replyLimitReached}
               translationEnabled={translationEnabled}
               targetLanguage={targetLanguage}
               translateRepliesEnabled={translateRepliesEnabled}
               onTranslateRepliesToggle={setTranslateRepliesEnabled}
               isTranslatingReplies={isTranslatingReplies}
+            />
+            <QueuePanel
+              queuedComments={queuedComments}
+              onDequeue={handleDequeue}
+              onClearQueue={handleClearQueue}
+              onStartReply={handleStartQueueReply}
+              onStopReply={stopBulkReply}
+              isReplying={isReplying}
+              bulkReplyProgress={bulkReplyProgress}
+              replyStatusMessage={replyStatusMessage}
+              replyLimitReached={replyLimitReached}
+              replyBudget={replyBudget}
             />
           </div>
         </div>

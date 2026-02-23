@@ -1,25 +1,16 @@
 import { useTheme } from "@/providers/ThemeProvider";
 import { ScrapedComment } from "@/utils/constants";
-import { BulkReplyProgress } from "@tokative/shared";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { AlertTriangle, Globe, Smile, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./Button";
-import { CompactCommentCard } from "./CompactCommentCard";
-import { Spinner } from "./Spinner";
 
 interface ReplyComposerProps {
   selectedComments: ScrapedComment[];
   selectedCount: number;
-  onSend: (messages: string[]) => void;
-  onClearSelection: () => void;
-  onToggleComment: (commentId: string, selected: boolean) => void;
-  bulkReplyProgress: BulkReplyProgress | null;
-  replyStatusMessage: string | null;
-  onStopBulkReply: () => void;
+  onAddToQueue: (messages: string[]) => void;
   disabled?: boolean;
-  replyBudget?: number;
   replyLimitReached?: boolean;
   translationEnabled?: boolean;
   targetLanguage?: string;
@@ -31,14 +22,8 @@ interface ReplyComposerProps {
 export function ReplyComposer({
   selectedComments,
   selectedCount,
-  onSend,
-  onClearSelection,
-  onToggleComment,
-  bulkReplyProgress,
-  replyStatusMessage,
-  onStopBulkReply,
+  onAddToQueue,
   disabled,
-  replyBudget,
   replyLimitReached,
   translationEnabled,
   targetLanguage,
@@ -50,11 +35,9 @@ export function ReplyComposer({
   const [activeEmojiPicker, setActiveEmojiPicker] = useState<number | null>(
     null,
   );
-  const [hasOverflow, setHasOverflow] = useState(false);
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [emojiPickerPos, setEmojiPickerPos] = useState<{ top: number; left: number } | null>(null);
   const { theme } = useTheme();
 
@@ -113,12 +96,6 @@ export function ReplyComposer({
     };
   }, [activeEmojiPicker]);
 
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    setHasOverflow(container.scrollHeight > container.clientHeight);
-  }, [selectedComments.length]);
-
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     if (activeEmojiPicker === null) return;
     const index = activeEmojiPicker;
@@ -149,29 +126,20 @@ export function ReplyComposer({
 
   const validMessages = messages.filter((m) => m.trim());
 
-  const handleSend = () => {
+  const handleAddToQueue = () => {
     if (validMessages.length === 0 || selectedCount === 0) return;
-    onSend(validMessages);
+    onAddToQueue(validMessages);
   };
 
   const allMessagesValid =
     messages.length > 1 ? messages.every((m) => m.trim()) : messages[0]?.trim();
 
-  const canSend =
+  const canAdd =
     allMessagesValid && selectedCount > 0 && !isTranslatingReplies;
 
   const needsMoreVariations =
     (selectedCount > 30 && messages.length < 3) ||
     (selectedCount > 10 && messages.length < 2);
-
-  const isActiveBulkReply =
-    bulkReplyProgress && bulkReplyProgress.status === "running";
-
-  const isBulkReplyFinished =
-    bulkReplyProgress &&
-    (bulkReplyProgress.status === "complete" ||
-      bulkReplyProgress.status === "stopped");
-  const showBulkProgress = isActiveBulkReply;
 
   return (
     <div className="bg-surface-elevated rounded-lg p-4 space-y-3">
@@ -183,132 +151,6 @@ export function ReplyComposer({
           </span>
         )}
       </div>
-
-      {selectedComments.length > 0 && (
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-foreground-muted">
-              Selected comments
-            </span>
-            {!isActiveBulkReply && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearSelection}
-                className="text-xs"
-              >
-                Clear all
-              </Button>
-            )}
-          </div>
-          <div
-            ref={scrollContainerRef}
-            className={`max-h-48 space-y-1 pr-1 ${hasOverflow ? "scrollbar-visible" : "overflow-y-auto"}`}
-          >
-            {selectedComments.map((comment) => (
-              <CompactCommentCard
-                key={comment.id}
-                comment={comment}
-                onRemove={() => onToggleComment(comment.id, false)}
-                status={bulkReplyProgress?.commentStatuses?.[comment.id]}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showBulkProgress && (
-        <div className="p-3 bg-surface border border-border rounded-lg space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Spinner size="sm" />
-              <span className="text-xs font-medium text-foreground">
-                Reply Progress
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onStopBulkReply}
-              className="text-xs text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300"
-            >
-              Stop
-            </Button>
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-foreground-muted">
-              {bulkReplyProgress.completed +
-                bulkReplyProgress.failed +
-                bulkReplyProgress.commentNotFound +
-                bulkReplyProgress.mentionFailed}{" "}
-              / {bulkReplyProgress.total}
-            </span>
-            {bulkReplyProgress.current && (
-              <span className="text-foreground-muted">
-                @{bulkReplyProgress.current}
-              </span>
-            )}
-          </div>
-          {replyStatusMessage && (
-            <p className="text-xs text-foreground-muted">
-              {replyStatusMessage}
-            </p>
-          )}
-          <div className="w-full bg-surface-secondary rounded-full h-1.5">
-            <div
-              className="bg-green-500 h-1.5 rounded-full transition-all"
-              style={{
-                width: `${((bulkReplyProgress.completed + bulkReplyProgress.failed + bulkReplyProgress.commentNotFound + bulkReplyProgress.mentionFailed) / bulkReplyProgress.total) * 100}%`,
-              }}
-            />
-          </div>
-          <div className="flex gap-3 text-xs">
-            <span className="text-green-600 dark:text-green-400">
-              {bulkReplyProgress.completed} sent
-            </span>
-            {bulkReplyProgress.failed > 0 && (
-              <span className="text-red-600 dark:text-red-400">
-                {bulkReplyProgress.failed} failed
-              </span>
-            )}
-            {bulkReplyProgress.commentNotFound > 0 && (
-              <span className="text-yellow-600 dark:text-yellow-400">
-                {bulkReplyProgress.commentNotFound} not found
-              </span>
-            )}
-            {bulkReplyProgress.mentionFailed > 0 && (
-              <span className="text-orange-600 dark:text-orange-400">
-                {bulkReplyProgress.mentionFailed} mention failed
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {isBulkReplyFinished && (
-        <div className="p-3 bg-surface border border-border rounded-lg space-y-2">
-          <div className="flex gap-3 text-xs">
-            <span className="text-green-600 dark:text-green-400">
-              {bulkReplyProgress.completed} sent
-            </span>
-            {bulkReplyProgress.failed > 0 && (
-              <span className="text-red-600 dark:text-red-400">
-                {bulkReplyProgress.failed} failed
-              </span>
-            )}
-            {bulkReplyProgress.commentNotFound > 0 && (
-              <span className="text-yellow-600 dark:text-yellow-400">
-                {bulkReplyProgress.commentNotFound} not found
-              </span>
-            )}
-            {bulkReplyProgress.mentionFailed > 0 && (
-              <span className="text-orange-600 dark:text-orange-400">
-                {bulkReplyProgress.mentionFailed} mention failed
-              </span>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="space-y-2">
         {messages.map((message, index) => (
@@ -444,31 +286,14 @@ export function ReplyComposer({
         </div>
       )}
 
-      {!replyLimitReached &&
-        replyBudget !== undefined &&
-        selectedCount > replyBudget && (
-          <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-            <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-yellow-500">
-              Only {replyBudget} {replyBudget === 1 ? "reply" : "replies"}{" "}
-              remaining in your monthly limit. {selectedCount - replyBudget}{" "}
-              comment{selectedCount - replyBudget === 1 ? "" : "s"} will be
-              skipped.{" "}
-              <a href="/pricing" className="underline hover:text-yellow-400">
-                Upgrade
-              </a>
-            </p>
-          </div>
-        )}
-
       <div className="relative group">
         <Button
           variant="secondary"
           fullWidth
-          onClick={handleSend}
-          disabled={disabled || !canSend}
+          onClick={handleAddToQueue}
+          disabled={disabled || !canAdd}
         >
-          {isTranslatingReplies ? "Translating..." : disabled ? "Replying..." : "Reply"}
+          {isTranslatingReplies ? "Translating..." : "Add to Queue"}
         </Button>
       </div>
 

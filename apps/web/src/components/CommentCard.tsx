@@ -143,6 +143,11 @@ export function CommentCard({
                 {formatRelativeTime(comment.commentTimestamp)}
               </span>
             )}
+            {comment.queuedReplyText && (
+              <span className="text-[10px] bg-accent-cyan-muted-20 text-accent-cyan-text px-1.5 py-0.5 rounded-full">
+                Queued
+              </span>
+            )}
             {replyStatusText && (
               <span className="text-xs text-red-400">{replyStatusText}</span>
             )}

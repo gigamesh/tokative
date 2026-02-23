@@ -138,6 +138,8 @@ export interface ScrapedComment {
   translatedText?: string;
   replyOriginalContent?: string;
   messageToSend?: string;
+  queuedReplyText?: string;
+  queuedAt?: string;
 }
 
 export interface ExtensionMessage<T = unknown> {

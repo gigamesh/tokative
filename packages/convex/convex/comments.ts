@@ -78,6 +78,8 @@ function formatComment(c: Doc<"comments">) {
     detectedLanguage: c.detectedLanguage,
     translatedText: c.translatedText,
     replyOriginalContent: c.replyOriginalContent,
+    queuedReplyText: c.queuedReplyText,
+    queuedAt: c.queuedAt ? new Date(c.queuedAt).toISOString() : undefined,
     _convexId: c._id,
   };
 }
@@ -490,10 +492,17 @@ export const update = mutation({
       });
     }
 
-    const updates =
-      args.updates.repliedTo === true
-        ? { ...args.updates, replyErrorCode: undefined }
-        : args.updates;
+    const shouldDequeue =
+      args.updates.repliedTo === true || args.updates.replyErrorCode != null;
+    const updates = {
+      ...args.updates,
+      ...(args.updates.repliedTo === true
+        ? { replyErrorCode: undefined }
+        : {}),
+      ...(shouldDequeue
+        ? { queuedReplyText: undefined, queuedAt: undefined }
+        : {}),
+    };
     await ctx.db.patch(comment._id, updates);
 
     return { replyLimitReached };
@@ -683,6 +692,122 @@ export const findMatchingByText = query({
           c.comment.trim() === normalizedText,
       )
       .map((c) => c.commentId);
+  },
+});
+
+export const enqueue = mutation({
+  args: {
+    clerkId: v.string(),
+    items: v.array(
+      v.object({ commentId: v.string(), replyText: v.string() }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+    if (!user) throw new Error("User not found");
+
+    let queued = 0;
+    let skipped = 0;
+    const now = Date.now();
+
+    for (let i = 0; i < args.items.length; i++) {
+      const item = args.items[i];
+      const comment = await ctx.db
+        .query("comments")
+        .withIndex("by_user_and_comment_id", (q) =>
+          q.eq("userId", user._id).eq("commentId", item.commentId),
+        )
+        .unique();
+
+      if (!comment || comment.repliedTo || comment.replyErrorCode) {
+        skipped++;
+        continue;
+      }
+
+      await ctx.db.patch(comment._id, {
+        queuedReplyText: item.replyText,
+        queuedAt: now + i,
+      });
+      queued++;
+    }
+
+    return { queued, skipped };
+  },
+});
+
+export const dequeue = mutation({
+  args: {
+    clerkId: v.string(),
+    commentIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+    if (!user) throw new Error("User not found");
+
+    for (const commentId of args.commentIds) {
+      const comment = await ctx.db
+        .query("comments")
+        .withIndex("by_user_and_comment_id", (q) =>
+          q.eq("userId", user._id).eq("commentId", commentId),
+        )
+        .unique();
+      if (comment) {
+        await ctx.db.patch(comment._id, {
+          queuedReplyText: undefined,
+          queuedAt: undefined,
+        });
+      }
+    }
+  },
+});
+
+export const clearQueue = mutation({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+    if (!user) throw new Error("User not found");
+
+    const queued = await ctx.db
+      .query("comments")
+      .withIndex("by_user_and_queued", (q) => q.eq("userId", user._id))
+      .collect();
+
+    for (const comment of queued) {
+      if (comment.queuedAt != null) {
+        await ctx.db.patch(comment._id, {
+          queuedReplyText: undefined,
+          queuedAt: undefined,
+        });
+      }
+    }
+  },
+});
+
+export const getQueue = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+    if (!user) return [];
+
+    const queued = await ctx.db
+      .query("comments")
+      .withIndex("by_user_and_queued", (q) => q.eq("userId", user._id))
+      .order("asc")
+      .collect();
+
+    return queued.filter((c) => c.queuedAt != null).map(formatComment);
   },
 });
 

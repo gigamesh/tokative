@@ -77,6 +77,8 @@ export default defineSchema({
     handle: v.optional(v.string()),
     profileUrl: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    queuedReplyText: v.optional(v.string()),
+    queuedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_video", ["userId", "videoId"])
@@ -99,7 +101,8 @@ export default defineSchema({
       "isReply",
       "commentTimestamp",
     ])
-    .index("by_user_and_parent", ["userId", "parentCommentId"]),
+    .index("by_user_and_parent", ["userId", "parentCommentId"])
+    .index("by_user_and_queued", ["userId", "queuedAt"]),
 
   videos: defineTable({
     userId: v.id("users"),
