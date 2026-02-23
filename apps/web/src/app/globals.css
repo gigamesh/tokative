@@ -193,4 +193,8 @@ input[type="checkbox"] {
   .scrollbar-visible::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
   }
+
+  .max-h-panel {
+    max-height: calc(100vh - 400px);
+  }
 }

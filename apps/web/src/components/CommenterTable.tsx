@@ -1,6 +1,6 @@
 import { CommenterData } from "@/hooks/useCommenterData";
 import { ScrapedComment } from "@/utils/constants";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommenterCard } from "./CommenterCard";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -73,6 +73,7 @@ interface CommenterTableProps {
   isLoadingMore?: boolean;
   search: string;
   onSearchChange: (search: string) => void;
+  scrollerRef?: React.RefObject<HTMLDivElement | null>;
   translationEnabled?: boolean;
   translatingIds?: Set<string>;
   onTranslateComment?: (commentId: string) => void;
@@ -96,11 +97,17 @@ export function CommenterTable({
   isLoadingMore,
   search,
   onSearchChange,
+  scrollerRef,
   translationEnabled,
   translatingIds,
   onTranslateComment,
   targetLanguage,
 }: CommenterTableProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const setScrollContainerRef = useCallback((el: HTMLDivElement | null) => {
+    (scrollContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    if (scrollerRef) (scrollerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+  }, [scrollerRef]);
   const [expandedCommenterIds, setExpandedCommenterIds] = useState<Set<string>>(
     new Set(),
   );
@@ -154,8 +161,8 @@ export function CommenterTable({
   }, [hasMore, isLoadingMore, onLoadMore]);
 
   return (
-    <div className="space-y-4">
-      <div className="sticky top-[130px] z-20 bg-surface-elevated pt-4 space-y-4">
+    <div>
+      <div className="bg-surface-elevated pt-4 space-y-4">
         {headerContent}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-wrap items-center">
@@ -191,47 +198,52 @@ export function CommenterTable({
         </div>
       </div>
 
-      {isLoading ? (
-        <CommenterTableSkeleton count={5} />
-      ) : commenters.length === 0 ? (
-        <div className="text-center py-12 text-foreground-muted">
-          {search
-            ? "No commenters match your search."
-            : "No comments collected yet. Start collecting to see commenters here."}
-        </div>
-      ) : (
-        <Virtuoso
-          data={commenters}
-          useWindowScroll
-          overscan={30}
-          increaseViewportBy={{ top: 0, bottom: 800 }}
-          endReached={handleEndReached}
-          context={{ isLoadingMore, hasMore }}
-          components={{
-            Footer: StableFooter,
-          }}
-          itemContent={(index, commenter) => (
-            <div className={index > 0 ? "pt-2" : ""}>
-              <CommenterCard
-                commenter={commenter}
-                expanded={expandedCommenterIds.has(commenter.profileId)}
-                onToggleExpand={() => toggleExpanded(commenter.profileId)}
-                selectedCommentIds={selectedCommentIds}
-                onSelectComment={onSelectComment}
-                onRemoveComment={onRemoveComment}
-                onReplyComment={onReplyComment}
-                videoThumbnails={videoThumbnails}
-                replyingCommentId={replyingCommentId}
-                searchingMatchesCommentId={searchingMatchesCommentId}
-                translationEnabled={translationEnabled}
-                translatingIds={translatingIds}
-                onTranslateComment={onTranslateComment}
-                targetLanguage={targetLanguage}
-              />
-            </div>
-          )}
-        />
-      )}
+      <div
+        ref={setScrollContainerRef}
+        className="overflow-y-auto max-h-panel"
+      >
+        {isLoading ? (
+          <CommenterTableSkeleton count={5} />
+        ) : commenters.length === 0 ? (
+          <div className="text-center py-12 text-foreground-muted">
+            {search
+              ? "No commenters match your search."
+              : "No comments collected yet. Start collecting to see commenters here."}
+          </div>
+        ) : (
+          <Virtuoso
+            customScrollParent={scrollContainerRef.current ?? undefined}
+            data={commenters}
+            overscan={30}
+            increaseViewportBy={{ top: 0, bottom: 800 }}
+            endReached={handleEndReached}
+            context={{ isLoadingMore, hasMore }}
+            components={{
+              Footer: StableFooter,
+            }}
+            itemContent={(index, commenter) => (
+              <div className={index > 0 ? "pt-2" : ""}>
+                <CommenterCard
+                  commenter={commenter}
+                  expanded={expandedCommenterIds.has(commenter.profileId)}
+                  onToggleExpand={() => toggleExpanded(commenter.profileId)}
+                  selectedCommentIds={selectedCommentIds}
+                  onSelectComment={onSelectComment}
+                  onRemoveComment={onRemoveComment}
+                  onReplyComment={onReplyComment}
+                  videoThumbnails={videoThumbnails}
+                  replyingCommentId={replyingCommentId}
+                  searchingMatchesCommentId={searchingMatchesCommentId}
+                  translationEnabled={translationEnabled}
+                  translatingIds={translatingIds}
+                  onTranslateComment={onTranslateComment}
+                  targetLanguage={targetLanguage}
+                />
+              </div>
+            )}
+          />
+        )}
+      </div>
 
       <ConfirmationModal
         isOpen={showBulkDeleteConfirm}

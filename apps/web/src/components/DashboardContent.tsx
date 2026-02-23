@@ -22,7 +22,6 @@ import { useCommentData } from "@/hooks/useCommentData";
 import { useCommenterData } from "@/hooks/useCommenterData";
 import { useIgnoreList } from "@/hooks/useIgnoreList";
 import { useMessaging } from "@/hooks/useMessaging";
-import { useScrollRestore } from "@/hooks/useScrollRestore";
 import { useTokativeEndpoint } from "@/hooks/useTokativeEndpoint";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useVideoData } from "@/hooks/useVideoData";
@@ -33,7 +32,7 @@ import { useMutation, useQuery } from "convex/react";
 import { AlertTriangle, Settings, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface DeleteModalState {
   isOpen: boolean;
@@ -64,9 +63,11 @@ export function DashboardContent() {
   } = useTokativeEndpoint();
 
   const [commentSort, setCommentSort] = useState<SortOption>("newest");
+  const commentScrollerRef = useRef<HTMLDivElement>(null);
+  const commenterScrollerRef = useRef<HTMLDivElement>(null);
 
   const handleSortChange = useCallback((newSort: SortOption) => {
-    window.scrollTo({ top: 0 });
+    commentScrollerRef.current?.scrollTo({ top: 0 });
     setCommentSort(newSort);
   }, []);
 
@@ -279,8 +280,6 @@ export function DashboardContent() {
     }
   }, [allComments, optimisticDeletedIds]);
 
-  useScrollRestore("dashboard-scroll", !loading && !videosLoading);
-
   useEffect(() => {
     setPostLimitInput(String(postLimit));
   }, [postLimit]);
@@ -472,7 +471,8 @@ export function DashboardContent() {
     setIsDeletingSelected(true);
     setOptimisticDeletedIds((prev) => new Set([...prev, ...idsToDelete]));
     setSelectedCommentIds(new Set());
-    window.scrollTo({ top: 0 });
+    commentScrollerRef.current?.scrollTo({ top: 0 });
+    commenterScrollerRef.current?.scrollTo({ top: 0 });
 
     try {
       await removeComments(idsToDelete);
@@ -994,6 +994,7 @@ export function DashboardContent() {
                   onFetchReplies={fetchRepliesForThread}
                   needsReplyFetch={hideOwnReplies || !!commentSearch}
                   isDeletingSelected={isDeletingSelected}
+                  scrollerRef={commentScrollerRef}
                   headerContent={
                     <>
                       <div className="flex items-center justify-between">
@@ -1053,6 +1054,7 @@ export function DashboardContent() {
                   isLoadingMore={isLoadingMoreCommenters}
                   search={commenterSearch}
                   onSearchChange={setCommenterSearch}
+                  scrollerRef={commenterScrollerRef}
                   translationEnabled={translationEnabled}
                   translatingIds={translatingIds}
                   onTranslateComment={handleTranslateComment}
@@ -1078,7 +1080,7 @@ export function DashboardContent() {
           </div>
 
           <div
-            className={`space-y-4 sticky top-[130px] self-start max-h-[calc(100vh-150px)] overflow-y-auto ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
+            className={`space-y-4 ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
           >
             <ReplyComposer
               selectedComments={selectedCommentsForDisplay}

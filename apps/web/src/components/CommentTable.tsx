@@ -7,7 +7,6 @@ import { DangerButton } from "./DangerButton";
 import { ExpanderRow } from "./ExpanderRow";
 import { SearchInput } from "./SearchInput";
 
-
 export function CommentSkeleton({ depth = 0 }: { depth?: number }) {
   return (
     <div
@@ -102,6 +101,7 @@ interface CommentTableProps {
   onFetchReplies?: (parentCommentId: string) => Promise<ScrapedComment[]>;
   needsReplyFetch?: boolean;
   isDeletingSelected?: boolean;
+  scrollerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function CommentTable({
@@ -134,14 +134,24 @@ export function CommentTable({
   onFetchReplies,
   needsReplyFetch,
   isDeletingSelected,
+  scrollerRef,
 }: CommentTableProps) {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
     new Set(),
   );
-  const [fetchedReplies, setFetchedReplies] = useState<Map<string, ScrapedComment[]>>(new Map());
-  const [fetchingThreads, setFetchingThreads] = useState<Set<string>>(new Set());
+  const [fetchedReplies, setFetchedReplies] = useState<
+    Map<string, ScrapedComment[]>
+  >(new Map());
+  const [fetchingThreads, setFetchingThreads] = useState<Set<string>>(
+    new Set(),
+  );
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const setScrollContainerRef = useCallback((el: HTMLDivElement | null) => {
+    (scrollContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    if (scrollerRef) (scrollerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+  }, [scrollerRef]);
   const lastSelectedIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -157,7 +167,12 @@ export function CommentTable({
       return next;
     });
 
-    if (isExpanding && needsReplyFetch && onFetchReplies && !fetchedReplies.has(parentId)) {
+    if (
+      isExpanding &&
+      needsReplyFetch &&
+      onFetchReplies &&
+      !fetchedReplies.has(parentId)
+    ) {
       setFetchingThreads((prev) => new Set(prev).add(parentId));
       const replies = await onFetchReplies(parentId);
       setFetchedReplies((prev) => new Map(prev).set(parentId, replies));
@@ -180,7 +195,9 @@ export function CommentTable({
     const matchesFilterStatus = (comment: ScrapedComment) =>
       filter === "all" ||
       (filter === "replied" && comment.repliedTo) ||
-      (filter === "not_replied" && !comment.repliedTo && !comment.replyErrorCode) ||
+      (filter === "not_replied" &&
+        !comment.repliedTo &&
+        !comment.replyErrorCode) ||
       (filter === "failed" && comment.replyErrorCode);
 
     const filteredTopLevel = topLevel.filter((c) => matchesFilterStatus(c));
@@ -234,7 +251,10 @@ export function CommentTable({
     filteredComments
       .filter((c) => c.isReply)
       .forEach((reply) => {
-        if (reply.parentCommentId && parentIdsInList.has(reply.parentCommentId)) {
+        if (
+          reply.parentCommentId &&
+          parentIdsInList.has(reply.parentCommentId)
+        ) {
           if (!clientRepliesMap.has(reply.parentCommentId))
             clientRepliesMap.set(reply.parentCommentId, []);
           clientRepliesMap.get(reply.parentCommentId)!.push(reply);
@@ -272,8 +292,7 @@ export function CommentTable({
         }
       }
 
-      const hasReplies =
-        (parent.replyCount ?? 0) > 0 || allReplies.length > 0;
+      const hasReplies = (parent.replyCount ?? 0) > 0 || allReplies.length > 0;
       const isExpanded = expandedThreads.has(parentId);
 
       result.push({ ...parent, depth: 0, replyCount: parent.replyCount });
@@ -314,7 +333,13 @@ export function CommentTable({
     }
 
     return result;
-  }, [filteredComments, expandedThreads, search, fetchedReplies, fetchingThreads]);
+  }, [
+    filteredComments,
+    expandedThreads,
+    search,
+    fetchedReplies,
+    fetchingThreads,
+  ]);
 
   const handleEndReached = useCallback(() => {
     if (isActive && hasMore && !isLoadingMore && onLoadMore) {
@@ -359,8 +384,8 @@ export function CommentTable({
     filteredSelectedCount < filteredComments.length;
 
   return (
-    <div className="space-y-4">
-      <div className="sticky top-[130px] z-20 bg-surface-elevated pt-4 space-y-4">
+    <div>
+      <div className="bg-surface-elevated pt-4 space-y-4">
         {headerContent}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-wrap items-center">
@@ -420,61 +445,72 @@ export function CommentTable({
         </div>
       </div>
 
-      {isInitialLoading ? (
-        <CommentTableSkeleton count={5} />
-      ) : displayComments.length === 0 ? (
-        <div className="text-center py-12 text-foreground-muted">
-          {search
-            ? "No comments match your search."
-            : comments.length === 0
-              ? "No comments collected yet. Start collecting to see comments here."
-              : "No comments match your filter criteria."}
-        </div>
-      ) : (
-        <Virtuoso
-          data={displayComments}
-          useWindowScroll
-          overscan={30}
-          increaseViewportBy={{ top: 0, bottom: 800 }}
-          endReached={handleEndReached}
-          context={{ isLoadingMore, hasMore }}
-          components={{
-            Footer: StableFooter,
-          }}
-          itemContent={(index, item) => (
-            <div className={index > 0 ? "pt-2" : ""}>
-              {item.isExpander ? (
-                <ExpanderRow
-                  label={item.expanderLabel!}
-                  expanded={item.expanded!}
-                  loading={item.expanderLoading}
-                  onClick={() => toggleThread(item.parentId!)}
-                />
-              ) : (
-                <CommentCard
-                  comment={item}
-                  selected={selectedIds.has(item.id)}
-                  onSelect={(selected, shiftKey) =>
-                    handleSelectComment(index, item.id, selected, shiftKey)
-                  }
-                  onRemove={() => onRemoveComment(item.id)}
-                  onReply={() => onReplyComment(item)}
-                  thumbnailUrl={
-                    item.videoId ? videoThumbnails.get(item.videoId) : undefined
-                  }
-                  depth={item.depth}
-                  isReplying={replyingCommentId === item.id}
-                  isSearchingMatches={searchingMatchesCommentId === item.id}
-                  translationEnabled={translationEnabled}
-                  isTranslating={translatingIds?.has(item.id)}
-                  onTranslate={onTranslateComment ? () => onTranslateComment(item.id) : undefined}
-                  targetLanguage={targetLanguage}
-                />
-              )}
-            </div>
-          )}
-        />
-      )}
+      <div
+        ref={setScrollContainerRef}
+        className="overflow-y-auto max-h-panel"
+      >
+        {isInitialLoading ? (
+          <CommentTableSkeleton count={5} />
+        ) : displayComments.length === 0 ? (
+          <div className="text-center py-12 text-foreground-muted">
+            {search
+              ? "No comments match your search."
+              : comments.length === 0
+                ? "No comments collected yet. Start collecting to see comments here."
+                : "No comments match your filter criteria."}
+          </div>
+        ) : (
+          <Virtuoso
+            customScrollParent={scrollContainerRef.current ?? undefined}
+            data={displayComments}
+            overscan={30}
+            increaseViewportBy={{ top: 0, bottom: 800 }}
+            endReached={handleEndReached}
+            context={{ isLoadingMore, hasMore }}
+            components={{
+              Footer: StableFooter,
+            }}
+            itemContent={(index, item) => (
+              <div className={index > 0 ? "pt-2" : ""}>
+                {item.isExpander ? (
+                  <ExpanderRow
+                    label={item.expanderLabel!}
+                    expanded={item.expanded!}
+                    loading={item.expanderLoading}
+                    onClick={() => toggleThread(item.parentId!)}
+                  />
+                ) : (
+                  <CommentCard
+                    comment={item}
+                    selected={selectedIds.has(item.id)}
+                    onSelect={(selected, shiftKey) =>
+                      handleSelectComment(index, item.id, selected, shiftKey)
+                    }
+                    onRemove={() => onRemoveComment(item.id)}
+                    onReply={() => onReplyComment(item)}
+                    thumbnailUrl={
+                      item.videoId
+                        ? videoThumbnails.get(item.videoId)
+                        : undefined
+                    }
+                    depth={item.depth}
+                    isReplying={replyingCommentId === item.id}
+                    isSearchingMatches={searchingMatchesCommentId === item.id}
+                    translationEnabled={translationEnabled}
+                    isTranslating={translatingIds?.has(item.id)}
+                    onTranslate={
+                      onTranslateComment
+                        ? () => onTranslateComment(item.id)
+                        : undefined
+                    }
+                    targetLanguage={targetLanguage}
+                  />
+                )}
+              </div>
+            )}
+          />
+        )}
+      </div>
 
       <ConfirmationModal
         isOpen={showBulkDeleteConfirm}

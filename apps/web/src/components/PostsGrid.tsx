@@ -88,6 +88,7 @@ export function PostsGrid({
   onPostLimitBlur,
   commentLimitReached = false,
 }: PostsGridProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastSelectedIndexRef = useRef<number | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
@@ -218,52 +219,56 @@ export function PostsGrid({
 
   return (
     <TabContentContainer stickyHeader={stickyHeader}>
-
-      {loading ? (
-        <PostsGridSkeleton />
-      ) : videos.length === 0 ? (
-        <div className="text-center py-12 text-foreground-muted">
-          <Image className="w-16 h-16 mx-auto mb-4 text-foreground-muted" strokeWidth={1.5} />
-          <p className="mb-2">No posts collected yet</p>
-          <p className="text-sm text-foreground-muted">
-            To collect posts, navigate to a TikTok profile and click
-            <br />
-            <span className="font-semibold text-foreground-secondary">
-              Collect Profile
-            </span>{" "}
-            in the extension popup.
-          </p>
-        </div>
-      ) : (
-        <VirtuosoGrid
-          data={videos}
-          useWindowScroll
-          overscan={20}
-          components={gridComponents}
-          itemContent={(index, video) => (
-            <PostCard
-              video={video}
-              selected={selectedVideoIds.has(video.videoId)}
-              onSelect={(selected) => {
-                const event = window.event as MouseEvent | undefined;
-                handleSelectVideo(
-                  video.videoId,
-                  selected,
-                  index,
-                  event?.shiftKey || false,
-                );
-              }}
-              progress={getCommentsProgress.get(video.videoId)}
-              commentCount={commentCountsByVideo.get(video.videoId) ?? 0}
-              onViewComments={
-                onViewPostComments
-                  ? () => onViewPostComments(video.videoId)
-                  : undefined
-              }
-            />
-          )}
-        />
-      )}
+      <div
+        ref={scrollContainerRef}
+        className="overflow-y-auto max-h-panel"
+      >
+        {loading ? (
+          <PostsGridSkeleton />
+        ) : videos.length === 0 ? (
+          <div className="text-center py-12 text-foreground-muted">
+            <Image className="w-16 h-16 mx-auto mb-4 text-foreground-muted" strokeWidth={1.5} />
+            <p className="mb-2">No posts collected yet</p>
+            <p className="text-sm text-foreground-muted">
+              To collect posts, navigate to a TikTok profile and click
+              <br />
+              <span className="font-semibold text-foreground-secondary">
+                Collect Profile
+              </span>{" "}
+              in the extension popup.
+            </p>
+          </div>
+        ) : (
+          <VirtuosoGrid
+            customScrollParent={scrollContainerRef.current ?? undefined}
+            data={videos}
+            overscan={20}
+            components={gridComponents}
+            itemContent={(index, video) => (
+              <PostCard
+                video={video}
+                selected={selectedVideoIds.has(video.videoId)}
+                onSelect={(selected) => {
+                  const event = window.event as MouseEvent | undefined;
+                  handleSelectVideo(
+                    video.videoId,
+                    selected,
+                    index,
+                    event?.shiftKey || false,
+                  );
+                }}
+                progress={getCommentsProgress.get(video.videoId)}
+                commentCount={commentCountsByVideo.get(video.videoId) ?? 0}
+                onViewComments={
+                  onViewPostComments
+                    ? () => onViewPostComments(video.videoId)
+                    : undefined
+                }
+              />
+            )}
+          />
+        )}
+      </div>
 
       <ConfirmationModal
         isOpen={showRemoveConfirm}
