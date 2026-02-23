@@ -75,6 +75,7 @@ export function DashboardContent() {
     postLimit,
     hideOwnReplies,
     deleteMissingComments,
+    accountHandle,
     loading,
     error,
     removeComments,
@@ -82,6 +83,7 @@ export function DashboardContent() {
     savePostLimit,
     saveHideOwnReplies,
     saveDeleteMissingComments,
+    saveAccountHandle,
     addOptimisticComment,
     loadMore,
     hasMore,
@@ -102,13 +104,17 @@ export function DashboardContent() {
   const comments = useMemo(() => {
     let filtered = allComments;
     if (hideOwnReplies) {
-      filtered = filtered.filter((c) => c.source !== "app");
+      filtered = filtered.filter((c) => {
+        if (c.source === "app") return false;
+        if (accountHandle && c.isReply && c.handle === accountHandle) return false;
+        return true;
+      });
     }
     if (optimisticDeletedIds.size > 0) {
       filtered = filtered.filter((c) => !optimisticDeletedIds.has(c.id));
     }
     return filtered;
-  }, [allComments, hideOwnReplies, optimisticDeletedIds]);
+  }, [allComments, hideOwnReplies, accountHandle, optimisticDeletedIds]);
 
   const handleReplyComplete = useCallback(
     (commentId: string) => {
@@ -325,13 +331,27 @@ export function DashboardContent() {
     return map;
   }, [videos]);
 
+  const filteredCommenters = useMemo(() => {
+    if (!hideOwnReplies || !accountHandle) return commenters;
+    return commenters
+      .map((c) => ({
+        ...c,
+        comments: c.comments.filter((comment) => {
+          if (comment.source === "app") return false;
+          if (comment.isReply && comment.handle === accountHandle) return false;
+          return true;
+        }),
+      }))
+      .filter((c) => c.comments.length > 0);
+  }, [commenters, hideOwnReplies, accountHandle]);
+
   const allCommentsFromCommenters = useMemo(() => {
     const all: ScrapedComment[] = [];
-    for (const commenter of commenters) {
+    for (const commenter of filteredCommenters) {
       all.push(...commenter.comments);
     }
     return all;
-  }, [commenters]);
+  }, [filteredCommenters]);
 
   const selectedCommentsForDisplay = useMemo(() => {
     const idsArray = Array.from(selectedCommentIds);
@@ -988,7 +1008,7 @@ export function DashboardContent() {
             <div className={activeTab !== "commenters" ? "hidden" : ""}>
               <TabContentContainer>
                 <CommenterTable
-                  commenters={commenters}
+                  commenters={filteredCommenters}
                   selectedCommentIds={selectedCommentIds}
                   onSelectComment={handleSelectComment}
                   onRemoveSelected={handleRemoveSelected}
@@ -1062,6 +1082,8 @@ export function DashboardContent() {
         onHideOwnRepliesChange={saveHideOwnReplies}
         deleteMissingComments={deleteMissingComments}
         onDeleteMissingCommentsChange={saveDeleteMissingComments}
+        accountHandle={accountHandle}
+        onAccountHandleChange={saveAccountHandle}
       />
 
       <DeleteConfirmationModal

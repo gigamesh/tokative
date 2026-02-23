@@ -12,6 +12,7 @@ interface CommentDataState {
   postLimit: number;
   hideOwnReplies: boolean;
   deleteMissingComments: boolean | null;
+  accountHandle: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -34,6 +35,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     postLimit: 50,
     hideOwnReplies: false,
     deleteMissingComments: null,
+    accountHandle: null,
     loading: true,
     error: null,
   });
@@ -75,6 +77,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
         postLimit: settings.postLimit ?? 50,
         hideOwnReplies: settings.hideOwnReplies ?? false,
         deleteMissingComments: settings.deleteMissingComments ?? null,
+        accountHandle: settings.accountHandle ?? null,
         loading: false,
       }));
     }
@@ -161,6 +164,19 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
       await updateSettingsMutation({
         clerkId: userId,
         settings: { deleteMissingComments: value },
+      });
+    },
+    [userId, updateSettingsMutation]
+  );
+
+  const saveAccountHandle = useCallback(
+    async (handle: string) => {
+      if (!userId) return;
+      const normalized = handle.replace(/^@/, "").trim();
+      setState((prev) => ({ ...prev, accountHandle: normalized || null }));
+      await updateSettingsMutation({
+        clerkId: userId,
+        settings: { accountHandle: normalized },
       });
     },
     [userId, updateSettingsMutation]
@@ -273,6 +289,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     postLimit: state.postLimit,
     hideOwnReplies: state.hideOwnReplies,
     deleteMissingComments: state.deleteMissingComments,
+    accountHandle: state.accountHandle,
     loading: isInitialLoading,
     error: state.error,
     removeComment,
@@ -281,6 +298,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     savePostLimit,
     saveHideOwnReplies,
     saveDeleteMissingComments,
+    saveAccountHandle,
     addOptimisticComment,
     loadMore: handleLoadMore,
     hasMore: paginationStatus === "CanLoadMore",

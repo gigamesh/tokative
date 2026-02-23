@@ -1,6 +1,6 @@
 import { IgnoreListEntry } from "@/utils/constants";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "./Button";
 import { Modal } from "./Modal";
 
@@ -14,6 +14,8 @@ interface SettingsModalProps {
   onHideOwnRepliesChange: (value: boolean) => void;
   deleteMissingComments: boolean | null;
   onDeleteMissingCommentsChange: (value: boolean) => void;
+  accountHandle: string | null;
+  onAccountHandleChange: (handle: string) => void;
 }
 
 export function SettingsModal({
@@ -26,8 +28,15 @@ export function SettingsModal({
   onHideOwnRepliesChange,
   deleteMissingComments,
   onDeleteMissingCommentsChange,
+  accountHandle,
+  onAccountHandleChange,
 }: SettingsModalProps) {
   const [newIgnoreText, setNewIgnoreText] = useState("");
+  const [handleInput, setHandleInput] = useState(accountHandle ?? "");
+
+  useEffect(() => {
+    setHandleInput(accountHandle ?? "");
+  }, [accountHandle]);
 
   const handleAddIgnoreText = () => {
     const trimmed = newIgnoreText.trim();
@@ -56,6 +65,26 @@ export function SettingsModal({
       </div>
 
       <div className="space-y-5">
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-2">
+            TikTok Handle
+          </h3>
+          <p className="text-xs text-foreground-muted mb-2">
+            Your TikTok username, used to identify your replies when hiding.
+          </p>
+          <input
+            type="text"
+            value={handleInput}
+            onChange={(e) => setHandleInput(e.target.value)}
+            onBlur={() => onAccountHandleChange(handleInput)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onAccountHandleChange(handleInput);
+            }}
+            placeholder="e.g. yourhandle"
+            className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted"
+          />
+        </div>
+
         <div className="space-y-3">
           <label className="flex items-center gap-3 cursor-pointer">
             <input
@@ -67,8 +96,8 @@ export function SettingsModal({
             <div>
               <span className="text-sm text-foreground">Hide your replies</span>
               <p className="text-xs text-foreground-muted">
-                Don&apos;t show comments sent via this app (also hides the
-                comment being replied to)
+                Hide replies sent via this app and scraped replies matching your
+                TikTok handle
               </p>
             </div>
           </label>
