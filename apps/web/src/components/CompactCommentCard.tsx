@@ -126,7 +126,7 @@ export function CompactCommentCard({
   const [avatarFailed, setAvatarFailed] = useState(false);
 
   return (
-    <div className="flex items-center gap-2 px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors">
+    <div className="flex items-center gap-2">
       {comment.avatarUrl && !avatarFailed ? (
         <img
           src={comment.avatarUrl}

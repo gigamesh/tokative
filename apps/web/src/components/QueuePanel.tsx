@@ -1,6 +1,6 @@
 import { ScrapedComment } from "@/utils/constants";
 import { BulkReplyProgress, CommentReplyStatus } from "@tokative/shared";
-import { ListX, Trash2, X } from "lucide-react";
+import { ListX } from "lucide-react";
 import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
 import { Spinner } from "./Spinner";
@@ -73,7 +73,7 @@ export function QueuePanel({
       )}
 
       {queuedComments.length > 0 && (
-        <div className="max-h-64 overflow-y-auto space-y-1 pr-1 scrollbar-visible">
+        <div className="max-h-80 overflow-y-auto space-y-1 pr-1 scrollbar-visible">
           {queuedComments.map((comment) => (
             <QueuedCommentItem
               key={comment.id}
@@ -184,16 +184,15 @@ function QueuedCommentItem({
   isActive?: boolean;
 }) {
   return (
-    <div className="space-y-0.5">
+    <div className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors space-y-1">
       <CompactCommentCard
         comment={comment}
         onRemove={onRemove}
         status={status}
       />
       {comment.queuedReplyText && (
-        <div className="ml-7 text-[11px] text-foreground-muted truncate">
-          <span className="text-accent-cyan-text/70">→</span>{" "}
-          {comment.queuedReplyText}
+        <div className="ml-7 text-[11px] text-accent-cyan-text/70 truncate">
+          ↳ <span className="text-foreground-muted">{comment.queuedReplyText}</span>
         </div>
       )}
     </div>
