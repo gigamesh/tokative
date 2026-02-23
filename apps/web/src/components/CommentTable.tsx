@@ -5,6 +5,7 @@ import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { DangerButton } from "./DangerButton";
 import { ExpanderRow } from "./ExpanderRow";
+import { ListPanel } from "./ListPanel";
 import { SearchInput } from "./SearchInput";
 
 export function CommentSkeleton({ depth = 0 }: { depth?: number }) {
@@ -390,69 +391,70 @@ export function CommentTable({
     filteredSelectedCount > 0 &&
     filteredSelectedCount < filteredComments.length;
 
-  return (
-    <div>
-      <div className="bg-surface-elevated pt-4 space-y-4">
-        {headerContent}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex gap-2 flex-wrap items-center">
-            <SearchInput value={search} onChange={onSearchChange} />
+  const stickyHeader = (
+    <>
+      {headerContent}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex gap-2 flex-wrap items-center">
+          <SearchInput value={search} onChange={onSearchChange} />
 
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as FilterStatus)}
-              className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
-            >
-              <option value="all">All</option>
-              <option value="not_replied">Not Replied</option>
-              <option value="replied">Replied</option>
-              <option value="failed">Failed</option>
-            </select>
-
-            <select
-              value={sort}
-              onChange={(e) => onSortChange(e.target.value as SortOption)}
-              className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
-            >
-              <option value="newest">Newest Comments</option>
-              <option value="oldest">Oldest Comments</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between pb-2 border-b border-border">
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm text-foreground-muted cursor-pointer">
-              <input
-                type="checkbox"
-                checked={allFilteredSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = someFilteredSelected;
-                }}
-                onChange={(e) => {
-                  const filteredIds = filteredComments.map((c) => c.id);
-                  onSelectFiltered(filteredIds, e.target.checked);
-                }}
-                className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
-              />
-              {selectedIds.size > 0
-                ? `${selectedIds.size} selected`
-                : "Select all"}
-            </label>
-          </div>
-
-          <DangerButton
-            onClick={() => setShowBulkDeleteConfirm(true)}
-            disabled={selectedIds.size === 0}
-            loading={isDeletingSelected}
-            loadingText="Removing"
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as FilterStatus)}
+            className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
           >
-            Remove{selectedIds.size > 0 && ` (${selectedIds.size})`}
-          </DangerButton>
+            <option value="all">All</option>
+            <option value="not_replied">Not Replied</option>
+            <option value="replied">Replied</option>
+            <option value="failed">Failed</option>
+          </select>
+
+          <select
+            value={sort}
+            onChange={(e) => onSortChange(e.target.value as SortOption)}
+            className="px-3 py-2 bg-surface-elevated border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent-cyan-muted"
+          >
+            <option value="newest">Newest Comments</option>
+            <option value="oldest">Oldest Comments</option>
+          </select>
         </div>
       </div>
 
-      <div ref={setScrollContainerRef} className="overflow-x-hidden scrollbar-visible max-h-panel pr-2">
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-foreground-muted cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allFilteredSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someFilteredSelected;
+              }}
+              onChange={(e) => {
+                const filteredIds = filteredComments.map((c) => c.id);
+                onSelectFiltered(filteredIds, e.target.checked);
+              }}
+              className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
+            />
+            {selectedIds.size > 0
+              ? `${selectedIds.size} selected`
+              : "Select all"}
+          </label>
+        </div>
+
+        <DangerButton
+          onClick={() => setShowBulkDeleteConfirm(true)}
+          disabled={selectedIds.size === 0}
+          loading={isDeletingSelected}
+          loadingText="Removing"
+        >
+          Remove{selectedIds.size > 0 && ` (${selectedIds.size})`}
+        </DangerButton>
+      </div>
+    </>
+  );
+
+  return (
+    <ListPanel stickyHeader={stickyHeader} scrollRef={setScrollContainerRef}>
         {isInitialLoading ? (
           <CommentTableSkeleton count={5} />
         ) : displayComments.length === 0 ? (
@@ -514,7 +516,6 @@ export function CommentTable({
             )}
           />
         )}
-      </div>
 
       <ConfirmationModal
         isOpen={showBulkDeleteConfirm}
@@ -525,6 +526,6 @@ export function CommentTable({
         confirmText="Delete"
         variant="danger"
       />
-    </div>
+    </ListPanel>
   );
 }

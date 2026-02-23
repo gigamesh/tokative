@@ -5,6 +5,7 @@ import { Virtuoso } from "react-virtuoso";
 import { CommenterCard } from "./CommenterCard";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { DangerButton } from "./DangerButton";
+import { ListPanel } from "./ListPanel";
 import { SearchInput } from "./SearchInput";
 
 function CommenterSkeleton() {
@@ -167,44 +168,45 @@ export function CommenterTable({
     }
   }, [hasMore, isLoadingMore, onLoadMore]);
 
-  return (
-    <div>
-      <div className="bg-surface-elevated pt-4 space-y-4">
-        {headerContent}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex gap-2 flex-wrap items-center">
-            <SearchInput value={search} onChange={onSearchChange} />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between pb-2 border-b border-border">
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm text-foreground-muted cursor-pointer">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = someSelected;
-                }}
-                onChange={(e) => handleSelectAll(e.target.checked)}
-                className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
-              />
-              {selectedCommentIds.size > 0
-                ? `${selectedCommentIds.size} selected`
-                : "Select all"}
-            </label>
-          </div>
-
-          <DangerButton
-            onClick={() => setShowBulkDeleteConfirm(true)}
-            disabled={selectedCommentIds.size === 0}
-          >
-            Remove
-          </DangerButton>
+  const stickyHeader = (
+    <>
+      {headerContent}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex gap-2 flex-wrap items-center">
+          <SearchInput value={search} onChange={onSearchChange} />
         </div>
       </div>
 
-      <div ref={setScrollContainerRef} className="overflow-x-hidden scrollbar-visible max-h-panel pr-2">
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-foreground-muted cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someSelected;
+              }}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+              className="w-4 h-4 rounded border-border bg-surface-secondary text-accent-cyan-solid focus:ring-accent-cyan-solid"
+            />
+            {selectedCommentIds.size > 0
+              ? `${selectedCommentIds.size} selected`
+              : "Select all"}
+          </label>
+        </div>
+
+        <DangerButton
+          onClick={() => setShowBulkDeleteConfirm(true)}
+          disabled={selectedCommentIds.size === 0}
+        >
+          Remove
+        </DangerButton>
+      </div>
+    </>
+  );
+
+  return (
+    <ListPanel stickyHeader={stickyHeader} scrollRef={setScrollContainerRef}>
         {isLoading ? (
           <CommenterTableSkeleton count={5} />
         ) : commenters.length === 0 ? (
@@ -246,7 +248,6 @@ export function CommenterTable({
             )}
           />
         )}
-      </div>
 
       <ConfirmationModal
         isOpen={showBulkDeleteConfirm}
@@ -257,6 +258,6 @@ export function CommenterTable({
         confirmText="Delete"
         variant="danger"
       />
-    </div>
+    </ListPanel>
   );
 }
