@@ -630,6 +630,24 @@ export const getCountsByVideo = query({
   },
 });
 
+export const getRepliesForParent = query({
+  args: { clerkId: v.string(), parentCommentId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+    if (!user) return [];
+    const replies = await ctx.db
+      .query("comments")
+      .withIndex("by_user_and_parent", (q) =>
+        q.eq("userId", user._id).eq("parentCommentId", args.parentCommentId),
+      )
+      .collect();
+    return replies.map(formatComment);
+  },
+});
+
 export const findMatchingByText = query({
   args: {
     clerkId: v.string(),

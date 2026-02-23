@@ -1,5 +1,5 @@
 import { ScrapedComment } from "@/utils/constants";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { CommentCard } from "./CommentCard";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -63,6 +63,8 @@ interface DisplayComment extends ScrapedComment {
   depth: number;
   isExpander?: boolean;
   expanderCount?: number;
+  expanderLabel?: string;
+  expanderLoading?: boolean;
   parentId?: string;
   expanded?: boolean;
 }
@@ -97,6 +99,8 @@ interface CommentTableProps {
   translatingIds?: Set<string>;
   onTranslateComment?: (commentId: string) => void;
   targetLanguage?: string;
+  onFetchReplies?: (parentCommentId: string) => Promise<ScrapedComment[]>;
+  needsReplyFetch?: boolean;
   isDeletingSelected?: boolean;
 }
 
@@ -127,6 +131,8 @@ export function CommentTable({
   translatingIds,
   onTranslateComment,
   targetLanguage,
+  onFetchReplies,
+  needsReplyFetch,
   isDeletingSelected,
 }: CommentTableProps) {
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -134,15 +140,33 @@ export function CommentTable({
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
     new Set(),
   );
+  const [fetchedReplies, setFetchedReplies] = useState<Map<string, ScrapedComment[]>>(new Map());
+  const [fetchingThreads, setFetchingThreads] = useState<Set<string>>(new Set());
   const lastSelectedIndexRef = useRef<number | null>(null);
 
-  const toggleThread = (parentId: string) => {
+  useEffect(() => {
+    setFetchedReplies(new Map());
+  }, [search, needsReplyFetch]);
+
+  const toggleThread = async (parentId: string) => {
+    const isExpanding = !expandedThreads.has(parentId);
     setExpandedThreads((prev) => {
       const next = new Set(prev);
       if (next.has(parentId)) next.delete(parentId);
       else next.add(parentId);
       return next;
     });
+
+    if (isExpanding && needsReplyFetch && onFetchReplies && !fetchedReplies.has(parentId)) {
+      setFetchingThreads((prev) => new Set(prev).add(parentId));
+      const replies = await onFetchReplies(parentId);
+      setFetchedReplies((prev) => new Map(prev).set(parentId, replies));
+      setFetchingThreads((prev) => {
+        const next = new Set(prev);
+        next.delete(parentId);
+        return next;
+      });
+    }
   };
 
   const filteredComments = useMemo(() => {
@@ -194,67 +218,103 @@ export function CommentTable({
       topLevel.map((c) => c.commentId).filter(Boolean),
     );
 
-    const repliesMap = new Map<string, ScrapedComment[]>();
+    const searchLower = search.toLowerCase().trim();
+    const directMatchIds = new Set<string>();
+    if (searchLower) {
+      for (const c of filteredComments) {
+        if (
+          c.comment.toLowerCase().includes(searchLower) ||
+          (c.handle ?? "").toLowerCase().includes(searchLower)
+        )
+          directMatchIds.add(c.commentId!);
+      }
+    }
 
+    const clientRepliesMap = new Map<string, ScrapedComment[]>();
     filteredComments
       .filter((c) => c.isReply)
       .forEach((reply) => {
         if (reply.parentCommentId && parentIdsInList.has(reply.parentCommentId)) {
-          if (!repliesMap.has(reply.parentCommentId)) repliesMap.set(reply.parentCommentId, []);
-          repliesMap.get(reply.parentCommentId)!.push(reply);
+          if (!clientRepliesMap.has(reply.parentCommentId))
+            clientRepliesMap.set(reply.parentCommentId, []);
+          clientRepliesMap.get(reply.parentCommentId)!.push(reply);
         }
       });
-
-    repliesMap.forEach((replies) => {
-      replies.sort(
-        (a, b) =>
-          new Date(a.commentTimestamp || 0).getTime() -
-          new Date(b.commentTimestamp || 0).getTime(),
-      );
-    });
 
     const result: DisplayComment[] = [];
 
     for (const parent of topLevel) {
-      const replies = repliesMap.get(parent.commentId!) || [];
+      const parentId = parent.commentId!;
+      const clientReplies = clientRepliesMap.get(parentId) || [];
+      const serverReplies = fetchedReplies.get(parentId) || [];
 
-      result.push({ ...parent, depth: 0, replyCount: replies.length });
+      const seenIds = new Set<string>();
+      const allReplies: ScrapedComment[] = [];
+      for (const r of [...clientReplies, ...serverReplies]) {
+        if (r.commentId && !seenIds.has(r.commentId)) {
+          seenIds.add(r.commentId);
+          allReplies.push(r);
+        }
+      }
+      allReplies.sort(
+        (a, b) =>
+          new Date(a.commentTimestamp || 0).getTime() -
+          new Date(b.commentTimestamp || 0).getTime(),
+      );
 
-      if (replies.length > 0) {
-        result.push({ ...replies[0], depth: 1 });
+      const inlineReplies: ScrapedComment[] = [];
+      const expandableReplies: ScrapedComment[] = [];
+      for (const r of allReplies) {
+        if (searchLower && directMatchIds.has(r.commentId!)) {
+          inlineReplies.push(r);
+        } else {
+          expandableReplies.push(r);
+        }
+      }
 
-        if (replies.length > 1) {
-          const isExpanded = expandedThreads.has(parent.commentId!);
-          const hiddenScrapedCount = replies.length - 1;
+      const hasReplies =
+        (parent.replyCount ?? 0) > 0 || allReplies.length > 0;
+      const isExpanded = expandedThreads.has(parentId);
 
-          if (isExpanded) {
-            for (let i = 1; i < replies.length; i++) {
-              result.push({ ...replies[i], depth: 1 });
-            }
-            result.push({
-              id: `expander-${parent.commentId}`,
-              isExpander: true,
-              expanderCount: hiddenScrapedCount,
-              parentId: parent.commentId!,
-              expanded: true,
-              depth: 1,
-            } as DisplayComment);
-          } else {
-            result.push({
-              id: `expander-${parent.commentId}`,
-              isExpander: true,
-              expanderCount: hiddenScrapedCount,
-              parentId: parent.commentId!,
-              expanded: false,
-              depth: 1,
-            } as DisplayComment);
+      result.push({ ...parent, depth: 0, replyCount: parent.replyCount });
+
+      for (const r of inlineReplies) {
+        result.push({ ...r, depth: 1 });
+      }
+
+      if (hasReplies) {
+        if (isExpanded) {
+          for (const r of expandableReplies) {
+            result.push({ ...r, depth: 1 });
           }
+          result.push({
+            id: `expander-${parentId}`,
+            isExpander: true,
+            expanderLabel: "Hide Replies",
+            expanderLoading: false,
+            parentId,
+            expanded: true,
+            depth: 1,
+          } as DisplayComment);
+        } else {
+          const loading = fetchingThreads.has(parentId);
+          const label =
+            inlineReplies.length > 0 ? "Show All Replies" : "Show Replies";
+          result.push({
+            id: `expander-${parentId}`,
+            isExpander: true,
+            expanderLabel: label,
+            expanderLoading: loading,
+            parentId,
+            expanded: false,
+            depth: 1,
+          } as DisplayComment);
         }
       }
     }
 
     return result;
-  }, [filteredComments, expandedThreads]);
+  }, [filteredComments, expandedThreads, search, fetchedReplies, fetchingThreads]);
 
   const handleEndReached = useCallback(() => {
     if (isActive && hasMore && !isLoadingMore && onLoadMore) {
@@ -385,8 +445,9 @@ export function CommentTable({
             <div className={index > 0 ? "pt-2" : ""}>
               {item.isExpander ? (
                 <ExpanderRow
-                  count={item.expanderCount!}
+                  label={item.expanderLabel!}
                   expanded={item.expanded!}
+                  loading={item.expanderLoading}
                   onClick={() => toggleThread(item.parentId!)}
                 />
               ) : (

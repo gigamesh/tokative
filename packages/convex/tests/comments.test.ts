@@ -234,6 +234,85 @@ describe("comments", () => {
     });
   });
 
+  describe("getRepliesForParent", () => {
+    it("returns empty array when no replies exist", async () => {
+      await t.mutation(api.comments.addBatch, {
+        clerkId,
+        comments: [makeComment({ commentId: "parent-1", isReply: false })],
+      });
+
+      const replies = await t.query(api.comments.getRepliesForParent, {
+        clerkId,
+        parentCommentId: "parent-1",
+      });
+      expect(replies).toEqual([]);
+    });
+
+    it("returns replies for a parent comment", async () => {
+      await t.mutation(api.comments.addBatch, {
+        clerkId,
+        comments: [
+          makeComment({ commentId: "parent-1", isReply: false }),
+          makeComment({ commentId: "reply-1", isReply: true, parentCommentId: "parent-1", comment: "Reply one" }),
+          makeComment({ commentId: "reply-2", isReply: true, parentCommentId: "parent-1", comment: "Reply two" }),
+        ],
+      });
+
+      const replies = await t.query(api.comments.getRepliesForParent, {
+        clerkId,
+        parentCommentId: "parent-1",
+      });
+      expect(replies).toHaveLength(2);
+      expect(replies.map((r: { comment: string }) => r.comment).sort()).toEqual(["Reply one", "Reply two"]);
+    });
+
+    it("does not return replies from other parents", async () => {
+      await t.mutation(api.comments.addBatch, {
+        clerkId,
+        comments: [
+          makeComment({ commentId: "parent-1", isReply: false }),
+          makeComment({ commentId: "parent-2", isReply: false }),
+          makeComment({ commentId: "reply-1", isReply: true, parentCommentId: "parent-1", comment: "For parent 1" }),
+          makeComment({ commentId: "reply-2", isReply: true, parentCommentId: "parent-2", comment: "For parent 2" }),
+        ],
+      });
+
+      const replies = await t.query(api.comments.getRepliesForParent, {
+        clerkId,
+        parentCommentId: "parent-1",
+      });
+      expect(replies).toHaveLength(1);
+      expect(replies[0].comment).toBe("For parent 1");
+    });
+
+    it("does not return replies from other users", async () => {
+      const otherClerkId = `other-${Date.now()}`;
+      await createTestUser(t, otherClerkId);
+
+      await t.mutation(api.comments.addBatch, {
+        clerkId: otherClerkId,
+        comments: [
+          makeComment({ commentId: "parent-1", isReply: false }),
+          makeComment({ commentId: "reply-1", isReply: true, parentCommentId: "parent-1" }),
+        ],
+      });
+
+      const replies = await t.query(api.comments.getRepliesForParent, {
+        clerkId,
+        parentCommentId: "parent-1",
+      });
+      expect(replies).toEqual([]);
+    });
+
+    it("returns empty array for unknown user", async () => {
+      const replies = await t.query(api.comments.getRepliesForParent, {
+        clerkId: "nonexistent-user",
+        parentCommentId: "parent-1",
+      });
+      expect(replies).toEqual([]);
+    });
+  });
+
   describe("update", () => {
     it("updates reply status fields", async () => {
       await t.mutation(api.comments.addBatch, {

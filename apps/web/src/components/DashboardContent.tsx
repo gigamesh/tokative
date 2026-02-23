@@ -89,6 +89,7 @@ export function DashboardContent() {
     hasMore,
     isLoadingMore,
     findMatchingComments,
+    fetchRepliesForThread,
     search: commentSearch,
     setSearch: setCommentSearch,
   } = useCommentData({
@@ -963,6 +964,8 @@ export function DashboardContent() {
                   translatingIds={translatingIds}
                   onTranslateComment={handleTranslateComment}
                   targetLanguage={targetLanguage}
+                  onFetchReplies={fetchRepliesForThread}
+                  needsReplyFetch={hideOwnReplies || !!commentSearch}
                   isDeletingSelected={isDeletingSelected}
                   headerContent={
                     <>

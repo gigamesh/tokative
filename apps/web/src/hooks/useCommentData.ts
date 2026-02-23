@@ -255,6 +255,17 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     }
   }, [paginationStatus, loadMore]);
 
+  const fetchRepliesForThread = useCallback(
+    async (parentCommentId: string): Promise<ScrapedComment[]> => {
+      if (!userId) return [];
+      return convex.query(api.comments.getRepliesForParent, {
+        clerkId: userId,
+        parentCommentId,
+      }) as unknown as Promise<ScrapedComment[]>;
+    },
+    [userId, convex]
+  );
+
   const findMatchingComments = useCallback(
     async (commentText: string, excludeCommentId: string): Promise<string[]> => {
       if (!userId) return [];
@@ -304,6 +315,7 @@ export function useCommentData(options: UseCommentDataOptions = {}) {
     hasMore: paginationStatus === "CanLoadMore",
     isLoadingMore: paginationStatus === "LoadingMore",
     findMatchingComments,
+    fetchRepliesForThread,
     search,
     setSearch,
   };
