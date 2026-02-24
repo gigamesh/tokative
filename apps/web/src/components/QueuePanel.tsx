@@ -1,19 +1,18 @@
 import { ScrapedComment } from "@/utils/constants";
 import { BulkReplyProgress, CommentReplyStatus } from "@tokative/shared";
-import { ListX } from "lucide-react";
+import { ListX, Loader2 } from "lucide-react";
+import { useCallback, useState } from "react";
 import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
-import { Spinner } from "./Spinner";
+
 
 interface QueuePanelProps {
   queuedComments: ScrapedComment[];
-  onDequeue: (commentIds: string[]) => void;
+  onDequeue: (commentIds: string[]) => Promise<void>;
   onClearQueue: () => void;
   onStartReply: () => void;
-  onStopReply: () => void;
   isReplying: boolean;
   bulkReplyProgress: BulkReplyProgress | null;
-  replyStatusMessage: string | null;
   replyLimitReached: boolean;
   replyBudget: number;
 }
@@ -23,24 +22,32 @@ export function QueuePanel({
   onDequeue,
   onClearQueue,
   onStartReply,
-  onStopReply,
   isReplying,
   bulkReplyProgress,
-  replyStatusMessage,
   replyLimitReached,
   replyBudget,
 }: QueuePanelProps) {
+  const [dequeuingIds, setDequeuingIds] = useState<Set<string>>(new Set());
   const isActive = bulkReplyProgress?.status === "running";
   const isFinished =
     bulkReplyProgress?.status === "complete" ||
     bulkReplyProgress?.status === "stopped";
-  const processed = bulkReplyProgress
-    ? bulkReplyProgress.completed +
-      bulkReplyProgress.failed +
-      bulkReplyProgress.commentNotFound +
-      bulkReplyProgress.mentionFailed +
-      bulkReplyProgress.detectionFailed
-    : 0;
+
+  const handleRemove = useCallback(
+    async (commentId: string) => {
+      setDequeuingIds((prev) => new Set(prev).add(commentId));
+      try {
+        await onDequeue([commentId]);
+      } finally {
+        setDequeuingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(commentId);
+          return next;
+        });
+      }
+    },
+    [onDequeue],
+  );
 
   return (
     <div className="bg-surface-elevated rounded-lg p-4 space-y-3">
@@ -78,77 +85,11 @@ export function QueuePanel({
             <QueuedCommentItem
               key={comment.id}
               comment={comment}
-              onRemove={() => onDequeue([comment.id])}
+              onRemove={() => handleRemove(comment.id)}
+              isRemoving={dequeuingIds.has(comment.id)}
               status={bulkReplyProgress?.commentStatuses?.[comment.id]}
-              isActive={isActive}
             />
           ))}
-        </div>
-      )}
-
-      {(isActive || isFinished) && bulkReplyProgress && (
-        <div className="p-3 bg-surface border border-border rounded-lg space-y-2">
-          {isActive && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Spinner size="sm" />
-                <span className="text-xs font-medium text-foreground">
-                  Reply Progress
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onStopReply}
-                className="text-xs text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300"
-              >
-                Stop
-              </Button>
-            </div>
-          )}
-          <div className="flex justify-between text-xs">
-            <span className="text-foreground-muted">
-              {processed} / {bulkReplyProgress.total}
-            </span>
-            {bulkReplyProgress.current && (
-              <span className="text-foreground-muted">
-                @{bulkReplyProgress.current}
-              </span>
-            )}
-          </div>
-          {isActive && replyStatusMessage && (
-            <p className="text-xs text-foreground-muted">
-              {replyStatusMessage}
-            </p>
-          )}
-          <div className="w-full bg-surface-secondary rounded-full h-1.5">
-            <div
-              className="bg-green-500 h-1.5 rounded-full transition-all"
-              style={{
-                width: `${bulkReplyProgress.total > 0 ? (processed / bulkReplyProgress.total) * 100 : 0}%`,
-              }}
-            />
-          </div>
-          <div className="flex gap-3 text-xs">
-            <span className="text-green-600 dark:text-green-400">
-              {bulkReplyProgress.completed} sent
-            </span>
-            {bulkReplyProgress.failed > 0 && (
-              <span className="text-red-600 dark:text-red-400">
-                {bulkReplyProgress.failed} failed
-              </span>
-            )}
-            {bulkReplyProgress.commentNotFound > 0 && (
-              <span className="text-yellow-600 dark:text-yellow-400">
-                {bulkReplyProgress.commentNotFound} not found
-              </span>
-            )}
-            {bulkReplyProgress.mentionFailed > 0 && (
-              <span className="text-orange-600 dark:text-orange-400">
-                {bulkReplyProgress.mentionFailed} mention failed
-              </span>
-            )}
-          </div>
         </div>
       )}
 
@@ -172,27 +113,79 @@ export function QueuePanel({
   );
 }
 
+function TranslationToggleButton({ active, label = "Show original", ...props }: { active: boolean; label?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...props}
+      className={`text-[10px] select-none rounded px-1 py-0.5 transition-all ${active ? "bg-accent-cyan-500/20 text-accent-cyan-text" : "text-accent-cyan-text opacity-70 hover:opacity-100"}`}
+    >
+      {label}
+    </button>
+  );
+}
+
 function QueuedCommentItem({
   comment,
   onRemove,
+  isRemoving,
   status,
-  isActive,
 }: {
   comment: ScrapedComment;
   onRemove: () => void;
+  isRemoving?: boolean;
   status?: CommentReplyStatus;
-  isActive?: boolean;
 }) {
+  const [showOriginalComment, setShowOriginalComment] = useState(false);
+  const [showTranslatedReply, setShowTranslatedReply] = useState(false);
+
+  const hasTranslatedComment = !!comment.translatedText && comment.translatedText.toLowerCase() !== comment.comment.toLowerCase();
+  const hasTranslatedReply = !!comment.replyOriginalContent && comment.queuedReplyText !== comment.replyOriginalContent;
+
+  const commentDisplayText = hasTranslatedComment && showOriginalComment
+    ? comment.comment
+    : (comment.translatedText ?? comment.comment);
+
+  const replyDisplayText = hasTranslatedReply && showTranslatedReply
+    ? comment.queuedReplyText
+    : (comment.replyOriginalContent ?? comment.queuedReplyText);
+
   return (
-    <div className="px-2 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated transition-colors space-y-1">
+    <div className="px-2 py-1.5 rounded border border-border bg-surface space-y-1">
       <CompactCommentCard
         comment={comment}
         onRemove={onRemove}
+        isRemoving={isRemoving}
         status={status}
+        displayText={commentDisplayText}
       />
+      {hasTranslatedComment && (
+        <div className="ml-7">
+          <TranslationToggleButton
+            active={showOriginalComment}
+            onMouseDown={() => setShowOriginalComment(true)}
+            onMouseUp={() => setShowOriginalComment(false)}
+            onMouseLeave={() => setShowOriginalComment(false)}
+            onTouchStart={() => setShowOriginalComment(true)}
+            onTouchEnd={() => setShowOriginalComment(false)}
+          />
+        </div>
+      )}
       {comment.queuedReplyText && (
-        <div className="ml-7 text-[11px] text-accent-cyan-text/70 truncate">
-          ↳ <span className="text-foreground-muted">{comment.queuedReplyText}</span>
+        <div className="ml-7 space-y-0.5">
+          <div className="text-[11px] text-accent-cyan-text/70 truncate">
+            ↳ <span className="text-foreground-muted">{replyDisplayText}</span>
+          </div>
+          {hasTranslatedReply && (
+            <TranslationToggleButton
+              label="Show translation"
+              active={showTranslatedReply}
+              onMouseDown={() => setShowTranslatedReply(true)}
+              onMouseUp={() => setShowTranslatedReply(false)}
+              onMouseLeave={() => setShowTranslatedReply(false)}
+              onTouchStart={() => setShowTranslatedReply(true)}
+              onTouchEnd={() => setShowTranslatedReply(false)}
+            />
+          )}
         </div>
       )}
     </div>

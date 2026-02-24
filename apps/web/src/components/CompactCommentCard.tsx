@@ -1,7 +1,8 @@
+import { ExternalLink } from "@/components/ExternalLink";
 import { getAvatarColor } from "@/utils/avatar";
 import { ScrapedComment } from "@/utils/constants";
 import { CommentReplyStatus } from "@tokative/shared";
-import { AlertTriangle, Check, CircleAlert, X } from "lucide-react";
+import { AlertTriangle, Check, CircleAlert, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Spinner } from "./Spinner";
@@ -9,7 +10,9 @@ import { Spinner } from "./Spinner";
 interface CompactCommentCardProps {
   comment: ScrapedComment;
   onRemove: () => void;
+  isRemoving?: boolean;
   status?: CommentReplyStatus;
+  displayText?: string;
 }
 
 const STATUS_CONFIG: Record<
@@ -121,32 +124,36 @@ function formatRelativeTime(dateString: string): string {
 export function CompactCommentCard({
   comment,
   onRemove,
+  isRemoving,
   status,
+  displayText,
 }: CompactCommentCardProps) {
   const [avatarFailed, setAvatarFailed] = useState(false);
 
   return (
     <div className="flex items-center gap-2">
-      {comment.avatarUrl && !avatarFailed ? (
-        <img
-          src={comment.avatarUrl}
-          alt={`@${comment.handle}`}
-          className="w-5 h-5 rounded-full object-cover bg-surface-secondary flex-shrink-0"
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => setAvatarFailed(true)}
-        />
-      ) : (
-        <div
-          className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0"
-          style={{ backgroundColor: getAvatarColor(comment.handle) }}
-        >
-          {comment.handle.charAt(0).toUpperCase()}
-        </div>
-      )}
+      <ExternalLink href={comment.profileUrl} className="flex-shrink-0">
+        {comment.avatarUrl && !avatarFailed ? (
+          <img
+            src={comment.avatarUrl}
+            alt={`@${comment.handle}`}
+            className="w-5 h-5 rounded-full object-cover bg-surface-secondary"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={() => setAvatarFailed(true)}
+          />
+        ) : (
+          <div
+            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-white"
+            style={{ backgroundColor: getAvatarColor(comment.handle) }}
+          >
+            {comment.handle.charAt(0).toUpperCase()}
+          </div>
+        )}
+      </ExternalLink>
 
       <span className="text-xs text-foreground-muted truncate flex-1 min-w-0">
-        {comment.translatedText ?? comment.comment}
+        {displayText ?? comment.translatedText ?? comment.comment}
       </span>
 
       {comment.commentTimestamp && (
@@ -155,13 +162,17 @@ export function CompactCommentCard({
         </span>
       )}
 
-      {status && status !== "pending" ? (
+      {status && status !== "pending" && (
         <StatusIndicator status={status} />
+      )}
+      {isRemoving ? (
+        <Loader2 className="w-4 h-4 animate-spin text-foreground-muted flex-shrink-0" />
       ) : (
         <button
           onClick={onRemove}
-          className="p-0.5 text-red-400/70 hover:text-red-400 transition-colors flex-shrink-0"
-          title="Remove from selection"
+          disabled={status === "replying"}
+          className="p-0.5 text-red-400/70 hover:text-red-400 transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-red-400/70"
+          title="Remove from queue"
         >
           <X className="w-4 h-4" />
         </button>

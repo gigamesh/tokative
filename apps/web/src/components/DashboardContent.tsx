@@ -9,6 +9,7 @@ import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
 import { LimitReachedModal } from "@/components/LimitReachedModal";
 import { PostsGrid } from "@/components/PostsGrid";
 import { QueuePanel } from "@/components/QueuePanel";
+import { ReplyProgressPanel } from "@/components/ReplyProgressPanel";
 import { ReplyComposer } from "@/components/ReplyComposer";
 import { ScrapeReportModal } from "@/components/ScrapeReportModal";
 import { SelectedPostContext } from "@/components/SelectedPostContext";
@@ -244,7 +245,7 @@ export function DashboardContent() {
 
   const [toast, setToast] = useState<{ isVisible: boolean; message: string; variant?: "success" | "error"; duration?: number }>({ isVisible: false, message: "" });
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [translateRepliesEnabled, setTranslateRepliesEnabled] = useState(false);
+  const [translateRepliesEnabled, setTranslateRepliesEnabled] = useState(true);
 
   const [replyReport, setReplyReport] = useState<{
     completed: number;
@@ -634,16 +635,20 @@ export function DashboardContent() {
         }
       }
 
+      const originalTexts = selected.map(
+        (_, i) => messages[i % messages.length],
+      );
       const items = selected.map((c, i) => ({
         commentId: c.id,
         replyText: replyTexts[i],
+        replyOriginalContent: replyTexts[i] !== originalTexts[i] ? originalTexts[i] : undefined,
       }));
-
       const optimistic = selected
         .filter((c) => !c.repliedTo && !c.replyErrorCode)
         .map((c, i) => ({
           ...c,
           queuedReplyText: replyTexts[i],
+          replyOriginalContent: replyTexts[i] !== originalTexts[i] ? originalTexts[i] : undefined,
           queuedAt: new Date().toISOString(),
         }));
       setOptimisticQueueItems((prev) => [...prev, ...optimistic]);
@@ -1082,6 +1087,14 @@ export function DashboardContent() {
           <div
             className={`space-y-4 ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
           >
+            {bulkReplyProgress && (bulkReplyProgress.status === "running" || bulkReplyProgress.status === "complete" || bulkReplyProgress.status === "stopped") && (
+              <ReplyProgressPanel
+                bulkReplyProgress={bulkReplyProgress}
+                replyStatusMessage={replyStatusMessage}
+                onStop={stopBulkReply}
+                onDismiss={clearBulkReplyProgress}
+              />
+            )}
             <ReplyComposer
               selectedComments={selectedCommentsForDisplay}
               selectedCount={selectedCommentIds.size}
@@ -1099,10 +1112,8 @@ export function DashboardContent() {
               onDequeue={handleDequeue}
               onClearQueue={handleClearQueue}
               onStartReply={handleStartQueueReply}
-              onStopReply={stopBulkReply}
               isReplying={isReplying}
               bulkReplyProgress={bulkReplyProgress}
-              replyStatusMessage={replyStatusMessage}
               replyLimitReached={replyLimitReached}
               replyBudget={replyBudget}
             />

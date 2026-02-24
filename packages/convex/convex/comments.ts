@@ -699,7 +699,11 @@ export const enqueue = mutation({
   args: {
     clerkId: v.string(),
     items: v.array(
-      v.object({ commentId: v.string(), replyText: v.string() }),
+      v.object({
+        commentId: v.string(),
+        replyText: v.string(),
+        replyOriginalContent: v.optional(v.string()),
+      }),
     ),
   },
   handler: async (ctx, args) => {
@@ -729,6 +733,7 @@ export const enqueue = mutation({
 
       await ctx.db.patch(comment._id, {
         queuedReplyText: item.replyText,
+        replyOriginalContent: item.replyOriginalContent,
         queuedAt: now + i,
       });
       queued++;
