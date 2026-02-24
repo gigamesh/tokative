@@ -12,13 +12,13 @@ export function SearchInput({
   placeholder = "Search comments...",
 }: SearchInputProps) {
   return (
-    <div className="relative">
+    <div className="relative flex-1 min-w-0">
       <input
         type="text"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg min-w-80 text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted"
+        className="w-full px-3 py-2 pr-8 bg-surface-elevated border border-border rounded-lg text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted"
       />
       {value && (
         <button

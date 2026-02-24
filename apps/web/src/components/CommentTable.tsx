@@ -395,7 +395,7 @@ export function CommentTable({
     <>
       {headerContent}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex gap-2 flex-wrap items-center">
+        <div className="flex gap-2 flex-wrap items-center flex-1 min-w-0">
           <SearchInput value={search} onChange={onSearchChange} />
 
           <select
