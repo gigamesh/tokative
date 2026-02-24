@@ -12,12 +12,12 @@ export function ExpanderRow({ label, expanded, onClick, loading }: ExpanderRowPr
   return (
     <button
       onClick={onClick}
-      className="ml-10 pl-4 border-l-2 border-border py-2 flex items-center gap-2 text-sm text-foreground-muted hover:text-accent-cyan-text transition-colors w-full text-left"
+      className="ml-10 pl-4 border-l-2 border-border py-1 flex items-center gap-1.5 text-xs text-foreground-muted hover:text-accent-cyan-text transition-colors w-full text-left"
     >
       {loading ? (
         <Spinner size="sm" />
       ) : (
-        <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
       )}
       {label}
     </button>

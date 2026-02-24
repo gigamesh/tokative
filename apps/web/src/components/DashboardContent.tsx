@@ -30,7 +30,7 @@ import { useAuth } from "@/providers/ConvexProvider";
 import { ScrapedComment, TERMINAL_REPLY_STATUSES } from "@/utils/constants";
 import { api, BILLING_ENABLED, PLAN_LIMITS } from "@tokative/convex";
 import { useMutation, useQuery } from "convex/react";
-import { AlertTriangle, Settings, X } from "lucide-react";
+import { AlertTriangle, EyeOff, Settings, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -107,7 +107,15 @@ export function DashboardContent() {
   const comments = useMemo(() => {
     let filtered = allComments;
     if (hideOwnReplies) {
+      const repliedParentIds = new Set<string>();
+      for (const c of allComments) {
+        if (c.parentCommentId && (c.source === "app" || (accountHandle && c.isReply && c.handle === accountHandle))) {
+          repliedParentIds.add(c.parentCommentId);
+        }
+      }
       filtered = filtered.filter((c) => {
+        if (c.repliedTo) return false;
+        if (c.commentId && repliedParentIds.has(c.commentId)) return false;
         if (c.source === "app") return false;
         if (accountHandle && c.isReply && c.handle === accountHandle) return false;
         return true;
@@ -360,13 +368,23 @@ export function DashboardContent() {
   }, [videos]);
 
   const filteredCommenters = useMemo(() => {
-    if (!hideOwnReplies || !accountHandle) return commenters;
+    if (!hideOwnReplies) return commenters;
+    const repliedParentIds = new Set<string>();
+    for (const commenter of commenters) {
+      for (const c of commenter.comments) {
+        if (c.parentCommentId && (c.source === "app" || (accountHandle && c.isReply && c.handle === accountHandle))) {
+          repliedParentIds.add(c.parentCommentId);
+        }
+      }
+    }
     return commenters
       .map((c) => ({
         ...c,
         comments: c.comments.filter((comment) => {
+          if (comment.repliedTo) return false;
+          if (comment.commentId && repliedParentIds.has(comment.commentId)) return false;
           if (comment.source === "app") return false;
-          if (comment.isReply && comment.handle === accountHandle) return false;
+          if (accountHandle && comment.isReply && comment.handle === accountHandle) return false;
           return true;
         }),
       }))
@@ -1015,6 +1033,12 @@ export function DashboardContent() {
                           Settings
                         </Button>
                       </div>
+                      {hideOwnReplies && (
+                        <button onClick={() => setSettingsModalOpen(true)} className="mt-2 ml-auto flex items-center gap-2 text-xs text-foreground-muted hover:text-foreground-secondary transition-colors">
+                          <EyeOff className="w-3.5 h-3.5" />
+                          <span>Hiding replied-to comments</span>
+                        </button>
+                      )}
                       {selectedVideo && (
                         <div className="mt-3">
                           <SelectedPostContext
@@ -1065,19 +1089,27 @@ export function DashboardContent() {
                   onTranslateComment={handleTranslateComment}
                   targetLanguage={targetLanguage}
                   headerContent={
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-medium text-foreground">
-                        Commenters
-                      </h2>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        icon={<Settings />}
-                        onClick={() => setSettingsModalOpen(true)}
-                      >
-                        Settings
-                      </Button>
-                    </div>
+                    <>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-medium text-foreground">
+                          Commenters
+                        </h2>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={<Settings />}
+                          onClick={() => setSettingsModalOpen(true)}
+                        >
+                          Settings
+                        </Button>
+                      </div>
+                      {hideOwnReplies && (
+                        <button onClick={() => setSettingsModalOpen(true)} className="mt-2 ml-auto flex items-center gap-2 text-xs text-foreground-muted hover:text-foreground-secondary transition-colors">
+                          <EyeOff className="w-3.5 h-3.5" />
+                          <span>Hiding replied-to comments</span>
+                        </button>
+                      )}
+                    </>
                   }
                 />
               </TabContentContainer>
