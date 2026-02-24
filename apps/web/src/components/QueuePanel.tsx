@@ -1,10 +1,9 @@
 import { ScrapedComment } from "@/utils/constants";
 import { BulkReplyProgress, CommentReplyStatus } from "@tokative/shared";
-import { ListX, Loader2 } from "lucide-react";
+import { ListX } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
-
 
 interface QueuePanelProps {
   queuedComments: ScrapedComment[];
@@ -50,7 +49,7 @@ export function QueuePanel({
   );
 
   return (
-    <div className="bg-surface-elevated rounded-lg p-4 space-y-3">
+    <div className="bg-surface-elevated rounded-lg p-4 space-y-3 min-w-0">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="font-medium text-foreground">Reply Queue</h3>
@@ -113,7 +112,14 @@ export function QueuePanel({
   );
 }
 
-function TranslationToggleButton({ active, label = "Show original", ...props }: { active: boolean; label?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+function TranslationToggleButton({
+  active,
+  label = "Show original",
+  ...props
+}: {
+  active: boolean;
+  label?: string;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...props}
@@ -138,19 +144,25 @@ function QueuedCommentItem({
   const [showOriginalComment, setShowOriginalComment] = useState(false);
   const [showTranslatedReply, setShowTranslatedReply] = useState(false);
 
-  const hasTranslatedComment = !!comment.translatedText && comment.translatedText.toLowerCase() !== comment.comment.toLowerCase();
-  const hasTranslatedReply = !!comment.replyOriginalContent && comment.queuedReplyText !== comment.replyOriginalContent;
+  const hasTranslatedComment =
+    !!comment.translatedText &&
+    comment.translatedText.toLowerCase() !== comment.comment.toLowerCase();
+  const hasTranslatedReply =
+    !!comment.replyOriginalContent &&
+    comment.queuedReplyText !== comment.replyOriginalContent;
 
-  const commentDisplayText = hasTranslatedComment && showOriginalComment
-    ? comment.comment
-    : (comment.translatedText ?? comment.comment);
+  const commentDisplayText =
+    hasTranslatedComment && showOriginalComment
+      ? comment.comment
+      : (comment.translatedText ?? comment.comment);
 
-  const replyDisplayText = hasTranslatedReply && showTranslatedReply
-    ? comment.queuedReplyText
-    : (comment.replyOriginalContent ?? comment.queuedReplyText);
+  const replyDisplayText =
+    hasTranslatedReply && showTranslatedReply
+      ? comment.queuedReplyText
+      : (comment.replyOriginalContent ?? comment.queuedReplyText);
 
   return (
-    <div className="px-2 py-1.5 rounded border border-border bg-surface space-y-1">
+    <div className="px-2 py-1.5 rounded border border-border bg-surface">
       <CompactCommentCard
         comment={comment}
         onRemove={onRemove}
@@ -171,7 +183,7 @@ function QueuedCommentItem({
         </div>
       )}
       {comment.queuedReplyText && (
-        <div className="ml-7 space-y-0.5">
+        <div className="ml-7">
           <div className="text-[11px] text-accent-cyan-text/70 truncate">
             ↳ <span className="text-foreground-muted">{replyDisplayText}</span>
           </div>

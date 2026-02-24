@@ -131,52 +131,57 @@ export function CompactCommentCard({
   const [avatarFailed, setAvatarFailed] = useState(false);
 
   return (
-    <div className="flex items-center gap-2">
-      <ExternalLink href={comment.profileUrl} className="flex-shrink-0">
-        {comment.avatarUrl && !avatarFailed ? (
-          <img
-            src={comment.avatarUrl}
-            alt={`@${comment.handle}`}
-            className="w-5 h-5 rounded-full object-cover bg-surface-secondary"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            onError={() => setAvatarFailed(true)}
-          />
-        ) : (
-          <div
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-white"
-            style={{ backgroundColor: getAvatarColor(comment.handle) }}
-          >
-            {comment.handle.charAt(0).toUpperCase()}
-          </div>
-        )}
-      </ExternalLink>
-
-      <span className="text-xs text-foreground-muted truncate flex-1 min-w-0">
-        {displayText ?? comment.translatedText ?? comment.comment}
-      </span>
-
-      {comment.commentTimestamp && (
-        <span className="text-[10px] text-foreground-muted flex-shrink-0">
-          {formatRelativeTime(comment.commentTimestamp)}
-        </span>
-      )}
-
-      {status && status !== "pending" && (
-        <StatusIndicator status={status} />
-      )}
-      {isRemoving ? (
-        <Loader2 className="w-4 h-4 animate-spin text-foreground-muted flex-shrink-0" />
-      ) : (
-        <button
-          onClick={onRemove}
-          disabled={status === "replying"}
-          className="p-0.5 text-red-400/70 hover:text-red-400 transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-red-400/70"
-          title="Remove from queue"
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <ExternalLink href={comment.profileUrl} className="flex-shrink-0">
+          {comment.avatarUrl && !avatarFailed ? (
+            <img
+              src={comment.avatarUrl}
+              alt={`@${comment.handle}`}
+              className="w-5 h-5 rounded-full object-cover bg-surface-secondary"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setAvatarFailed(true)}
+            />
+          ) : (
+            <div
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-white"
+              style={{ backgroundColor: getAvatarColor(comment.handle) }}
+            >
+              {comment.handle.charAt(0).toUpperCase()}
+            </div>
+          )}
+        </ExternalLink>
+        <ExternalLink
+          href={comment.profileUrl}
+          className="text-xs text-foreground-secondary truncate"
         >
-          <X className="w-4 h-4" />
-        </button>
-      )}
+          @{comment.handle}
+        </ExternalLink>
+        {comment.commentTimestamp && (
+          <span className="text-[10px] text-foreground-muted flex-shrink-0 ml-auto">
+            {formatRelativeTime(comment.commentTimestamp)}
+          </span>
+        )}
+        {status && status !== "pending" && (
+          <StatusIndicator status={status} />
+        )}
+        {isRemoving ? (
+          <Loader2 className="w-4 h-4 animate-spin text-foreground-muted flex-shrink-0" />
+        ) : (
+          <button
+            onClick={onRemove}
+            disabled={status === "replying"}
+            className="p-0.5 text-red-400/70 hover:text-red-400 transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-red-400/70"
+            title="Remove from queue"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      <div className="ml-7 text-xs text-foreground-muted truncate min-w-0">
+        {displayText ?? comment.translatedText ?? comment.comment}
+      </div>
     </div>
   );
 }

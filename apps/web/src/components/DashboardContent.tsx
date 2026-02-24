@@ -1131,7 +1131,7 @@ export function DashboardContent() {
           </div>
 
           <div
-            className={`space-y-4 ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
+            className={`space-y-4 min-w-0 ${activeTab === "posts" ? "hidden lg:hidden" : ""}`}
           >
             {bulkReplyProgress && (bulkReplyProgress.status === "running" || bulkReplyProgress.status === "complete" || bulkReplyProgress.status === "stopped") && (
               <ReplyProgressPanel
