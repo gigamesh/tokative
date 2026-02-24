@@ -1031,6 +1031,7 @@ export function DashboardContent() {
                   needsReplyFetch={hideOwnReplies || !!commentSearch}
                   isDeletingSelected={isDeletingSelected}
                   scrollerRef={commentScrollerRef}
+                  accountHandle={accountHandle}
                   headerContent={
                     <>
                       <div className="flex items-center justify-between">

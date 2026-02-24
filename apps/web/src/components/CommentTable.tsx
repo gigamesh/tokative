@@ -103,6 +103,7 @@ interface CommentTableProps {
   needsReplyFetch?: boolean;
   isDeletingSelected?: boolean;
   scrollerRef?: React.RefObject<HTMLDivElement | null>;
+  accountHandle?: string | null;
 }
 
 export function CommentTable({
@@ -136,6 +137,7 @@ export function CommentTable({
   needsReplyFetch,
   isDeletingSelected,
   scrollerRef,
+  accountHandle,
 }: CommentTableProps) {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -290,17 +292,22 @@ export function CommentTable({
           new Date(b.commentTimestamp || 0).getTime(),
       );
 
+      const isOwnReply = (r: ScrapedComment) =>
+        r.source === "app" ||
+        (accountHandle && r.isReply && r.handle === accountHandle);
+
       const inlineReplies: ScrapedComment[] = [];
       const expandableReplies: ScrapedComment[] = [];
       for (const r of allReplies) {
-        if (searchLower && directMatchIds.has(r.commentId!)) {
+        if (isOwnReply(r) || (searchLower && directMatchIds.has(r.commentId!))) {
           inlineReplies.push(r);
         } else {
           expandableReplies.push(r);
         }
       }
 
-      const hasReplies = (parent.replyCount ?? 0) > 0 || allReplies.length > 0;
+      const hasExpandableReplies = expandableReplies.length > 0 ||
+        (parent.replyCount ?? 0) > inlineReplies.length;
       const isExpanded = expandedThreads.has(parentId);
 
       result.push({ ...parent, depth: 0, replyCount: parent.replyCount });
@@ -309,7 +316,7 @@ export function CommentTable({
         result.push({ ...r, depth: 1 });
       }
 
-      if (hasReplies) {
+      if (hasExpandableReplies) {
         if (isExpanded) {
           for (const r of expandableReplies) {
             result.push({ ...r, depth: 1 });
@@ -325,8 +332,12 @@ export function CommentTable({
           } as DisplayComment);
         } else {
           const loading = fetchingThreads.has(parentId);
-          const label =
-            inlineReplies.length > 0 ? "Show All Replies" : "Show Replies";
+          const remainingCount = expandableReplies.length > 0
+            ? expandableReplies.length
+            : Math.max(0, (parent.replyCount ?? 0) - inlineReplies.length);
+          const label = inlineReplies.length > 0
+            ? `Show More Replies${remainingCount > 0 ? ` (${remainingCount})` : ""}`
+            : "Show Replies";
           result.push({
             id: `expander-${parentId}`,
             isExpander: true,
@@ -347,6 +358,7 @@ export function CommentTable({
     search,
     fetchedReplies,
     fetchingThreads,
+    accountHandle,
   ]);
 
   const handleEndReached = useCallback(() => {
