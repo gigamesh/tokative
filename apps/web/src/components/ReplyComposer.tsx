@@ -169,8 +169,8 @@ export function ReplyComposer({
                   }
                   value={message}
                   onChange={(e) => updateMessage(index, e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted resize-y text-sm min-h-[100px]"
+                  rows={2}
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent-cyan-muted resize-y text-sm min-h-[50px]"
                 />
                 <button
                   type="button"

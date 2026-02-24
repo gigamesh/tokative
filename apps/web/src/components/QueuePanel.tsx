@@ -1,6 +1,6 @@
 import { ScrapedComment } from "@/utils/constants";
 import { BulkReplyProgress, CommentReplyStatus } from "@tokative/shared";
-import { ListX } from "lucide-react";
+import { ListX, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Button } from "./Button";
 import { CompactCommentCard } from "./CompactCommentCard";
@@ -8,7 +8,7 @@ import { CompactCommentCard } from "./CompactCommentCard";
 interface QueuePanelProps {
   queuedComments: ScrapedComment[];
   onDequeue: (commentIds: string[]) => Promise<void>;
-  onClearQueue: () => void;
+  onClearQueue: () => Promise<void>;
   onStartReply: () => void;
   isReplying: boolean;
   bulkReplyProgress: BulkReplyProgress | null;
@@ -27,10 +27,23 @@ export function QueuePanel({
   replyBudget,
 }: QueuePanelProps) {
   const [dequeuingIds, setDequeuingIds] = useState<Set<string>>(new Set());
+  const [isClearing, setIsClearing] = useState(false);
   const isActive = bulkReplyProgress?.status === "running";
   const isFinished =
     bulkReplyProgress?.status === "complete" ||
     bulkReplyProgress?.status === "stopped";
+  const actionableCount = queuedComments.filter(
+    (c) => !c.repliedTo && !c.replyErrorCode,
+  ).length;
+
+  const handleClear = useCallback(async () => {
+    setIsClearing(true);
+    try {
+      await onClearQueue();
+    } finally {
+      setIsClearing(false);
+    }
+  }, [onClearQueue]);
 
   const handleRemove = useCallback(
     async (commentId: string) => {
@@ -63,8 +76,9 @@ export function QueuePanel({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onClearQueue}
-            icon={<ListX />}
+            onClick={handleClear}
+            disabled={isClearing}
+            icon={isClearing ? <Loader2 className="animate-spin" /> : <ListX />}
             className="text-xs"
           >
             Clear All
@@ -73,9 +87,11 @@ export function QueuePanel({
       </div>
 
       {queuedComments.length === 0 && !isFinished && (
-        <p className="text-sm text-foreground-muted py-4 text-center">
-          Select comments and add them to the queue to get started.
-        </p>
+        <div className="border border-dashed border-border rounded-lg py-8 px-4 text-center">
+          <p className="text-sm text-foreground-muted text-balance px-8">
+            Select comments, write reply messages, then click Add To Queue
+          </p>
+        </div>
       )}
 
       {queuedComments.length > 0 && (
@@ -92,20 +108,18 @@ export function QueuePanel({
         </div>
       )}
 
-      {!isActive && (
+      {!isActive && queuedComments.length > 0 && (
         <Button
-          variant="secondary"
+          variant="primary"
           fullWidth
           onClick={onStartReply}
-          disabled={
-            queuedComments.length === 0 || replyLimitReached || isReplying
-          }
+          disabled={actionableCount === 0 || replyLimitReached || isReplying}
         >
           {replyLimitReached
             ? "Reply Limit Reached"
-            : queuedComments.length === 0
-              ? "Queue Empty"
-              : `Start Replying (${Math.min(queuedComments.length, replyBudget)})`}
+            : actionableCount === 0
+              ? "Start Replying"
+              : `Start Replying (${Math.min(actionableCount, replyBudget)})`}
         </Button>
       )}
     </div>

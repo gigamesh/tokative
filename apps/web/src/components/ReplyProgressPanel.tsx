@@ -55,7 +55,7 @@ export function ReplyProgressPanel({
         <span className="text-foreground-muted">
           {processed} / {bulkReplyProgress.total}
         </span>
-        {bulkReplyProgress.current && (
+        {isActive && bulkReplyProgress.current && (
           <span className="text-foreground-muted">
             @{bulkReplyProgress.current}
           </span>

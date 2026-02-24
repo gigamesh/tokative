@@ -493,15 +493,10 @@ export const update = mutation({
       });
     }
 
-    const shouldDequeue =
-      args.updates.repliedTo === true || args.updates.replyErrorCode != null;
     const updates = {
       ...args.updates,
       ...(args.updates.repliedTo === true
         ? { replyErrorCode: undefined }
-        : {}),
-      ...(shouldDequeue
-        ? { queuedReplyText: undefined, queuedAt: undefined }
         : {}),
     };
     await ctx.db.patch(comment._id, updates);
@@ -813,7 +808,13 @@ export const getQueue = query({
       .order("asc")
       .collect();
 
-    return queued.filter((c) => c.queuedAt != null).map(formatComment);
+    const filtered = queued.filter((c) => c.queuedAt != null);
+    filtered.sort((a, b) => {
+      const rank = (c: typeof a) =>
+        c.repliedTo ? 2 : c.replyErrorCode ? 1 : 0;
+      return rank(a) - rank(b);
+    });
+    return filtered.map(formatComment);
   },
 });
 

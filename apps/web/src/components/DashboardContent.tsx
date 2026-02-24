@@ -722,7 +722,8 @@ export function DashboardContent() {
       showToast("Monthly reply limit reached. Upgrade for more replies.");
       return;
     }
-    const capped = queuedComments.slice(0, replyBudget).map((c) => ({
+    const unreplied = queuedComments.filter((c) => !c.repliedTo && !c.replyErrorCode);
+    const capped = unreplied.slice(0, replyBudget).map((c) => ({
       ...c,
       messageToSend: c.queuedReplyText,
     }));

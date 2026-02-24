@@ -969,6 +969,7 @@ async function handleBulkReply(
   let currentTabId: number | undefined;
   let currentVideoId: string | null = null;
   let commentIndex = 0;
+  let unexpectedError = false;
 
   try {
     while (bulkReplyPending.length > 0) {
@@ -1000,10 +1001,14 @@ async function handleBulkReply(
       if (bulkReplyProgress.commentStatuses) {
         bulkReplyProgress.commentStatuses[comment.id] = "replying";
       }
-      port.postMessage({
-        type: MessageType.BULK_REPLY_PROGRESS,
-        payload: bulkReplyProgress,
-      });
+      try {
+        port.postMessage({
+          type: MessageType.BULK_REPLY_PROGRESS,
+          payload: bulkReplyProgress,
+        });
+      } catch {
+        break;
+      }
 
       const result = await handleReplyToComment(
         comment,
@@ -1037,10 +1042,12 @@ async function handleBulkReply(
             bulkReplyProgress.commentStatuses[comment.id] = "sent";
           }
         }
-        await updateScrapedComment(comment.id, {
-          repliedTo: true,
-          repliedAt: new Date().toISOString(),
-        });
+        try {
+          await updateScrapedComment(comment.id, {
+            repliedTo: true,
+            repliedAt: new Date().toISOString(),
+          });
+        } catch {}
         if (result.tabId) {
           currentTabId = result.tabId;
         }
@@ -1052,9 +1059,11 @@ async function handleBulkReply(
         if (bulkReplyProgress.commentStatuses) {
           bulkReplyProgress.commentStatuses[comment.id] = "commentNotFound";
         }
-        await updateScrapedComment(comment.id, {
-          replyErrorCode: "comment_not_found",
-        });
+        try {
+          await updateScrapedComment(comment.id, {
+            replyErrorCode: "comment_not_found",
+          });
+        } catch {}
       } else if (
         result.errorCode === "MENTION_USER_NOT_FOUND" ||
         result.errorCode === "MENTION_BUTTON_NOT_FOUND" ||
@@ -1066,17 +1075,21 @@ async function handleBulkReply(
         if (bulkReplyProgress.commentStatuses) {
           bulkReplyProgress.commentStatuses[comment.id] = "mentionFailed";
         }
-        await updateScrapedComment(comment.id, {
-          replyErrorCode: "mention_failed",
-        });
+        try {
+          await updateScrapedComment(comment.id, {
+            replyErrorCode: "mention_failed",
+          });
+        } catch {}
       } else {
         bulkReplyProgress.failed++;
         if (bulkReplyProgress.commentStatuses) {
           bulkReplyProgress.commentStatuses[comment.id] = "failed";
         }
-        await updateScrapedComment(comment.id, {
-          replyErrorCode: "reply_failed",
-        });
+        try {
+          await updateScrapedComment(comment.id, {
+            replyErrorCode: "reply_failed",
+          });
+        } catch {}
       }
 
       if (bulkReplyPending.length > 0 && !bulkReplyAborted) {
@@ -1088,26 +1101,20 @@ async function handleBulkReply(
       }
     }
   } catch (error) {
-    bulkReplyProgress.failed += Math.max(
-      0,
-      bulkReplyProgress.total -
-        bulkReplyProgress.completed -
-        bulkReplyProgress.failed -
-        bulkReplyProgress.commentNotFound -
-        bulkReplyProgress.mentionFailed -
-        bulkReplyProgress.detectionFailed,
-    );
+    unexpectedError = true;
   } finally {
     const config = getLoadedConfig();
     if (currentTabId && !config.features?.keepReplyTabOpen) {
       closeTabIntentionally(currentTabId);
     }
 
-    bulkReplyProgress.status = bulkReplyAborted ? "stopped" : "complete";
-    port.postMessage({
-      type: MessageType.BULK_REPLY_COMPLETE,
-      payload: bulkReplyProgress,
-    });
+    bulkReplyProgress.status = (bulkReplyAborted || unexpectedError) ? "stopped" : "complete";
+    try {
+      port.postMessage({
+        type: MessageType.BULK_REPLY_COMPLETE,
+        payload: bulkReplyProgress,
+      });
+    } catch {}
 
     bulkReplyPending = [];
     bulkReplyProcessedIds = new Set();

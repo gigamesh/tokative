@@ -2,7 +2,7 @@ import { ExternalLink } from "@/components/ExternalLink";
 import { getAvatarColor } from "@/utils/avatar";
 import { ScrapedComment } from "@/utils/constants";
 import { CommentReplyStatus } from "@tokative/shared";
-import { AlertTriangle, Check, CircleAlert, Loader2, X } from "lucide-react";
+import { AlertTriangle, Check, CircleAlert, ExternalLink as ExternalLinkIcon, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Spinner } from "./Spinner";
@@ -162,6 +162,15 @@ export function CompactCommentCard({
           <span className="text-[10px] text-foreground-muted flex-shrink-0 ml-auto">
             {formatRelativeTime(comment.commentTimestamp)}
           </span>
+        )}
+        {comment.videoUrl && (
+          <ExternalLink
+            href={comment.videoUrl}
+            className={`flex-shrink-0 text-foreground-muted hover:text-accent-cyan-text transition-colors${comment.commentTimestamp ? "" : " ml-auto"}`}
+            title="Open on TikTok"
+          >
+            <ExternalLinkIcon className="w-3.5 h-3.5" />
+          </ExternalLink>
         )}
         {status && status !== "pending" && (
           <StatusIndicator status={status} />
