@@ -50,9 +50,10 @@ export function ReplyComposer({
     if (!translationEnabled || !targetLanguage) {
       return { hasTranslatableComments: false, languageSummary: "" };
     }
+    const attempted = selectedComments.filter((c) => c.translationAttempted);
     const counts = new Map<string, number>();
     let translatableCount = 0;
-    for (const c of selectedComments) {
+    for (const c of attempted) {
       const lang = c.detectedLanguage || "unknown";
       counts.set(lang, (counts.get(lang) ?? 0) + 1);
       if (lang !== targetLanguage && lang !== "unknown" && lang !== "other") translatableCount++;
@@ -245,12 +246,15 @@ export function ReplyComposer({
         )}
       </div>
 
-      {translationEnabled && hasTranslatableComments && (
+      {translationEnabled && (
         <div className="space-y-1.5">
           <button
             type="button"
-            onClick={() => onTranslateRepliesToggle?.(!translateRepliesEnabled)}
-            className="flex items-center gap-2 w-full text-left text-sm"
+            onClick={() => hasTranslatableComments && onTranslateRepliesToggle?.(!translateRepliesEnabled)}
+            className={`flex items-center gap-2 w-full text-left text-sm ${
+              !hasTranslatableComments ? "opacity-40 cursor-default" : ""
+            }`}
+            disabled={!hasTranslatableComments}
           >
             <Globe className="w-4 h-4 text-accent-cyan-text flex-shrink-0" />
             <span className="flex-1 text-foreground-muted">
@@ -258,7 +262,7 @@ export function ReplyComposer({
             </span>
             <div
               className={`w-8 h-[18px] rounded-full transition-colors flex items-center ${
-                translateRepliesEnabled
+                hasTranslatableComments && translateRepliesEnabled
                   ? "bg-accent-cyan-muted justify-end"
                   : "bg-border justify-start"
               }`}
@@ -266,7 +270,7 @@ export function ReplyComposer({
               <div className="w-3.5 h-3.5 bg-white rounded-full mx-0.5" />
             </div>
           </button>
-          {translateRepliesEnabled && (
+          {hasTranslatableComments && translateRepliesEnabled && (
             <p className="text-xs text-foreground-muted pl-6">
               {languageSummary}
             </p>

@@ -136,6 +136,7 @@ export interface ScrapedComment {
   source?: "app" | "scraped";
   detectedLanguage?: string;
   translatedText?: string;
+  translationAttempted?: boolean;
   replyOriginalContent?: string;
   messageToSend?: string;
   queuedReplyText?: string;

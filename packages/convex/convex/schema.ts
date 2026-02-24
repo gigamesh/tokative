@@ -73,6 +73,7 @@ export default defineSchema({
     source: v.optional(v.union(v.literal("app"), v.literal("scraped"))),
     detectedLanguage: v.optional(v.string()),
     translatedText: v.optional(v.string()),
+    translationAttempted: v.optional(v.boolean()),
     replyOriginalContent: v.optional(v.string()),
     handle: v.optional(v.string()),
     profileUrl: v.optional(v.string()),

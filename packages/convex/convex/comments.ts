@@ -77,6 +77,7 @@ function formatComment(c: Doc<"comments">) {
     source: c.source,
     detectedLanguage: c.detectedLanguage,
     translatedText: c.translatedText,
+    translationAttempted: c.translationAttempted,
     replyOriginalContent: c.replyOriginalContent,
     queuedReplyText: c.queuedReplyText,
     queuedAt: c.queuedAt ? new Date(c.queuedAt).toISOString() : undefined,

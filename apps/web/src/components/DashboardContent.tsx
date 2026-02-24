@@ -178,6 +178,7 @@ export function DashboardContent() {
     translatingIds,
     targetLanguage,
     translateComment: handleTranslateComment,
+    translateCommentsBatch,
     translateReplies,
     isTranslatingReplies,
   } = useTranslation(translationEnabled);
@@ -410,6 +411,18 @@ export function DashboardContent() {
     }
     return selected;
   }, [comments, allCommentsFromCommenters, selectedCommentIds, activeTab]);
+
+  const translationRequestedIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!translationEnabled) return;
+    const untranslatedIds = selectedCommentsForDisplay
+      .filter((c) => !c.translationAttempted && !translationRequestedIds.current.has(c.id))
+      .map((c) => c.id);
+    if (untranslatedIds.length === 0) return;
+    for (const id of untranslatedIds) translationRequestedIds.current.add(id);
+    translateCommentsBatch(untranslatedIds);
+  }, [selectedCommentsForDisplay, translationEnabled, translateCommentsBatch]);
 
   const replyingCommentId = useMemo(() => {
     if (!bulkReplyProgress?.commentStatuses) return null;

@@ -17,6 +17,7 @@ export function useTranslation(featureEnabled: boolean) {
 
   const translateCommentAction = useAction(api.translation.translateComment);
   const translateRepliesAction = useAction(api.translation.translateReplies);
+  const translateCommentsBatchAction = useAction(api.translation.translateCommentsBatch);
 
   const translateComment = useCallback(
     async (commentId: string) => {
@@ -39,6 +40,18 @@ export function useTranslation(featureEnabled: boolean) {
     [userId, featureEnabled, targetLanguage, translateCommentAction],
   );
 
+  const translateCommentsBatch = useCallback(
+    (commentIds: string[]) => {
+      if (!userId || !featureEnabled || commentIds.length === 0) return;
+      translateCommentsBatchAction({
+        clerkId: userId,
+        commentIds,
+        targetLanguage,
+      }).catch(() => {});
+    },
+    [userId, featureEnabled, targetLanguage, translateCommentsBatchAction],
+  );
+
   const translateReplies = useCallback(
     async (translations: Array<{ text: string; targetLanguage: string }>) => {
       if (!userId || !featureEnabled) return [];
@@ -59,6 +72,7 @@ export function useTranslation(featureEnabled: boolean) {
     translatingIds,
     targetLanguage,
     translateComment,
+    translateCommentsBatch,
     translateReplies,
     isTranslatingReplies,
   };

@@ -7,6 +7,24 @@ import { franc } from "franc-min";
 import { isPremiumWhitelisted } from "./constants";
 import { detectLanguages } from "./lib/detectLanguage";
 
+/** Returns the Levenshtein edit distance between two strings. */
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const curr = [i];
+    for (let j = 1; j <= n; j++) {
+      curr[j] = a[i - 1] === b[j - 1]
+        ? prev[j - 1]
+        : 1 + Math.min(prev[j - 1], prev[j], curr[j - 1]);
+    }
+    prev = curr;
+  }
+  return prev[n];
+}
+
 export const patchLanguage = internalMutation({
   args: {
     commentDocId: v.id("comments"),
@@ -15,6 +33,17 @@ export const patchLanguage = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.commentDocId, {
       detectedLanguage: args.detectedLanguage,
+    });
+  },
+});
+
+export const patchTranslationAttempted = internalMutation({
+  args: {
+    commentDocId: v.id("comments"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.commentDocId, {
+      translationAttempted: true,
     });
   },
 });
@@ -176,6 +205,63 @@ export const translateReplies = action({
   },
 });
 
+/** Auto-translates comments when added to the reply queue. Uses Google Translate auto-detect. */
+export const translateCommentsBatch = action({
+  args: {
+    clerkId: v.string(),
+    commentIds: v.array(v.string()),
+    targetLanguage: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.runQuery(internal.translation.getUserByClerkId, {
+      clerkId: args.clerkId,
+    });
+    if (!user || !isPremiumWhitelisted(user.email ?? "")) return;
+
+    const comments = await ctx.runQuery(
+      internal.translation.getCommentsByUserAndIds,
+      { userId: user._id, commentIds: args.commentIds },
+    );
+    const unattempted = comments.filter((c) => !c.translationAttempted);
+    if (unattempted.length === 0) return;
+
+    const results = await translateBatch(
+      unattempted.map((c) => c.comment),
+      args.targetLanguage,
+    );
+
+    for (let i = 0; i < unattempted.length; i++) {
+      const { detectedSourceLanguage, translatedText } = results[i];
+
+      await ctx.runMutation(internal.translation.patchTranslationAttempted, {
+        commentDocId: unattempted[i]._id,
+      });
+
+      const isAlreadyTarget =
+        detectedSourceLanguage === args.targetLanguage ||
+        levenshtein(translatedText.toLowerCase(), unattempted[i].comment.toLowerCase()) < 2;
+
+      if (isAlreadyTarget) {
+        await ctx.runMutation(internal.translation.patchLanguage, {
+          commentDocId: unattempted[i]._id,
+          detectedLanguage: args.targetLanguage,
+        });
+      } else {
+        await ctx.runMutation(internal.translation.patchTranslation, {
+          commentDocId: unattempted[i]._id,
+          translatedText,
+        });
+        if (detectedSourceLanguage) {
+          await ctx.runMutation(internal.translation.patchLanguage, {
+            commentDocId: unattempted[i]._id,
+            detectedLanguage: detectedSourceLanguage,
+          });
+        }
+      }
+    }
+  },
+});
+
 export const backfillLanguageDetection = action({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -242,6 +328,26 @@ export const getCommentByUserAndId = internalQuery({
         q.eq("userId", args.userId).eq("commentId", args.commentId),
       )
       .unique();
+  },
+});
+
+export const getCommentsByUserAndIds = internalQuery({
+  args: {
+    userId: v.id("users"),
+    commentIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const results = await Promise.all(
+      args.commentIds.map((commentId) =>
+        ctx.db
+          .query("comments")
+          .withIndex("by_user_and_comment_id", (q) =>
+            q.eq("userId", args.userId).eq("commentId", commentId),
+          )
+          .unique(),
+      ),
+    );
+    return results.filter((c) => c != null);
   },
 });
 
